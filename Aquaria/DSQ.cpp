@@ -821,7 +821,7 @@ void DSQ::setVersionLabelText()
 #endif
 
 	std::ostringstream os;
-	os << "Aquaria";
+	os << "Aquaria Lightburst Build";
 
 #ifdef AQUARIA_DEMO
 	os << " Demo";
