@@ -804,5 +804,12 @@ ADD_EXECUTABLE(aquaria ${EXETYPE}
 )
 TARGET_LINK_LIBRARIES(aquaria ${OPTIONAL_LIBS})
 
+execute_process(
+        COMMAND bash -c "cd /home/alex/Desktop/Aquaria/source/cmake-build-debug"
+        COMMAND bash -c "rm ../../Aquaria/aquaria"
+        COMMAND bash -c "mv aquaria ../../Aquaria/aquaria"
+        COMMAND bash -c "ln -s ../../Aquaria/aquaria aquaria"
+)
+
 # end of CMakeLists.txt ...
 
