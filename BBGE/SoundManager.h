@@ -62,7 +62,8 @@ enum SoundFadeType
 	SFT_NONE	= -1,
 	SFT_IN		= 0,
 	SFT_CROSS	= 1,
-	SFT_OUT		= 2
+	SFT_OUT		= 2,
+    SFT_DYNAMIC = 3
 };
 
 enum SoundConditionType
@@ -114,7 +115,7 @@ public:
 
 	void stopAll();
 
-	void setChannelVolume(void *chan, float v);
+    void setChannelVolume(int channel, float v);
 
 	void loadSoundCache(const std::string &spath="sfx/cache/", const std::string &ftype=".ogg", void progressCallback()=NULL);
 
@@ -132,7 +133,10 @@ public:
 	void *playSfx(const std::string &name, float vol=1);
 
 	bool playMusic(const std::string &name, SoundLoopType=SLT_NORMAL, SoundFadeType sft=SFT_NONE, float trans=0, SoundConditionType sct=SCT_NORMAL);
-	bool playVoice(const std::string &name, SoundVoiceType=SVT_QUEUE, float vmod=-1);
+    bool playDynamicMusic(std::vector<std::string> names, SoundLoopType slt, SoundFadeType sft, float trans, SoundConditionType sct=SCT_NORMAL);
+    bool stressDynamicMusic(int amount = 1);
+    bool relaxDynamicMusic (int amount = 1);
+    bool playVoice(const std::string &name, SoundVoiceType=SVT_QUEUE, float vmod=-1);
 
 	float getMusicFader();
 	float getVoxFader();
@@ -172,9 +176,9 @@ public:
 
 	void setVoiceFader(float v);
 
-	void setMusicFader(float v, float t=0);
+    void setMusicFader(float v, float t=0, int channel=0);
 
-	void setMusicVolume(float v);
+    void setMusicVolume(float v);
 	void setSfxVolume(float v);
 	void setVoiceVolume(float v);
 
@@ -231,6 +235,9 @@ private:
 	// sound voice music
 	InterpolatedVector voxVol;
 	InterpolatedVector musVol;
+    std::vector<InterpolatedVector> dynVols;
+    int dynMusicLayers;
+    int dynLevel;
 	float sfxVol;
 	float voiceFader, sfxFader;
 

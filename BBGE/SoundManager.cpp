@@ -39,6 +39,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef BBGE_BUILD_FMODEX
 #endif
 
+#define MAX_DYNAMIC_LAYERS 5
+
+
 SoundManager *sound = 0;
 
 std::string soundPath = "sfx/cache/";
@@ -57,10 +60,12 @@ namespace SoundCore
 	FMOD_RESULT result;
 	FMOD::System *system=0;
 
-	FMOD::Sound *musicStream=0, *voiceStream=0, *musicStream2=0;
+    FMOD::Sound *musicStream=0, *voiceStream=0, *tempMusic=0;
+    std::vector<FMOD::Sound*> dynMusicStream;
 
-	FMOD::Channel *musicChannel=0, *musicChannel2=0;
-	FMOD::Channel *voiceChannel=0;
+    FMOD::Channel *musicChannel=0, *tempMusicChannel=0;
+    std::vector<FMOD::Channel*> dynMusicChannel;
+    FMOD::Channel *voiceChannel=0;
 
 	FMOD::ChannelGroup *group_vox = 0;
 	FMOD::ChannelGroup *group_sfx = 0;
@@ -286,6 +291,12 @@ SoundManager::SoundManager(const std::string &defaultDevice)
 
 	loadProgressCallback = NULL;
 
+    for(int i=0;i<MAX_DYNAMIC_LAYERS;i++) {
+        dynMusicStream.push_back(0);
+        dynMusicChannel.push_back(0);
+        dynVols.push_back(Vector(1,1,1));
+    }
+
 #ifdef BBGE_BUILD_FMODEX
 
 	int channels	= 128;
@@ -473,12 +484,12 @@ std::string SoundManager::getVolumeString()
 	if (group_mus)
 		group_mus->getVolume(&musicGroupVol);
 
-	float musicChannel2Vol = -1;
-	if (musicChannel2)
-		musicChannel2->getVolume(&musicChannel2Vol);
+    float tempMusicChannelVol = -1;
+    if (tempMusicChannel)
+        tempMusicChannel->getVolume(&tempMusicChannelVol);
 
-	os << "curMusVol (c1/c2/g): " << musicChannelVol << " " << musicChannel2Vol << " " << musicGroupVol << std::endl;
-	return os.str();
+    os << "curMusVol (c1/c2/g): " << musicChannelVol << " " << tempMusicChannelVol << " " << musicGroupVol << std::endl;
+    return os.str();
 }
 
 float SoundManager::getMusicFader()
@@ -491,9 +502,16 @@ float SoundManager::getVoxFader()
 	return voxVol.y;
 }
 
-void SoundManager::setChannelVolume(void *chan, float v)
+void SoundManager::setChannelVolume(int channel, float v)
 {
-	// is this now unused?
+    if(channel == 0) {
+        musVol.y = v;
+    }
+    else {
+        if(dynVols[channel-1].y > 0) {
+            dynVols[channel-1].y = v;
+        }
+    }
 }
 
 void SoundManager::setOverrideVoiceFader(float v)
@@ -501,7 +519,7 @@ void SoundManager::setOverrideVoiceFader(float v)
 	overrideVoiceFader = v;
 }
 
-void SoundManager::setMusicFader(float v, float t)
+void SoundManager::setMusicFader(float v, float t, int channel)
 {
 	// ignore fades if the music is already on its way to fading out to 0
 	if (v != 0 && musVol.data && musVol.data->target.y == 0 && musVol.y > 0)
@@ -515,7 +533,12 @@ void SoundManager::setMusicFader(float v, float t)
 	debugLog(os.str());
 	*/
 
-	musVol.interpolateTo(Vector(musVol.x, v, musVol.z), t);
+    if(channel == 0) {
+        musVol.interpolateTo(Vector(musVol.x, v, musVol.z), t);
+    }
+    else {
+        dynVols[channel-1].interpolateTo(Vector(dynVols[channel-1].x, v, dynVols[channel-1].z), t);
+    }
 
 #ifdef BBGE_BUILD_FMODEX
 	/*
@@ -646,6 +669,9 @@ void SoundManager::update(float dt)
 
 	voxVol.update(dt);
 	musVol.update(dt);
+    for(int i=0; i<dynVols.size(); i++) {
+        dynVols[i].update(dt);
+    }
 
 
 #ifdef BBGE_BUILD_FMODEX
@@ -680,6 +706,13 @@ void SoundManager::update(float dt)
 			stopMusicOnFadeOut = false;
 		}
 	}
+    if(dynMusicChannel[0]) {
+        for(int i=0; i<dynMusicChannel.size(); i++) {
+            result = dynMusicChannel[i]->setVolume(dynVols[i].y*1.0f);
+            //debugLog("dynVolume["+std::to_string(i)+"] updated to " + std::to_string(dynVols[i].y));
+            //checkError();
+        }
+    }
 
 	if (group_sfx)
 	{
@@ -687,26 +720,26 @@ void SoundManager::update(float dt)
 	}
 
 
-	// for cross fading
-	if (musicChannel2)
-	{
-		musicFader2Timer -= dt;
-		if (musicFader2Timer < 0) musicFader2Timer = 0;
+    // for cross fading
+    if (tempMusicChannel)
+    {
+        musicFader2Timer -= dt;
+        if (musicFader2Timer < 0) musicFader2Timer = 0;
 
-		musicChannel2->setVolume((musicFader2Timer/musicFader2Time)*musicFader2Volume);
+        tempMusicChannel->setVolume((musicFader2Timer/musicFader2Time)*musicFader2Volume);
 
-		if (musicFader2Timer <= 0)
-		{
-			result = musicChannel2->stop();
-			checkError();
+        if (musicFader2Timer <= 0)
+        {
+            result = tempMusicChannel->stop();
+            checkError();
 
-			result = musicStream2->release();
-			checkError();
+            result = tempMusic->release();
+            checkError();
 
-			musicChannel2 = 0;
-			musicStream2 = 0;
-		}
-	}
+            tempMusicChannel = 0;
+            tempMusic = 0;
+        }
+    }
 
 	if (!fadeChs.empty())
 	{
@@ -772,23 +805,23 @@ void SoundManager::fadeMusic(SoundFadeType sft, float t)
 	case SFT_CROSS:
 	{
 #ifdef BBGE_BUILD_FMODEX
-		if (musicChannel2)
-		{
-			musicChannel2->stop();
-			if (musicStream2)
-			{
-				musicStream2->release();
-				musicStream2 = 0;
-			}
-			musicChannel2 = 0;
-		}
+        if (tempMusicChannel)
+        {
+            tempMusicChannel->stop();
+            if (tempMusic)
+            {
+                tempMusic->release();
+                tempMusic = 0;
+            }
+            tempMusicChannel = 0;
+        }
 
-		musicChannel2 = musicChannel;
-		musicStream2 = musicStream;
-		musicStream = 0;
-		musicChannel = 0;
-		musicFader2Volume = musVol.y;
-		musicFader2Time = musicFader2Timer = t;
+        tempMusicChannel = musicChannel;
+        tempMusic = musicStream;
+        musicStream = 0;
+        musicChannel = 0;
+        musicFader2Volume = musVol.y;
+        musicFader2Time = musicFader2Timer = t;
 
 #endif
 
@@ -1212,6 +1245,17 @@ bool SoundManager::playMusic(const std::string &name, SoundLoopType slt, SoundFa
 
 	if (!enabled) return false;
 
+    for(int i=0;i<dynMusicChannel.size();i++) {
+        dynMusicChannel[i]->stop();
+        dynMusicChannel[i] = 0;
+    }
+    if(dynMusicStream[0]) {
+        for(int i=0;i<dynMusicStream.size();i++) {
+            dynMusicStream[i]->release();
+            dynMusicStream[i] = 0;
+        }
+    }
+    dynMusicLayers = 0;
 
 	if (sct == SCT_ISNOTPLAYING && isPlayingMusic())
 	{
@@ -1254,20 +1298,29 @@ bool SoundManager::playMusic(const std::string &name, SoundLoopType slt, SoundFa
 		fadeMusic(SFT_CROSS, trans);
 	}
 
-	if (musicStream)
-	{
-		musicStream->release();
-		musicStream = 0;
-	}
+    if (musicStream) {
+        musicStream->release();
+        musicStream = 0;
+        if(dynMusicStream[0]) {
+            for(int i=0;i<dynMusicStream.size();i++) {
+                dynMusicStream[i]->release();
+                dynMusicStream[i] = 0;
+            }
+        }
+    }
 
-	if (musicChannel)
-	{
-		if (sft == SFT_IN)
-		{
-			musicChannel->stop();  // we're fading in music but didn't stop the old one?
-		}
-		musicChannel = 0;
-	}
+    if (musicChannel) {
+        if (sft == SFT_IN){
+            musicChannel->stop();  // we're fading in music but didn't stop the old one?
+        }
+        musicChannel = 0;
+        if(dynMusicChannel[0]) {
+            for(int i=0;i<dynMusicChannel.size();i++) {
+                dynMusicChannel[i]->stop();
+                dynMusicChannel[i] = 0;
+            }
+        }
+    }
 
 	// FMOD_DEFAULT uses the defaults.  These are the same as FMOD_LOOP_OFF | FMOD_2D | FMOD_HARDWARE.
 
@@ -1347,17 +1400,264 @@ bool SoundManager::playMusic(const std::string &name, SoundLoopType slt, SoundFa
 }
 
 
+bool SoundManager::playDynamicMusic(std::vector<std::string> names, SoundLoopType slt, SoundFadeType sft, float trans, SoundConditionType sct)
+{
+    debugLog("playDynamicMusic: ");
+    for(std::string name : names) {
+        debugLog(name);
+    }
+
+    if (!enabled) return false;
+
+
+    if (sct == SCT_ISNOTPLAYING && isPlayingMusic()) {
+        if (isPlayingMusic(names[0])) {
+            return false;
+        }
+    }
+
+    std::vector<std::string> fileNames;
+    std::string fileName = "";
+    for(std::string name : names) {
+        int i=0;
+        fileName = "";
+        if (!name.empty() && name[0] == '.') {
+            fileName = name;
+        }
+        else {
+            if (!audioPath2.empty()) {
+                fileName = audioPath2 + name + fileType;
+                if (!exists(fileName)) {
+                    fileName = musicPath + name + fileType;
+                }
+            }
+            else {
+                fileName = musicPath + name + fileType;
+            }
+        }
+
+        fileName = core->adjustFilenameCase(fileName);
+        fileNames.push_back(fileName);
+        i++;
+    }
+    debugLog("fadeMusic ended");
+
+
+    lastMusic = "Worship1";
+    stringToLower(lastMusic);
+
+
+    if (sft == SFT_CROSS) {
+        fadeMusic(SFT_CROSS, trans);
+    }
+
+
+    if (musicStream) {
+        musicStream->release();
+        musicStream = 0;
+        if(dynMusicStream[0]) {
+            for(int i=0;i<dynMusicStream.size();i++) {
+                dynMusicStream[i]->release();
+                dynMusicStream[i] = 0;
+            }
+        }
+    }
+    debugLog("musicStream Release");
+
+    if (musicChannel) {
+        if (sft == SFT_IN){
+            musicChannel->stop();  // we're fading in music but didn't stop the old one?
+            if(dynMusicChannel[0]) {
+                for(int i=0;i<dynMusicChannel.size();i++) {
+                    dynMusicChannel[i]->stop();
+                }
+            }
+        }
+        musicChannel = 0;
+        if(dynMusicChannel[0]) {
+            for(int i=0;i<dynMusicChannel.size();i++) {
+                dynMusicChannel[i] = 0;
+            }
+        }
+    }
+    debugLog("musicChannel Release");
+
+    // FMOD_DEFAULT uses the defaults.  These are the same as FMOD_LOOP_OFF | FMOD_2D | FMOD_HARDWARE.
+
+    FMOD_MODE mode=0;
+
+    ///FMOD_DEFAULT;////mode = FMOD_2D | FMOD_SOFTWARE;
+
+    mode = FMOD_2D | FMOD_SOFTWARE | FMOD_CREATESTREAM;
+
+
+    switch(slt)
+    {
+        case SLT_OFF:
+        case SLT_NONE:
+            mode |= FMOD_LOOP_OFF;
+            playingMusicOnce = true;
+            break;
+        default:
+            mode |= FMOD_LOOP_NORMAL;
+            playingMusicOnce = false;
+            break;
+    }
+
+    stopMusicOnFadeOut = false;
+    musVol.stop();
+
+    for(int i=0;i<fileNames.size();i++) {
+        if(i==0) {
+            result = SoundCore::system->createStream(fileNames[i].c_str(), mode, 0, &musicStream);
+            debugLog("main stream create");
+        }
+        else {
+            result = SoundCore::system->createStream(fileNames[i].c_str(), mode, 0, &dynMusicStream[i-1]);
+            debugLog("extra stream");
+        }
+    }
+    if (checkError()) {
+        debugLog("ERROR: Stream creation");
+        musicStream = 0;
+        for(int i=0;i<dynMusicStream.size();i++) {
+            dynMusicStream[i] = 0;
+        }
+    }
+
+    if (musicStream)
+    {
+        result = SoundCore::system->playSound(FMOD_CHANNEL_FREE, musicStream, true, &musicChannel);
+        for(int i=0;i<dynMusicStream.size();i++) {
+            if (dynMusicStream[i])  {
+                result = SoundCore::system->playSound(FMOD_CHANNEL_FREE, dynMusicStream[i], true, &dynMusicChannel[i]);
+            }
+        }
+        checkError();
+
+        result = musicChannel->setChannelGroup(group_mus);
+        for(int i=0;i<dynMusicStream.size();i++) {
+            result = dynMusicChannel[i]->setChannelGroup(group_mus);
+        }
+        checkError();
+
+        result = musicChannel->setPriority(0); // should be highest priority (according to the docs)
+        for(int i=0;i<dynMusicStream.size();i++) {
+            result = dynMusicChannel[i]->setPriority(0);
+        }
+        checkError();
+
+        if (sft == SFT_IN || sft == SFT_CROSS) {
+            setMusicFader(0);
+            setMusicFader(1,trans);
+
+            result = musicChannel->setVolume(0);
+            checkError();
+        }
+        else {
+            setMusicFader(1,0);
+            result = musicChannel->setVolume(musVol.y);
+            checkError();
+        }
+        debugLog("playSound");
+
+        musicChannel->setFrequency(1); // in case the channel was used by a pitch-shifted sound before
+        musicChannel->setCallback(NULL);
+        musicChannel->setUserData(NULL);
+        musicChannel->set3DMinMaxDistance(0.0f, 0.0f); // disable attenuation
+        setSoundRelative(musicChannel, true);
+        setSoundPos(musicChannel, 0, 0);
+        for(int i=0;i<dynMusicStream.size();i++) {
+            dynMusicChannel[i]->setFrequency(1);
+            dynMusicChannel[i]->setCallback(NULL);
+            dynMusicChannel[i]->setUserData(NULL);
+            dynMusicChannel[i]->set3DMinMaxDistance(0.0f, 0.0f);
+            setSoundRelative(dynMusicChannel[i], true);
+            setSoundPos(dynMusicChannel[i], 0, 0);
+        }
+        debugLog("play setup");
+
+        dynMusicLayers = names.size();
+        result = musicChannel->setPaused(false);		// This is where the sound really starts.
+        for(int i=0;i<dynMusicStream.size();i++) {
+            dynMusicChannel[i]->setPaused(false);
+        }
+        checkError();
+        debugLog("music play: " + fileName);
+
+        for(int i=0;i<dynMusicStream.size();i++) {
+            dynVols[i].y = 0;
+            dynMusicChannel[i]->setVolume(0);
+        }
+        dynLevel = 1;
+    }
+    else {
+        debugLog("Failed to create music stream: " + fileName);
+    }
+
+    return true;
+}
+
+
+bool SoundManager::stressDynamicMusic(int amount)
+{
+    int oldDynLevel = dynLevel;
+    if(amount <= 0 || dynMusicLayers==0)  { return false; }
+    if(amount+dynLevel > dynMusicLayers)  { dynLevel = dynMusicLayers; }
+    else                                  { dynLevel += amount; }
+
+    for(int i=oldDynLevel-1; i<dynLevel-1; i++) {
+        //dynMusicChannel[i]->setVolume(1);
+        setMusicFader(1, 1, i+1);
+        debugLog("setVol channel[" + std::to_string(i) + "] active");
+    }
+
+    if(checkError()) { return false; }
+    return true;
+}
+
+bool SoundManager::relaxDynamicMusic(int amount)
+{
+    int oldDynLevel = dynLevel;
+    if(amount <= 0 || dynMusicLayers==0) { return false; }
+    if(dynLevel-amount <= 0)             { dynLevel = 1; }
+    else                                 { dynLevel -= amount; }
+
+    for(int i=oldDynLevel-2; i>=dynLevel-1; i--) {
+        //dynMusicChannel[i]->setVolume(0);
+        setMusicFader(0, 1, i+1);
+        debugLog("setVol channel[" + std::to_string(i) + "] down");
+    }
+
+    if(checkError()) { return false; }
+    return true;
+}
+
+
 void SoundManager::stopMusic()
 {
+    dynMusicLayers = 0;
 #ifdef BBGE_BUILD_FMODEX
 	if (musicChannel)
 	{
 		musicChannel->stop();
 		checkError();
+        if(dynMusicChannel[0]) {
+            for(int i=0;i<dynMusicChannel.size();i++) {
+                dynMusicChannel[i]->stop();
+                dynMusicChannel[i] = 0;
+            }
+        }
 		if (musicStream)
 		{
 			musicStream->release();
 			checkError();
+            if(dynMusicStream[0]) {
+                for(int i=0;i<dynMusicStream.size();i++) {
+                    dynMusicStream[i]->release();
+                    dynMusicStream[i] = 0;
+                }
+            }
 		}
 		musicStream = 0;
 		musicChannel = 0;

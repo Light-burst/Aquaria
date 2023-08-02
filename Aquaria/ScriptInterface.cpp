@@ -6665,6 +6665,31 @@ luaFunc(playMusic)
 	luaReturnNil();
 }
 
+luaFunc(playMusicDynamic)
+{
+    float crossfadeTime = 0.8f;
+    int numLayers = lua_tonumber(L, 1);
+    std::vector<std::string> musicLayers;
+    for(int i=0;i<numLayers;i++) {
+        debugLog(getString(L, i+2));
+        musicLayers.push_back(getString(L, i+2));
+    }
+    dsq->sound->playDynamicMusic(musicLayers, SLT_LOOP, SFT_CROSS, crossfadeTime);
+    luaReturnNil();
+}
+
+luaFunc(stressDynamicMusic)
+{
+    dsq->sound->stressDynamicMusic();
+    luaReturnNil();
+}
+
+luaFunc(relaxDynamicMusic)
+{
+    dsq->sound->relaxDynamicMusic();
+    luaReturnNil();
+}
+
 luaFunc(playMusicStraight)
 {
 	dsq->sound->setMusicFader(1,0);
@@ -8413,6 +8438,12 @@ luaFunc(musicVolume)
 	luaReturnNil();
 }
 
+luaFunc(channelVolume)
+{
+    dsq->sound->setChannelVolume(lua_tonumber(L, 1), lua_tonumber(L, 2));
+    luaReturnNil();
+}
+
 luaFunc(voice)
 {
 	float vmod = lua_tonumber(L, 2);
@@ -9806,6 +9837,9 @@ static const struct {
 	luaRegister(setNumSuckPositions),
 	luaRegister(setupBasicEntity),
 	luaRegister(playMusic),
+    luaRegister(playMusicDynamic),
+    luaRegister(stressDynamicMusic),
+    luaRegister(relaxDynamicMusic),
 	luaRegister(playMusicStraight),
 	luaRegister(stopMusic),
 
@@ -9916,6 +9950,7 @@ static const struct {
 	luaRegister(vision),
 
 	luaRegister(musicVolume),
+    luaRegister(channelVolume),
 
 	luaRegister(voice),
 	luaRegister(voiceOnce),
