@@ -470,21 +470,18 @@ void SoundManager::setOverrideVoiceFader(float v)
 
 void SoundManager::setMusicFader(float v, float t, int channel)
 {
-	// ignore fades if the music is already on its way to fading out to 0
-	if (v != 0 && musVol.data && musVol.data->target.y == 0 && musVol.y > 0)
-	{
-		return;
-	}
+    // ignore fades if the music is already on its way to fading out to 0
+    if (v != 0 && musVol.data && musVol.data->target.y == 0 && musVol.y > 0) {
+        return;
+    }
 
 
-
-    if(channel == 0) {
+    if (channel == 0) {
         musVol.interpolateTo(Vector(musVol.x, v, musVol.z), t);
+    } else {
+        dynVols[channel - 1].interpolateTo(Vector(dynVols[channel - 1].x, v, dynVols[channel - 1].z), t);
     }
-    else {
-        dynVols[channel-1].interpolateTo(Vector(dynVols[channel-1].x, v, dynVols[channel-1].z), t);
-    }
-
+}
 
 void SoundManager::error(const std::string &errMsg)
 {
@@ -1311,7 +1308,7 @@ bool SoundManager::playDynamicMusic(std::vector<std::string> names, SoundLoopTyp
             }
         }
 
-        fileName = core->adjustFilenameCase(fileName);
+        fileName = adjustFilenameCase(fileName);
         fileNames.push_back(fileName);
         i++;
     }
@@ -1946,4 +1943,3 @@ void SoundHolder::unlinkAllSounds()
 	while(activeSounds.size())
 		unlinkSound(*activeSounds.begin());
 }
-

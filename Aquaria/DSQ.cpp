@@ -54,6 +54,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <dirent.h>
 #include <fcntl.h>
 
+//#define CLION_DEBUG
+
 static void Linux_CopyTree(const char *src, const char *dst)
 {
 
@@ -1359,8 +1361,10 @@ void DSQ::init()
 	else
 		afterEffectManager = 0;
 
-	bindInput();
-	setInputGrab(user.system.grabInput);
+//#ifdef CLION_DEBUG
+	//bindInput();
+	//setInputGrab(user.system.grabInput);
+//#endif
 
 	// Go directly to the title in dev mode
 	if(isDeveloperKeys())

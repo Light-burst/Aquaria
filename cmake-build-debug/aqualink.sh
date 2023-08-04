@@ -1,4 +1,4 @@
-cd /home/alex/Desktop/Aquaria/source/cmake-build-debug
+cd /home/alex/Desktop/Aquaria/source/cmake-build-debug/Aquaria
 if [ -L aquaria ];
 then
 	exit

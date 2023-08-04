@@ -281,7 +281,7 @@ Core::Core(const std::string &filesystem, const std::string& extraDataDir, int n
 	window = NULL;
 	sound = NULL;
 	_extraDataDir = extraDataDir;
-	sdlUserMouseEventID = SDL_RegisterEvents(1);
+	sdlUserMouseEventID = 1;
 
 	if (userDataSubFolder.empty())
 		userDataSubFolder = appName;
