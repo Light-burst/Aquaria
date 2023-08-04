@@ -6678,6 +6678,19 @@ luaFunc(playMusicDynamic)
     luaReturnNil();
 }
 
+luaFunc(playSwitch)
+{
+    int sw = lua_tonumber(L, 1);
+
+    if(dsq->sound->mode != MODE_SWITCH) {
+        dsq->sound->playSwitch(sw);
+    }
+    else {
+        dsq->sound->playSwitch();
+    }
+    luaReturnNil();
+}
+
 luaFunc(stressDynamicMusic)
 {
     dsq->sound->stressDynamicMusic();
@@ -9838,6 +9851,7 @@ static const struct {
 	luaRegister(setupBasicEntity),
 	luaRegister(playMusic),
     luaRegister(playMusicDynamic),
+          luaRegister(playSwitch),
     luaRegister(stressDynamicMusic),
     luaRegister(relaxDynamicMusic),
 	luaRegister(playMusicStraight),

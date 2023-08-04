@@ -291,6 +291,7 @@ SoundManager::SoundManager(const std::string &defaultDevice)
 
 	loadProgressCallback = NULL;
 
+    mode = MODE_SINGLE;
     for(int i=0;i<MAX_DYNAMIC_LAYERS;i++) {
         dynMusicStream.push_back(0);
         dynMusicChannel.push_back(0);
@@ -1245,17 +1246,22 @@ bool SoundManager::playMusic(const std::string &name, SoundLoopType slt, SoundFa
 
 	if (!enabled) return false;
 
-    for(int i=0;i<dynMusicChannel.size();i++) {
-        dynMusicChannel[i]->stop();
-        dynMusicChannel[i] = 0;
-    }
-    if(dynMusicStream[0]) {
+    if(mode == MODE_LAYERED) {
+        for(int i=0;i<dynMusicChannel.size();i++) {
+            dynMusicChannel[i]->stop();
+            dynMusicChannel[i] = 0;
+        }
         for(int i=0;i<dynMusicStream.size();i++) {
             dynMusicStream[i]->release();
             dynMusicStream[i] = 0;
         }
+        dynMusicLayers = 0;
+        mode = MODE_SINGLE;
     }
-    dynMusicLayers = 0;
+    if(mode == MODE_SWITCH) {
+        // Go from switch to single
+        mode = MODE_SINGLE;
+    }
 
 	if (sct == SCT_ISNOTPLAYING && isPlayingMusic())
 	{
@@ -1301,12 +1307,6 @@ bool SoundManager::playMusic(const std::string &name, SoundLoopType slt, SoundFa
     if (musicStream) {
         musicStream->release();
         musicStream = 0;
-        if(dynMusicStream[0]) {
-            for(int i=0;i<dynMusicStream.size();i++) {
-                dynMusicStream[i]->release();
-                dynMusicStream[i] = 0;
-            }
-        }
     }
 
     if (musicChannel) {
@@ -1314,12 +1314,6 @@ bool SoundManager::playMusic(const std::string &name, SoundLoopType slt, SoundFa
             musicChannel->stop();  // we're fading in music but didn't stop the old one?
         }
         musicChannel = 0;
-        if(dynMusicChannel[0]) {
-            for(int i=0;i<dynMusicChannel.size();i++) {
-                dynMusicChannel[i]->stop();
-                dynMusicChannel[i] = 0;
-            }
-        }
     }
 
 	// FMOD_DEFAULT uses the defaults.  These are the same as FMOD_LOOP_OFF | FMOD_2D | FMOD_HARDWARE.
@@ -1352,8 +1346,6 @@ bool SoundManager::playMusic(const std::string &name, SoundLoopType slt, SoundFa
 
 	if (musicStream)
 	{
-		
-
 		result = SoundCore::system->playSound(FMOD_CHANNEL_FREE, musicStream, true, &musicChannel);
 		checkError();
 
@@ -1403,6 +1395,15 @@ bool SoundManager::playMusic(const std::string &name, SoundLoopType slt, SoundFa
 bool SoundManager::playDynamicMusic(std::vector<std::string> names, SoundLoopType slt, SoundFadeType sft, float trans, SoundConditionType sct)
 {
     debugLog("playDynamicMusic: ");
+
+    if(mode == MODE_SINGLE) {
+        mode = MODE_LAYERED;
+    }
+    if(mode == MODE_SWITCH) {
+        // Go from switch to layered
+        mode = MODE_LAYERED;
+    }
+
     for(std::string name : names) {
         debugLog(name);
     }
@@ -1599,8 +1600,51 @@ bool SoundManager::playDynamicMusic(std::vector<std::string> names, SoundLoopTyp
 }
 
 
+bool SoundManager::playSwitch(bool choice)
+{
+    if(mode == MODE_SINGLE) { return false; }
+    if(mode == MODE_LAYERED) {
+        for(int i=0; i<dynMusicChannel.size(); i++) {
+            setMusicFader(0, 1, i+1);
+            debugLog("setVol channel[" + std::to_string(i) + "] down");
+        }
+        mode = MODE_SWITCH;
+    }
+
+    if(choice) {
+        swtch = 1;
+        setMusicFader(1, 1, 2);
+        debugLog("setVol channel[" + std::to_string(2) + "] up");
+    }
+    else {
+        swtch = 0;
+        setMusicFader(1, 1, 1);
+        debugLog("setVol channel[" + std::to_string(1) + "] up");
+    }
+}
+
+
+bool SoundManager::playSwitch()
+{
+    if(mode != MODE_SWITCH) { return false; }
+
+    if(swtch==0) {
+        setMusicFader(0, 1, 1);
+        setMusicFader(1, 1, 2);
+        swtch = 1;
+    }
+    else {
+        setMusicFader(0, 1, 2);
+        setMusicFader(1, 1, 1);
+        swtch = 0;
+    }
+}
+
+
 bool SoundManager::stressDynamicMusic(int amount)
 {
+    if(mode != MODE_LAYERED) { return false; }
+
     int oldDynLevel = dynLevel;
     if(amount <= 0 || dynMusicLayers==0)  { return false; }
     if(amount+dynLevel > dynMusicLayers)  { dynLevel = dynMusicLayers; }
@@ -1618,6 +1662,8 @@ bool SoundManager::stressDynamicMusic(int amount)
 
 bool SoundManager::relaxDynamicMusic(int amount)
 {
+    if(mode != MODE_LAYERED) { return false; }
+
     int oldDynLevel = dynLevel;
     if(amount <= 0 || dynMusicLayers==0) { return false; }
     if(dynLevel-amount <= 0)             { dynLevel = 1; }

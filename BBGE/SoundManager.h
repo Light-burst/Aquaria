@@ -85,6 +85,14 @@ enum SoundLoadType
 	SFXLOAD_LOCAL		= 1
 };
 
+enum SoundMode
+{
+    MODE_SINGLE		    = 0,
+    MODE_LAYERED		= 1,
+    MODE_SWITCH         = 2
+};
+
+
 struct PlaySfx
 {
 	PlaySfx() : priority(0.5), handle(0), vol(1), fade(SFT_NONE),
@@ -134,6 +142,8 @@ public:
 
 	bool playMusic(const std::string &name, SoundLoopType=SLT_NORMAL, SoundFadeType sft=SFT_NONE, float trans=0, SoundConditionType sct=SCT_NORMAL);
     bool playDynamicMusic(std::vector<std::string> names, SoundLoopType slt, SoundFadeType sft, float trans, SoundConditionType sct=SCT_NORMAL);
+    bool playSwitch(bool choice);
+    bool playSwitch();
     bool stressDynamicMusic(int amount = 1);
     bool relaxDynamicMusic (int amount = 1);
     bool playVoice(const std::string &name, SoundVoiceType=SVT_QUEUE, float vmod=-1);
@@ -227,7 +237,11 @@ public:
 	void getStats(int *curAlloc, int *maxAlloc);
 
 	std::string reverbKeyword;
+
+    SoundMode mode;
 private:
+    int swtch;
+
 
 	std::string voicePath2;
 
