@@ -18,26 +18,27 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#include "States.h"
+
+#include "AnimationEditor.h"
+#include "DSQ.h"
 #include "AquariaMenuItem.h"
 #include "../BBGE/Gradient.h"
 #include "../BBGE/DebugFont.h"
+#include "RenderBase.h"
 #include "Game.h"
-
-
-#ifdef AQUARIA_BUILD_SCENEEDITOR  // Through end of file
+#include "SplineGrid.h"
+#include "RenderGrid.h"
 
 
 int TIMELINE_GRIDSIZE		= 10;
-float TIMELINE_UNIT			= 0.1;
-float TIMELINE_UNIT_STEP	= 0.01;
+float TIMELINE_UNIT			= 0.1f;
+float TIMELINE_UNIT_STEP	= 0.01f;
 const int KEYFRAME_POS_Y	= 570;
 
 class TimelineRender : public RenderObject
 {
-	void onRender()
+	void onRender(const RenderState& rs) const OVERRIDE
 	{
-#ifdef BBGE_BUILD_OPENGL
 		glLineWidth(1);
 		glBegin(GL_LINES);
 		glColor4f(1, 1, 1, 1);
@@ -47,7 +48,6 @@ class TimelineRender : public RenderObject
 			glVertex3f(x, 5, 0);
 		}
 		glEnd();
-#endif
 	}
 };
 
@@ -78,7 +78,7 @@ KeyframeWidget::KeyframeWidget(int key) : Quad()
 {
 	setTexture("keyframe");
 	setWidthHeight(15, 30);
-	b = new BitmapText(&dsq->smallFont);
+	b = new BitmapText(dsq->smallFont);
 	b->position = Vector(1, -15);
 	b->setFontSize(12);
 	addChild(b, PM_POINTER);
@@ -89,22 +89,18 @@ KeyframeWidget::KeyframeWidget(int key) : Quad()
 void KeyframeWidget::shiftLeft()
 {
 	if (!offset.isInterpolating())
-		offset.interpolateTo(Vector(offset.x-80, 0), 0.1, 0, 0, 0);
+		offset.interpolateTo(Vector(offset.x-80, 0), 0.1f, 0, 0, 0);
 }
 
 void KeyframeWidget::shiftRight()
 {
 	if (!offset.isInterpolating())
-		offset.interpolateTo(Vector(offset.x+80, 0), 0.1, 0, 0, 0);
+		offset.interpolateTo(Vector(offset.x+80, 0), 0.1f, 0, 0, 0);
 }
 
 void KeyframeWidget::onUpdate(float dt)
 {
-	/*
-		if (this->key == ae->currentKey)
-			color = Vector(0.75, 0.75, 1);
-		else
-	*/
+
 	Quad::onUpdate(dt);
 	if (life != 1 || ae->editSprite->isAnimating()) return;
 	switch(ae->editSprite->getCurrentAnimation()->getKeyframe(this->key)->lerpType)
@@ -139,7 +135,7 @@ void KeyframeWidget::onUpdate(float dt)
 	{
 		if (core->mouse.buttons.left)
 		{
-			//ae->selectionLocked = false;
+
 			movingWidget = this;
 			ae->currentKey = this->key;
 		}
@@ -204,6 +200,7 @@ void AnimationEditor::cycleLerpType()
 AnimationEditor::AnimationEditor() : StateObject()
 {
 	registerState(this, "AnimationEditor");
+
 }
 
 void AnimationEditor::resetScaleOrSave()
@@ -218,31 +215,31 @@ void AnimationEditor::resetScaleOrSave()
 
 void AnimationEditor::applyState()
 {
-	dsq->toggleCursor(true, 0.1);
+	dsq->toggleCursor(true, 0.1f);
 	core->cameraPos = Vector(0,0);
 	editingStrip = false;
 	selectedStripPoint = 0;
 	mouseSelection = true;
 	editingFile = "Naija";
-	renderBorders = false;
+	renderBorderMode = RENDER_BORDER_MINIMAL;
 	ae = this;
 	StateObject::applyState();
 	boneEdit = 0;
 	editingBone = 0;
-
 	currentKey = 0;
+	splinegrid = 0;
 
 	editSprite = new SkeletalSprite();
 	editSprite->cull = false;
 	editSprite->loadSkeletal(editingFile);
 	editSprite->position = Vector(400,300);
-	//editSprite->scale = Vector(0.5, 0.5);
 
-	addAction(MakeFunctionEvent(AnimationEditor, lmbu), ActionMapper::MOUSE_BUTTON_LEFT, 0);
-	addAction(MakeFunctionEvent(AnimationEditor, lmbd), ActionMapper::MOUSE_BUTTON_LEFT, 1);
-	addAction(MakeFunctionEvent(AnimationEditor, rmbu), ActionMapper::MOUSE_BUTTON_RIGHT, 0);
-	addAction(MakeFunctionEvent(AnimationEditor, rmbd), ActionMapper::MOUSE_BUTTON_RIGHT, 1);
-	addAction(MakeFunctionEvent(AnimationEditor, mmbd), ActionMapper::MOUSE_BUTTON_MIDDLE, 1);
+
+	addAction(MakeFunctionEvent(AnimationEditor, lmbu), MOUSE_BUTTON_LEFT, 0);
+	addAction(MakeFunctionEvent(AnimationEditor, lmbd), MOUSE_BUTTON_LEFT, 1);
+	addAction(MakeFunctionEvent(AnimationEditor, rmbu), MOUSE_BUTTON_RIGHT, 0);
+	addAction(MakeFunctionEvent(AnimationEditor, rmbd), MOUSE_BUTTON_RIGHT, 1);
+	addAction(MakeFunctionEvent(AnimationEditor, mmbd), MOUSE_BUTTON_MIDDLE, 1);
 
 
 	addAction(MakeFunctionEvent(AnimationEditor, cloneBoneAhead), KEY_SPACE, 0);
@@ -271,7 +268,7 @@ void AnimationEditor::applyState()
 	addAction(MakeFunctionEvent(AnimationEditor, undo), KEY_Z, 0);
 	addAction(MakeFunctionEvent(AnimationEditor, redo), KEY_Y, 0);
 
-	//addAction(MakeFunctionEvent(AnimationEditor, lockSelection), KEY_L, 0);
+
 	addAction(MakeFunctionEvent(AnimationEditor, cycleLerpType), KEY_L, 0);
 
 	addAction(MakeFunctionEvent(AnimationEditor, selectPrevBone), KEY_UP, 0);
@@ -281,6 +278,7 @@ void AnimationEditor::applyState()
 
 	addAction(MakeFunctionEvent(AnimationEditor, prevAnim), KEY_PGUP, 0);
 	addAction(MakeFunctionEvent(AnimationEditor, nextAnim), KEY_PGDN, 0);
+	addAction(MakeFunctionEvent(AnimationEditor, selectAnim), KEY_F9, 0);
 	addAction(MakeFunctionEvent(AnimationEditor, animateOrStop), KEY_RETURN, 0);
 
 	addAction(MakeFunctionEvent(AnimationEditor, toggleRenderBorders), KEY_B, 0);
@@ -294,32 +292,12 @@ void AnimationEditor::applyState()
 
 
 
-	/*
-	addAction("mbl", KEY_A);
-	addAction("mbr", KEY_D);
-	addAction("mbu", KEY_W);
-	addAction("mbd", KEY_S);
-	*/
+	addAction(ACTION_SWIMLEFT,	KEY_J, -1);
+	addAction(ACTION_SWIMRIGHT, KEY_K, -1);
+	addAction(ACTION_SWIMUP,	KEY_UP, -1);
+	addAction(ACTION_SWIMDOWN,	KEY_DOWN, -1);
 
 
-	addAction(ACTION_SWIMLEFT,	KEY_J);
-	addAction(ACTION_SWIMRIGHT, KEY_K);
-	addAction(ACTION_SWIMUP,	KEY_UP);
-	addAction(ACTION_SWIMDOWN,	KEY_DOWN);
-
-	/*
-	addAction(ACTION_BONELEFT,		KEY_NUMPAD4);
-	addAction(ACTION_BONERIGHT,		KEY_NUMPAD6);
-	addAction(ACTION_BONEUP,		KEY_NUMPAD8);
-	addAction(ACTION_BONEDOWN,		KEY_NUMPAD2);
-	*/
-
-	//addAction("", );
-
-	/*
-	addAction(MakeFunctionEvent(AnimationEditor, zoomOut), KEY_NUMPAD2, 0);
-	addAction(MakeFunctionEvent(AnimationEditor, zoomIn), KEY_NUMPAD8, 0);
-	*/
 
 	addRenderObject(editSprite, LR_ENTITIES);
 
@@ -327,14 +305,14 @@ void AnimationEditor::applyState()
 	{
 		back->color = 0;
 		back->setWidthHeight(800, 600);
-		back->position = Vector(400,300, -0.2);
+		back->position = Vector(400,300, -0.2f);
 	}
 	addRenderObject(back, LR_BACKDROP);
 
 	bgGrad = new Gradient;
 	bgGrad->scale = Vector(800, 600);
 	bgGrad->position = Vector(400,300);
-	bgGrad->makeVertical(Vector(0.4, 0.4, 0.4), Vector(0.8, 0.8, 0.8));
+	bgGrad->makeVertical(Vector(0.4f, 0.4f, 0.4f), Vector(0.8f, 0.8f, 0.8f));
 	addRenderObject(bgGrad, LR_BACKDROP);
 
 	DebugButton *a = new DebugButton(0, 0, 150);
@@ -494,13 +472,13 @@ void AnimationEditor::applyState()
 
 	editSprite->setSelectedBone(0);
 
-	dsq->overlay->alpha.interpolateTo(0, 0.5);
+	dsq->overlay->alpha.interpolateTo(0, 0.5f);
 
 	rebuildKeyframeWidgets();
 
 	dsq->resetTimer();
 
-	dsq->toggleCursor(true, 0.1);
+	dsq->toggleCursor(true, 0.1f);
 
 	updateTimelineGrid();
 	updateTimelineUnit();
@@ -529,11 +507,12 @@ void AnimationEditor::undo()
 
 	if (core->getCtrlState())
 	{
-		if (undoEntry >= 0 && undoEntry < undoHistory.size())
+		if (undoEntry < undoHistory.size())
 		{
 			editSprite->animations = undoHistory[undoEntry].animations;
-			undoEntry--;
-			if (undoEntry<0) undoEntry = 0;
+			if(undoEntry > 0) {
+				undoEntry--;
+			}
 		}
 	}
 }
@@ -545,9 +524,8 @@ void AnimationEditor::redo()
 	if (core->getCtrlState())
 	{
 		undoEntry++;
-		if (undoEntry >= 0 && undoEntry < undoHistory.size())
+		if (undoEntry < undoHistory.size())
 		{
-
 			editSprite->animations = undoHistory[undoEntry].animations;
 		}
 		else
@@ -557,9 +535,8 @@ void AnimationEditor::redo()
 	}
 }
 
-void AnimationEditor::action(int id, int state)
+void AnimationEditor::action(int id, int state, int source, InputDevice device)
 {
-	StateObject::action(id, state);
 	if (editingBone && state)
 	{
 		if (dsq->isNested()) return;
@@ -613,18 +590,18 @@ void AnimationEditor::reorderKeys()
 void AnimationEditor::rebuildKeyframeWidgets()
 {
 	int offx=0;
-	for (int i = 0; i < keyframeWidgets.size(); i++)
+	for (size_t i = 0; i < keyframeWidgets.size(); i++)
 	{
-		keyframeWidgets[i]->setLife(0.03);
+		keyframeWidgets[i]->setLife(0.03f);
 		keyframeWidgets[i]->setDecayRate(1);
 		offx = keyframeWidgets[i]->offset.x;
 	}
 	keyframeWidgets.clear();
-	for (int i = 0; i < 1000; i++)
+	if (Animation *a = editSprite->getCurrentAnimation())
 	{
-		if (editSprite->getCurrentAnimation())
+		for (int i = 0; i < 1000; i++)
 		{
-			SkeletalKeyframe *key = editSprite->getCurrentAnimation()->getKeyframe(i);
+			SkeletalKeyframe *key = a->getKeyframe(i);
 			if (!key) break;
 			KeyframeWidget *k = new KeyframeWidget(i);
 			k->offset.x = offx;
@@ -663,42 +640,12 @@ void AnimationEditor::moveBoneStripPoint(const Vector &mov)
 		{
 			if (!sel->changeStrip.empty())
 			{
-				if (b->strip.size() < sel->changeStrip.size())
+				if (b->grid.size() < sel->changeStrip.size())
 				{
-					b->strip.resize(sel->changeStrip.size());
+					b->grid.resize(sel->changeStrip.size());
 				}
 
-				b->strip[selectedStripPoint] = sel->changeStrip[selectedStripPoint] += mov*0.006f;
-				sel->setGridPoints(sel->stripVert, sel->strip);
-				/*
-
-
-				float sz = sel->getStripSegmentSize();
-				for (int i = selectedStripPoint; i > 0; i--)
-				{
-					Vector diff = sel->changeStrip[i] - sel->changeStrip[i-1];
-					if (!diff.isLength2DIn(sz))
-					{
-						diff.setLength2D(sz);
-						sel->changeStrip[i-1] = sel->changeStrip[i] - diff;
-					}
-				}
-				for (int i = selectedStripPoint; i < sel->changeStrip.size()-1; i++)
-				{
-					Vector diff = sel->changeStrip[i] - sel->changeStrip[i+1];
-					if (!diff.isLength2DIn(sz))
-					{
-						diff.setLength2D(sz);
-						sel->changeStrip[i+1] = sel->changeStrip[i] - diff;
-					}
-				}
-
-				b->strip = sel->changeStrip;
-
-
-				*/
-
-				//sel->setStrip(sel->changeStrip);
+				b->grid[selectedStripPoint] = sel->changeStrip[selectedStripPoint] += mov*0.006f;
 			}
 		}
 	}
@@ -710,7 +657,7 @@ void AnimationEditor::selectPrevBone()
 
 	if (editingStrip)
 	{
-		//moveBoneStripPoint(Vector(0, 1));
+
 	}
 	else
 	{
@@ -724,7 +671,7 @@ void AnimationEditor::selectNextBone()
 
 	if (editingStrip)
 	{
-		//moveBoneStripPoint(Vector(0, -1));
+
 	}
 	else
 	{
@@ -735,6 +682,8 @@ void AnimationEditor::selectNextBone()
 void AnimationEditor::update(float dt)
 {
 	StateObject::update(dt);
+	if(!editSprite->getCurrentAnimation())
+		return;
 	std::ostringstream os;
 	os << editingFile;
 	os << " anim[" << editSprite->getCurrentAnimation()->name << "] ";
@@ -746,6 +695,8 @@ void AnimationEditor::update(float dt)
 	}
 
 	Vector ebdata;
+	int pass = 0;
+	int origpass = 0;
 
 	if (editingBone)
 	{
@@ -753,53 +704,60 @@ void AnimationEditor::update(float dt)
 		ebdata.x = editingBone->position.x;
 		ebdata.y = editingBone->position.y;
 		ebdata.z = editingBone->rotation.z;
+		pass = editingBone->getRenderPass();
+		origpass = editingBone->originalRenderPass;
 	}
 	text->setText(os.str());
 
 	char t2buf[128];
-	sprintf(t2buf, "Bone x: %.3f, y: %.3f, rot: %.3f  strip: %d", ebdata.x, ebdata.y, ebdata.z, selectedStripPoint);
+	sprintf(t2buf, "Bone x: %.3f, y: %.3f, rot: %.3f  strip: %u pass: %d (%d)", ebdata.x, ebdata.y, ebdata.z, (unsigned)selectedStripPoint, pass, origpass);
 	text2->setText(t2buf);
+
+	RenderObject *ctrlSprite;
+	if(splinegrid)
+		ctrlSprite = splinegrid;
+	else
+		ctrlSprite = editSprite;
 
 	if (core->mouse.buttons.middle)
 	{
-		editSprite->position += core->mouse.change;
-		//core->setMousePosition(Vector(400,300));
+		ctrlSprite->position += core->mouse.change;
 	}
 
-	if (editingStrip)
+	if (editingStrip && !splinegrid)
 	{
-
-		if (isActing(ACTION_SWIMLEFT))
+		if (isActing(ACTION_SWIMLEFT, -1))
 			moveBoneStripPoint(Vector(-dt, 0));
-		if (isActing(ACTION_SWIMRIGHT))
+		if (isActing(ACTION_SWIMRIGHT, -1))
 			moveBoneStripPoint(Vector(dt, 0));
 
-		if (isActing(ACTION_SWIMUP))
+		if (isActing(ACTION_SWIMUP, -1))
 			moveBoneStripPoint(Vector(0, -dt));
-		if (isActing(ACTION_SWIMDOWN))
+		if (isActing(ACTION_SWIMDOWN, -1))
 			moveBoneStripPoint(Vector(0, dt));
 	}
-	int spd = 1;
+	float spd = 1.0f;
 	if (core->mouse.scrollWheelChange < 0)
 	{
-		editSprite->scale -= Vector(spd*0.05f,spd*0.05f);
+		ctrlSprite->scale.x /= 1.12f;
 	}
 	else if (core->mouse.scrollWheelChange > 0)
 	{
-		editSprite->scale += Vector(spd*0.05f,spd*0.05f);
+		ctrlSprite->scale.x *= 1.12f;
 	}
 	if (core->getKeyState(KEY_PGDN) && core->getShiftState())
 	{
-		editSprite->scale -= Vector(spd*0.05f,spd*0.05f);
+		ctrlSprite->scale.x /= (1 + spd*dt);
 	}
 	if (core->getKeyState(KEY_PGUP) && core->getShiftState())
 	{
-		editSprite->scale += Vector(spd*0.05f,spd*0.05f);
+		ctrlSprite->scale.x *= (1 + spd*dt);
 	}
-	if (editSprite->scale.x < 0.05f)
+	if (ctrlSprite->scale.x < 0.05f)
 	{
-		editSprite->scale = Vector(0.05f,0.05f);
+		ctrlSprite->scale.x = 0.05f;
 	}
+	ctrlSprite->scale.y = ctrlSprite->scale.x;
 
 	if (boneEdit == 0)
 	{
@@ -807,32 +765,10 @@ void AnimationEditor::update(float dt)
 			updateEditingBone();
 		if (editingBone)
 		{
-			/*
-			float amt = dt;
-			if (isActing("mbl"))
-			{
-				editingBone->position.x -= amt;
-				applyTranslation();
-			}
-			if (isActing("mbr"))
-			{
-				editingBone->position.x += amt;
-				applyTranslation();
-			}
-			if (isActing("mbu"))
-			{
-				editingBone->position.y -= amt;
-				applyTranslation();
-			}
-			if (isActing("mbd"))
-			{
-				editingBone->position.y += amt;
-				applyTranslation();
-			}
-			*/
+
 		}
 	}
-	if (editingBone && boneEdit == 1)
+	if (editingBone && boneEdit == 1 && !splinegrid)
 	{
 		Vector add = core->mouse.change;
 		// adjust relative mouse movement to absolute bone rotation
@@ -868,11 +804,17 @@ void AnimationEditor::update(float dt)
 			editSprite->updateBones();
 		}
 	}
+
+	if(splinegrid && editingBone && editingStrip && splinegrid->wasModified)
+	{
+		applySplineGridToBone();
+		splinegrid->wasModified = false;
+	}
 }
 
 void AnimationEditor::copy()
 {
-	if (dsq->isNested()) return;
+ 	if (dsq->isNested()) return;
 
 	if (core->getCtrlState())
 		copyBuffer = *editSprite->getCurrentAnimation()->getKeyframe(currentKey);
@@ -895,17 +837,18 @@ void AnimationEditor::nextKey()
 {
 	if (dsq->isNested()) return;
 
-	if (editingStrip)
+	if (editingStrip && !splinegrid)
 	{
 		selectedStripPoint++;
-		if (selectedStripPoint >= editSprite->getSelectedBone(false)->changeStrip.size())
+		if (selectedStripPoint >= editSprite->getSelectedBone(false)->changeStrip.size()
+				&& selectedStripPoint > 0)
 			selectedStripPoint --;
 	}
 	else
 	{
 		if (core->getCtrlState())
 		{
-			for (int i = 0; i < keyframeWidgets.size(); i++)
+			for (size_t i = 0; i < keyframeWidgets.size(); i++)
 			{
 				keyframeWidgets[i]->shiftLeft();
 			}
@@ -918,6 +861,8 @@ void AnimationEditor::nextKey()
 				editSprite->setTime(k->t);
 			else
 				currentKey --;
+
+			onKeyframeChanged();
 		}
 	}
 }
@@ -926,17 +871,17 @@ void AnimationEditor::prevKey()
 {
 	if (dsq->isNested()) return;
 
-	if (editingStrip)
+	if (editingStrip && !splinegrid)
 	{
-		selectedStripPoint--;
-		if (selectedStripPoint < 0)
-			selectedStripPoint = 0;
+		if(selectedStripPoint > 0) {
+			selectedStripPoint--;
+		}
 	}
 	else
 	{
 		if (core->getCtrlState())
 		{
-			for (int i = 0; i < keyframeWidgets.size(); i++)
+			for (size_t i = 0; i < keyframeWidgets.size(); i++)
 			{
 				keyframeWidgets[i]->shiftRight();
 			}
@@ -949,6 +894,8 @@ void AnimationEditor::prevKey()
 				SkeletalKeyframe *k = editSprite->getCurrentAnimation()->getKeyframe(currentKey);
 				if (k)
 					editSprite->setTime(k->t);
+
+				onKeyframeChanged();
 			}
 		}
 	}
@@ -1000,12 +947,61 @@ void AnimationEditor::editStripKey()
 	{
 		selectedStripPoint = 0;
 		editingStrip = false;
-		bgGrad->makeVertical(Vector(0.4, 0.4, 0.4), Vector(0.8, 0.8, 0.8));
+		bgGrad->makeVertical(Vector(0.4f, 0.4f, 0.4f), Vector(0.8f, 0.8f, 0.8f));
+
+		if(splinegrid)
+		{
+			//editSprite->alphaMod = 1;
+			//editSprite->removeChild(splinegrid);
+			splinegrid->safeKill();
+			splinegrid = NULL;
+		}
 	}
 	else
 	{
-		editingStrip = true;
-		bgGrad->makeVertical(Vector(0.4, 0.4, 0.6), Vector(0.8, 0.8, 1));
+		if(editingBone && editingBone->getGrid())
+		{
+			RenderGrid *grid = editingBone->getGrid();
+			Animation *a = editSprite->getCurrentAnimation();
+			BoneGridInterpolator *interp = a->getBoneGridInterpolator(editingBone->boneIdx);
+
+			editingStrip = true;
+
+			if(interp)
+			{
+				bgGrad->makeVertical(Vector(0.4f, 0.6f, 0.4f), Vector(0.8f, 1, 0.8f));
+
+				BoneKeyframe *bk = a->getKeyframe(currentKey)->getBoneKeyframe(editingBone->boneIdx);
+				assert(bk->controlpoints.size() == interp->bsp.ctrlX() * interp->bsp.ctrlY());
+
+				splinegrid = new SplineGrid;
+				RenderGrid *rgrid = splinegrid->resize(interp->bsp.ctrlX(), interp->bsp.ctrlY(), grid->width(), grid->height(), interp->bsp.degX(), interp->bsp.degY());
+				rgrid->drawOrder = grid->drawOrder;
+				splinegrid->setTexture(editingBone->texture->name);
+				splinegrid->setWidthHeight(editingBone->width, editingBone->height);
+				splinegrid->position = Vector(400, 300);
+				//splinegrid->followCamera = 1;
+				splinegrid->importControlPoints(&bk->controlpoints[0]);
+				//editSprite->addChild(splinegrid, PM_STATIC, RBP_OFF, CHILD_FRONT);
+				//editSprite->alphaMod = 0.5f;
+				addRenderObject(splinegrid, LR_PARTICLES_TOP);
+			}
+			else
+			{
+				bgGrad->makeVertical(Vector(0.4f, 0.4f, 0.6f), Vector(0.8f, 0.8f, 1));
+			}
+
+		}
+		else if(editingBone)
+		{
+			debugLog("Bone has no grid, cannot edit grid");
+			dsq->sound->playSfx("denied");
+		}
+		else
+		{
+			debugLog("No bone selected for grid edit mode");
+			dsq->sound->playSfx("denied");
+		}
 	}
 }
 
@@ -1049,8 +1045,8 @@ void AnimationEditor::lmbd()
 {
 	pushUndo();
 	updateEditingBone();
-	if (editingBone /*&& (editSprite->position - core->mouse.position).isLength2DIn(400)*/
-		/*&& core->mouse.position.x > 200 && core->mouse.position.y < 560*/
+	if (editingBone
+
 		&& core->mouse.position.x > 400-200 && core->mouse.position.x < 400+200
 		&& core->mouse.position.y > 300-200 && core->mouse.position.y < 300+200
 		)
@@ -1084,7 +1080,7 @@ void AnimationEditor::applyTranslation()
 				if(!core->getCtrlState())
 				{
 					// all bones in one anim mode
-					for (int i = 0; i < editSprite->getCurrentAnimation()->getNumKeyframes(); ++i)
+					for (size_t i = 0; i < editSprite->getCurrentAnimation()->getNumKeyframes(); ++i)
 					{
 						BoneKeyframe *b = editSprite->getCurrentAnimation()->getKeyframe(i)->getBoneKeyframe(editingBone->boneIdx);
 						if (b)
@@ -1097,9 +1093,9 @@ void AnimationEditor::applyTranslation()
 				else
 				{
 					// all bones in all anims mode
-					for (int a = 0; a < editSprite->animations.size(); ++a)
+					for (size_t a = 0; a < editSprite->animations.size(); ++a)
 					{
-						for (int i = 0; i < editSprite->animations[a].getNumKeyframes(); ++i)
+						for (size_t i = 0; i < editSprite->animations[a].getNumKeyframes(); ++i)
 						{
 							BoneKeyframe *b = editSprite->animations[a].getKeyframe(i)->getBoneKeyframe(editingBone->boneIdx);
 							if (b)
@@ -1144,7 +1140,7 @@ void AnimationEditor::rmbd()
 	updateEditingBone();
 	if (editingBone)
 	{
-		//cursorOffset = editingBone->position + editSprite->position - core->mouse.position;
+
 		cursorOffset = core->mouse.position;
 		rotOffset = editingBone->rotation.z;
 		boneEdit = 2;
@@ -1158,7 +1154,12 @@ void AnimationEditor::clearRot()
 	updateEditingBone();
 	if (editingBone)
 	{
-		applyRotation();
+		if(core->getCtrlState())
+			core->texmgr.load(editingBone->texture->name, TextureMgr::OVERWRITE);
+		else if(splinegrid)
+			splinegrid->resetControlPoints();
+		else
+			applyRotation();
 	}
 }
 
@@ -1182,10 +1183,9 @@ void AnimationEditor::flipRot()
 			BoneKeyframe *bcur = editSprite->getCurrentAnimation()->getKeyframe(currentKey)->getBoneKeyframe(editingBone->boneIdx);
 			if (bcur)
 			{
-				int rotdiff = editingBone->rotation.z - bcur->rot;
 				if (!core->getCtrlState())
 				{
-					for (int i = 0; i < editSprite->getCurrentAnimation()->getNumKeyframes(); ++i)
+					for (size_t i = 0; i < editSprite->getCurrentAnimation()->getNumKeyframes(); ++i)
 					{
 						BoneKeyframe *b = editSprite->getCurrentAnimation()->getKeyframe(i)->getBoneKeyframe(editingBone->boneIdx);
 						if (b)
@@ -1197,9 +1197,9 @@ void AnimationEditor::flipRot()
 				else
 				{
 					// all bones in all anims mode
-					for (int a = 0; a < editSprite->animations.size(); ++a)
+					for (size_t a = 0; a < editSprite->animations.size(); ++a)
 					{
-						for (int i = 0; i < editSprite->animations[a].getNumKeyframes(); ++i)
+						for (size_t i = 0; i < editSprite->animations[a].getNumKeyframes(); ++i)
 						{
 							BoneKeyframe *b = editSprite->animations[a].getKeyframe(i)->getBoneKeyframe(editingBone->boneIdx);
 							if (b)
@@ -1267,7 +1267,7 @@ void AnimationEditor::rmbu()
 					int rotdiff = editingBone->rotation.z - bcur->rot;
 					if (!core->getCtrlState())
 					{
-						for (int i = 0; i < editSprite->getCurrentAnimation()->getNumKeyframes(); ++i)
+						for (size_t i = 0; i < editSprite->getCurrentAnimation()->getNumKeyframes(); ++i)
 						{
 							BoneKeyframe *b = editSprite->getCurrentAnimation()->getKeyframe(i)->getBoneKeyframe(editingBone->boneIdx);
 							if (b)
@@ -1279,9 +1279,9 @@ void AnimationEditor::rmbu()
 					else
 					{
 						// all bones in all anims mode
-						for (int a = 0; a < editSprite->animations.size(); ++a)
+						for (size_t a = 0; a < editSprite->animations.size(); ++a)
 						{
-							for (int i = 0; i < editSprite->animations[a].getNumKeyframes(); ++i)
+							for (size_t i = 0; i < editSprite->animations[a].getNumKeyframes(); ++i)
 							{
 								BoneKeyframe *b = editSprite->animations[a].getKeyframe(i)->getBoneKeyframe(editingBone->boneIdx);
 								if (b)
@@ -1303,8 +1303,8 @@ void AnimationEditor::rmbu()
 
 void AnimationEditor::mmbd()
 {
-	//editingBone = editSprite->getSelectedBone(ignoreBone);
-	//cloneBoneAhead();
+
+
 }
 
 void AnimationEditor::cloneBoneAhead()
@@ -1327,7 +1327,7 @@ void AnimationEditor::cloneBoneAhead()
 			b2->x = b1->x;
 			b2->y = b1->y;
 			b2->rot = b1->rot;
-			b2->strip = b1->strip;
+			b2->grid = b1->grid;
 		}
 	}
 }
@@ -1354,6 +1354,8 @@ void AnimationEditor::loadFile()
 	// disable strip edit mode if still active
 	if (editingStrip)
 		editStripKey();
+
+	onKeyframeChanged();
 }
 
 void AnimationEditor::goToTitle()
@@ -1361,9 +1363,9 @@ void AnimationEditor::goToTitle()
 	if (dsq->isNested()) return;
 
 	if (!dsq->returnToScene.empty())
-		dsq->game->transitionToScene(dsq->returnToScene);
+		game->transitionToScene(dsq->returnToScene);
 	else
-		dsq->title();
+		dsq->title(false);
 }
 
 void AnimationEditor::quit()
@@ -1386,6 +1388,7 @@ void AnimationEditor::nextAnim()
 void AnimationEditor::prevAnim()
 {
 	if (dsq->isNested()) return;
+	if (editingStrip) return;
 
 	if (!core->getShiftState())
 	{
@@ -1393,6 +1396,23 @@ void AnimationEditor::prevAnim()
 		currentKey = 0;
 		rebuildKeyframeWidgets();
 	}
+}
+
+void AnimationEditor::selectAnim()
+{
+	if (dsq->isNested()) return;
+
+	std::string name = dsq->getUserInputString("Select anim name:");
+	if (name.empty())
+		return;
+
+	if(editSprite->selectAnimation(name.c_str()))
+	{
+		currentKey = 0;
+		rebuildKeyframeWidgets();
+	}
+	else
+		dsq->screenMessage("No such anim name");
 }
 
 void AnimationEditor::reverseAnim()
@@ -1425,8 +1445,8 @@ void AnimationEditor::loadSkin()
 
 	std::string file = dsq->getUserInputString("Enter skin file to load:");
 	if (file.empty())		return;
-	//this->editingFile = file;
-	//loadFile();
+
+
 	SkeletalSprite::clearCache();
 	editSprite->loadSkin(file);
 }
@@ -1437,7 +1457,7 @@ void AnimationEditor::moveNextWidgets(float dt)
 
 	int s = 0;
 	KeyframeWidget *w=0;
-	for (int i = 0; i < keyframeWidgets.size(); i++)
+	for (size_t i = 0; i < keyframeWidgets.size(); i++)
 	{
 		w = keyframeWidgets[i];
 		if (s)
@@ -1449,14 +1469,16 @@ void AnimationEditor::moveNextWidgets(float dt)
 			s = 1;
 		}
 	}
-	
+
 }
 
 void AnimationEditor::toggleRenderBorders()
 {
 	if (dsq->isNested()) return;
 
-	renderBorders = !renderBorders;
+	renderBorderMode = (RenderBorderMode)(renderBorderMode + 1);
+	if(renderBorderMode > RENDER_BORDER_ALL)
+		renderBorderMode = RENDER_BORDER_NONE;
 	updateRenderBorders();
 }
 
@@ -1465,11 +1487,42 @@ void AnimationEditor::updateRenderBorders()
 	if (!editSprite)
 		return;
 
+
+	// reset
 	for (size_t i = 0; i < editSprite->bones.size(); ++i)
 	{
-		editSprite->bones[i]->renderBorder = renderBorders;
-		editSprite->bones[i]->renderCenter = renderBorders;
-		editSprite->bones[i]->borderAlpha = 0.8f;
+		Bone *b = editSprite->bones[i];
+		b->renderBorder = false;
+		b->renderCenter = false;
+		b->borderAlpha = 0.8f;
+		b->renderBorderColor = Vector(1,1,1);
+	}
+
+	if(renderBorderMode == RENDER_BORDER_NONE)
+		return;
+	else if(Animation *a = editSprite->getCurrentAnimation())
+	{
+		for(size_t i = 0; i < a->interpolators.size(); ++i)
+		{
+			const BoneGridInterpolator& bgip = a->interpolators[i];
+			if(Bone *b = editSprite->getBoneByIdx(bgip.idx))
+			{
+				b->renderBorder = true;
+				b->renderCenter = true;
+				b->borderAlpha = 0.4f;
+				b->renderBorderColor = Vector(0.2f, 0.9f, 0.2f);
+			}
+		}
+	}
+
+	if(renderBorderMode == RENDER_BORDER_ALL)
+	{
+		for (size_t i = 0; i < editSprite->bones.size(); ++i)
+		{
+			Bone *b = editSprite->bones[i];
+			b->renderBorder = true;
+			b->renderCenter = true;
+		}
 	}
 }
 
@@ -1537,6 +1590,35 @@ void AnimationEditor::updateTimelineGrid()
 	gridsize->setText(os.str());
 }
 
+void AnimationEditor::onKeyframeChanged()
+{
+	applyBoneToSplineGrid();
 
+	updateRenderBorders(); // restore default state
+}
 
-#endif  // AQUARIA_BUILD_SCENEEDITOR
+void AnimationEditor::applyBoneToSplineGrid()
+{
+	if(splinegrid && editingBone)
+	{
+		Animation *a = editSprite->getCurrentAnimation();
+		BoneKeyframe *bk = a->getKeyframe(currentKey)->getBoneKeyframe(editingBone->boneIdx);
+		assert(bk->controlpoints.size() == splinegrid->getSpline().ctrlX() * splinegrid->getSpline().ctrlY());
+		assert(bk->grid.size() == editingBone->getDrawGrid().linearsize());
+		splinegrid->importControlPoints(&bk->controlpoints[0]);
+	}
+}
+
+void AnimationEditor::applySplineGridToBone()
+{
+	if(splinegrid && editingBone)
+	{
+		Animation *a = editSprite->getCurrentAnimation();
+		BoneKeyframe *bk = a->getKeyframe(currentKey)->getBoneKeyframe(editingBone->boneIdx);
+		assert(bk->controlpoints.size() == splinegrid->getSpline().ctrlX() * splinegrid->getSpline().ctrlY());
+		assert(bk->grid.size() == editingBone->getDrawGrid().linearsize());
+		splinegrid->exportControlPoints(&bk->controlpoints[0]);
+		BoneGridInterpolator *interp = a->getBoneGridInterpolator(editingBone->boneIdx);
+		interp->updateGridAndBone(*bk, editingBone);
+	}
+}

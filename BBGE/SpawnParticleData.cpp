@@ -25,18 +25,16 @@ SpawnParticleData::SpawnParticleData()
 	suckIndex = -1;
 	suckStr = 0;
 
-	alphaModTimesVel = 0;
 	randomScale1 = 1;
 	randomScale2 = 1;
 	randomAlphaMod1 = 1;
 	randomAlphaMod2 = 1;
 	influenced = 0;
 	spawnLocal = false;
-	avatarVelocity = 0;
 	useSpawnRate = false;
 	counter = 0;
 	life = 1;
-	blendType = RenderObject::BLEND_DEFAULT;
+	blendType = BLEND_DEFAULT;
 	spawnRate = 1;
 	scale = Vector(1,1,1);
 	width = 64;
@@ -62,12 +60,11 @@ SpawnParticleData::SpawnParticleData()
 	spawnArea = SPAWN_CIRCLE;
 	randomVelocityMagnitude = 0;
 	randomVelocityRange = 360;
-	//updateMultiplier = 1;
+
 	copyParentRotation = 0;
 	justOne = didOne = false;
 	flipH = flipV = 0;
 	spawnTimeOffset = 0;
-	groupRender = 0;
 	pauseLevel = 0;
 	copyParentFlip = 0;
 	inheritColor = false;

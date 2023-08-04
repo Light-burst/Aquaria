@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "DSQ.h"
 #include "Game.h"
+#include "ReadXML.h"
+#include "Shot.h"
 
 static std::string baseModPath = "./_mods/";
 
@@ -33,15 +35,15 @@ void refreshBaseModPath()
 Mod::Mod()
 {
 	clear();
-	
+
 	enqueueModStart = 0;
-	
+
 	shuttingDown = false;
 }
 
 Mod::~Mod()
 {
-	modcache.clean();
+	modcache.clear();
 }
 
 /*
@@ -61,24 +63,24 @@ bool Mod::isShuttingDown()
 void Mod::clear()
 {
 	active = false;
-	doRecache = 0;
 	debugMenu = false;
 	hasMap = false;
 	blockEditor = false;
 	mapRevealMethod = REVEAL_UNSPECIFIED;
+	compatScript = "";
 }
 
-bool Mod::isDebugMenu()
+bool Mod::isDebugMenu() const
 {
 	return debugMenu;
 }
 
-bool Mod::hasWorldMap()
+bool Mod::hasWorldMap() const
 {
 	return hasMap;
 }
 
-bool Mod::isEditorBlocked()
+bool Mod::isEditorBlocked() const
 {
 	return blockEditor;
 }
@@ -92,12 +94,24 @@ bool Mod::loadModXML(XMLDocument *d, std::string modName)
 const std::string& Mod::getBaseModPath() const
 {
 	refreshBaseModPath();
-	
+
 	return baseModPath;
 }
 
+bool Mod::loadSavedGame(const std::string& path)
+{
+	load(path);
+	if(loadCompatScript())
+		return true;
+
+	debugLog("MOD: loadSavedGame/compatScript failed");
+	setActive(false);
+	dsq->title(false);
+	return false;
+}
+
 void Mod::load(const std::string &p)
-{	
+{
 	clear();
 
 	refreshBaseModPath();
@@ -108,17 +122,16 @@ void Mod::load(const std::string &p)
 	setLocalisationModPath(path);
 
 	setActive(true);
-	
+
 	XMLDocument d;
 	loadModXML(&d, p);
-	
+
 	XMLElement *mod = d.FirstChildElement("AquariaMod");
 	if (mod)
 	{
 		XMLElement *props = mod->FirstChildElement("Properties");
 		if (props)
 		{
-			props->QueryIntAttribute("recache", &doRecache);
 			props->QueryIntAttribute("debugMenu", &debugMenu);
 			props->QueryBoolAttribute("hasWorldMap", &hasMap);
 			props->QueryBoolAttribute("blockEditor", &blockEditor);
@@ -129,9 +142,15 @@ void Mod::load(const std::string &p)
 			if (props->Attribute("worldMapRevealMethod"))
 				mapRevealMethod = (WorldMapRevealMethod) props->IntAttribute("worldMapRevealMethod");
 		}
+		XMLElement *compat = mod->FirstChildElement("Compatibility");
+		if(compat)
+		{
+			if(const char *script = compat->Attribute("script"))
+				compatScript = script;
+		}
 	}
 
-	dsq->secondaryTexturePath = path + "graphics/";
+	dsq->setExtraTexturePath((path + "graphics/").c_str());
 
 	dsq->sound->audioPath2 = path + "audio/";
 	dsq->sound->setVoicePath2(path + "audio/");
@@ -157,37 +176,25 @@ const std::string& Mod::getName() const
 
 void Mod::recache()
 {
-	if(doRecache)
-	{
-		dsq->precacher.clean();
-		dsq->unloadResources();
-	}
+	core->texmgr.reloadAll(TextureMgr::KEEP_IF_SAME);
 
 	if(active)
 	{
-		modcache.setBaseDir(dsq->secondaryTexturePath);
+		modcache.setBaseDir(dsq->getExtraTexturePath());
 		std::string fname = path;
 		if(fname[fname.length() - 1] != '/')
 			fname += '/';
 		fname += "precache.txt";
-		fname = core->adjustFilenameCase(fname);
+		fname = adjustFilenameCase(fname);
 		if (exists(fname))
-		{
 			modcache.precacheList(fname);
-			core->resetTimer();
-		}
 	}
 	else
 	{
-		modcache.clean();
+		modcache.clear();
 	}
 
-	if(doRecache)
-	{
-		dsq->precacher.precacheList("data/precache.txt");
-		dsq->reloadResources();
-		core->resetTimer();
-	}
+	core->resetTimer();
 }
 
 void Mod::start()
@@ -201,10 +208,10 @@ void Mod::start()
 	dsq->overlay->alpha.interpolateTo(1, t);
 	core->sound->fadeMusic(SFT_OUT, t*0.9f);
 
-	core->main(t);
+	core->run(t);
 
 	core->sound->stopMusic();
-	
+
 	enqueueModStart = 1;
 	dsq->recentSaveSlot = -1;
 }
@@ -219,6 +226,23 @@ void Mod::applyStart()
 	dsq->continuity.reset();
 	dsq->scriptInterface.reset();
 
+	if(!tryStart())
+	{
+		setActive(false);
+		dsq->title(false);
+	}
+}
+
+bool Mod::tryStart()
+{
+
+	// Before loading init.lua, load a compatibility layer, if necessary
+	if(!loadCompatScript())
+	{
+		debugLog("MOD: compatScript failed");
+		return false;
+	}
+
 	// load the mod-init.lua file
 	// which is in the root of the mod's folder
 	// e.g. _mods/recachetest/
@@ -227,21 +251,18 @@ void Mod::applyStart()
 	if (!dsq->runScript(scriptPath, "init"))
 	{
 		debugLog("MOD: runscript failed");
-		setActive(false);
-		dsq->title();
+		return false;
 	}
-	if (isActive() && dsq->game->sceneToLoad.empty())
+	if (isActive() && game->sceneToLoad.empty())
 	{
 		debugLog("MOD: no scene loaded in mod-init");
-		setActive(false);
-		dsq->title();
+		return false;
 	}
-	else if (isActive())
-	{
-	}
+
+	return true;
 }
 
-bool Mod::isActive()
+bool Mod::isActive() const
 {
 	return active;
 }
@@ -257,11 +278,12 @@ void Mod::setActive(bool a)
 		if (!active)
 		{
 			dsq->unloadMods();
+			compatScript = "";
 
 			mapRevealMethod = REVEAL_UNSPECIFIED;
 			setLocalisationModPath("");
 			name = path = "";
-			dsq->secondaryTexturePath = "";
+			dsq->setExtraTexturePath(NULL);
 			dsq->sound->audioPath2 = "";
 			dsq->sound->setVoicePath2("");
 			SkeletalSprite::secondaryAnimationPath = "";
@@ -272,11 +294,9 @@ void Mod::setActive(bool a)
 			Shot::loadShotBank(dsq->shotBank1, dsq->shotBank2);
 			particleManager->loadParticleBank(dsq->particleBank1, dsq->particleBank2);
 
-			dsq->setFilter(dsq->dsq_filter);
-
 			recache();
 		}
-		dsq->game->loadEntityTypeList();
+		game->loadEntityTypeList();
 	}
 }
 
@@ -288,7 +308,7 @@ void Mod::stop()
 	debugMenu = false;
 	shuttingDown = false;
 	dsq->scriptInterface.reset();
-	dsq->game->setWorldPaused(false);
+	game->setWorldPaused(false);
 }
 
 void Mod::update(float dt)
@@ -296,7 +316,7 @@ void Mod::update(float dt)
 	if (enqueueModStart)
 	{
 		enqueueModStart = 0;
-		
+
 		applyStart();
 	}
 }
@@ -325,4 +345,16 @@ ModType Mod::getTypeFromXML(XMLElement *xml) // should be <AquariaMod>...</Aquar
 		}
 	}
 	return MODTYPE_MOD; // the default
+}
+
+bool Mod::loadCompatScript()
+{
+	std::string cs = compatScript.c_str();
+	if(cs.empty())
+		cs = "default";
+	if(dsq->runScript("scripts/compat/" + cs + ".lua"))
+		return true;
+
+	dsq->scriptInterface.reset();
+	return false;
 }

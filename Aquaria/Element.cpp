@@ -20,9 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "Element.h"
 #include "Game.h"
+#include "RenderGrid.h"
 
 ElementEffectData::ElementEffectData()
-	: elementEffectIndex(-1)
+	: elementEffectType(EFX_NONE)
 	, wavyAngleOffset(0)
 	, wavyMagnitude(0)
 	, wavyLerpIn(0)
@@ -33,19 +34,17 @@ ElementEffectData::ElementEffectData()
 	, wavyWaving(false)
 	, wavyFlip(false)
 	, touching(false)
-	, elementEffectType(EFX_NONE)
+	, elementEffectIndex(-1)
 {
 }
 
 Element::Element() : Quad()
 {
 	elementFlag = EF_NONE;
-	elementActive = true;
 	bgLayer = 0;
+	tag = 0;
 	templateIdx = -1;
 	eff = NULL;
-
-	setStatic(true);
 }
 
 void Element::ensureEffectData()
@@ -100,7 +99,6 @@ void Element::updateEffects(float dt)
 		/// check player position
 	{
 		// if a big wavy doesn't work, this is probably why
-		//if ((position - ent->position).isLength2DIn(1024))
 		{
 			ElementEffectData *eff = this->eff;
 
@@ -128,7 +126,7 @@ void Element::updateEffects(float dt)
 				float magRedSpd = 48;
 				float lerpSpd = 5.0;
 				float wavySz = float(eff->wavy.size());
-				for (int i = 0; i < eff->wavy.size(); i++)
+				for (size_t i = 0; i < eff->wavy.size(); i++)
 				{
 					float weight = float(i)/wavySz;
 					if (eff->wavyFlip)
@@ -142,7 +140,7 @@ void Element::updateEffects(float dt)
 							eff->wavy[i].x = eff->wavy[i].x*eff->wavyLerpIn + (eff->wavySave[i].x*(1.0f-eff->wavyLerpIn));
 					}
 				}
-				
+
 				if (eff->wavyLerpIn < 1)
 				{
 					eff->wavyLerpIn += dt*lerpSpd;
@@ -163,9 +161,9 @@ void Element::updateEffects(float dt)
 						eff->wavyMagnitude = 0;
 				}
 
-				//std::cout << "setting grid from wav w/ wavyWaving\n";
+
 				setGridFromWavy();
-				
+
 			}
 			else
 			{
@@ -180,14 +178,13 @@ void Element::updateEffects(float dt)
 
 void Element::update(float dt)
 {
-	BBGE_PROF(Element_update);
 	if (!core->particlesPaused)
 	{
 		updateLife(dt);
 		if (eff)
 			updateEffects(dt);
-		if (drawGrid)
-			updateGrid(dt);
+		if(grid)
+			grid->update(dt);
 	}
 }
 
@@ -208,36 +205,15 @@ int Element::getElementEffectIndex()
 
 void Element::setGridFromWavy()
 {
-	if (drawGrid)
-	{
-		//std::cout << "set grid from wavy (" << xDivs << ", " << yDivs << ")\n"
-		const float w = float(getWidth());
-		for (int x = 0; x < xDivs-1; x++)
-		{
-			for (int y = 0; y < yDivs; y++)
-			{
-				const int wavy_y = (yDivs - y)-1;
-				const float tmp = eff->wavy[wavy_y].x / w;
-				if (wavy_y < eff->wavy.size())
-				{
-					
-					drawGrid[x][y].x = tmp - 0.5f;
-					drawGrid[x+1][y].x = tmp + 0.5f;
-				}
-			}
-		}
-	}
-	else
-	{
-		//std::cout << "no drawgrid...\n";
-	}
+	if(grid && eff->wavy.size())
+		grid->setFromWavy(&eff->wavy[0], eff->wavy.size(), width);
 }
 
 void Element::setElementEffectByIndex(int eidx)
 {
 	deleteGrid();
 
-	setBlendType(RenderObject::BLEND_DEFAULT);
+	setBlendType(BLEND_DEFAULT);
 	alpha.stop();
 	alpha = 1;
 
@@ -250,26 +226,20 @@ void Element::setElementEffectByIndex(int eidx)
 	case EFX_SEGS:
 	{
 		setSegs(e.segsx, e.segsy, e.segs_dgox, e.segs_dgoy, e.segs_dgmx, e.segs_dgmy, e.segs_dgtm, e.segs_dgo);
-		setStatic(false);
 	}
 	break;
 	case EFX_ALPHA:
 	{
 		setBlendType(e.blendType);
 		alpha = e.alpha;
-		setStatic(false);
 	}
 	break;
 	case EFX_WAVY:
 	{
-		/*
-		char buf[256];
-		sprintf(buf, "setting wavy segsy: %d radius: %d min: %d max: %d", e.segsy, e.wavy_radius, e.wavy_min, e.wavy_max);
-		debugLog(buf);
-		*/
+
 		eff->wavy.resize(e.segsy);
 		float bity = float(getHeight())/float(e.segsy);
-		for (int i = 0; i < eff->wavy.size(); i++)
+		for (size_t i = 0; i < eff->wavy.size(); i++)
 		{
 			eff->wavy[i] = Vector(0, -(i*bity));
 		}
@@ -277,17 +247,18 @@ void Element::setElementEffectByIndex(int eidx)
 		eff->wavyMin = bity;
 		eff->wavyMax = bity*1.2f;
 
-		createGrid(2, e.segsy);
-		setGridFromWavy();
-		setStatic(false);
+		if(RenderGrid *g = createGrid(2, e.segsy))
+		{
+			g->gridType = GRID_UNDEFINED; // by default it's GRID_WAVY, but that would reset during update
+			setGridFromWavy();
+		}
 	}
 	break;
 	default:
 		freeEffectData();
-		setStatic(true);
 	break;
 	}
-	
+
 	if (eff)
 	{
 		eff->elementEffectIndex = eidx;
@@ -295,57 +266,92 @@ void Element::setElementEffectByIndex(int eidx)
 	}
 }
 
-void Element::render()
+// shamelessly ripped from paint.net default palette
+static const Vector s_tagColors[] =
 {
-	if (!elementActive) return;
-#ifdef AQUARIA_BUILD_SCENEEDITOR
-	if (dsq->game->isSceneEditorActive() && this->bgLayer == dsq->game->sceneEditor.bgLayer
-		&& dsq->game->sceneEditor.editType == ET_ELEMENTS)
+	/* 0 */ Vector(0.5f, 0.5f, 0.5f),
+	/* 1 */ Vector(1,0,0),
+	/* 2 */ Vector(1, 0.415686f, 0),
+	/* 3 */ Vector(1,0.847059f, 0),
+	/* 4 */ Vector(0.298039f,1,0),
+	/* 5 */ Vector(0,1,1),
+	/* 6 */ Vector(0,0.580392,1),
+	/* 7 */ Vector(0,0.149020f,1),
+	/* 8 */ Vector(0.282353f,0,1),
+	/* 9 */ Vector(0.698039f,0,1),
+
+	/* 10 */ Vector(1,0,1), // anything outside of the pretty range
+};
+
+static inline const Vector& getTagColor(int tag)
+{
+	const unsigned idx = std::min<unsigned>(unsigned(tag), Countof(s_tagColors)-1);
+	return s_tagColors[idx];
+
+}
+
+void Element::render(const RenderState& rs) const
+{
+	// FIXME: this should be part of the layer render, not here
+	// (not relevant until Elements are batched per-layer)
+	if (game->isSceneEditorActive() && this->bgLayer == game->sceneEditor.bgLayer
+		&& game->sceneEditor.editType == ET_ELEMENTS)
 	{
-		renderBorderColor = Vector(0.5,0.5,0.5);
-		if (!dsq->game->sceneEditor.selectedElements.empty())
+		Vector tagColor = getTagColor(tag);
+		bool hl = false;
+		if (!game->sceneEditor.selectedElements.empty())
 		{
-			for (int i = 0; i < dsq->game->sceneEditor.selectedElements.size(); i++)
+			for (size_t i = 0; i < game->sceneEditor.selectedElements.size(); i++)
 			{
-				if (this == dsq->game->sceneEditor.selectedElements[i])
-					renderBorderColor = Vector(1,1,1);
+				if (this == game->sceneEditor.selectedElements[i])
+				{
+					hl = true;
+					break;
+				}
 			}
 		}
 		else
 		{
-			if (dsq->game->sceneEditor.editingElement == this)
-				renderBorderColor = Vector(1,1,1);
+			hl = game->sceneEditor.editingElement == this;
 		}
-		renderBorder = true;
-		//errorLog("!^!^$");
-	}
-#endif
-	
-	Quad::render();
 
-	renderBorder = false;
+		if(hl)
+			tagColor += Vector(0.5f, 0.5f, 0.5f);
+
+		RenderState rs2(rs);
+		rs2.forceRenderBorder = true;
+		rs2.forceRenderCenter = true;
+		rs2.renderBorderColor = tagColor;
+		Quad::render(rs2);
+	}
+	else // render normally
+		Quad::render(rs);
 }
 
 void Element::fillGrid()
 {
-	if (life == 1 && elementActive)
+	if (life == 1 && !_hidden)
 	{
 		if (elementFlag == EF_SOLID)
 		{
-			dsq->game->fillGridFromQuad(this, OT_INVISIBLE, true);
+			game->fillGridFromQuad(this, OT_INVISIBLE, true);
 		}
 		else if (elementFlag == EF_HURT)
 		{
-			dsq->game->fillGridFromQuad(this, OT_HURT, false);
+			game->fillGridFromQuad(this, OT_HURT, false);
 		}
 		else if (elementFlag == EF_SOLID2)
 		{
-			dsq->game->fillGridFromQuad(this, OT_INVISIBLE, false); 
+			game->fillGridFromQuad(this, OT_INVISIBLE, false);
 		}
 		else if (elementFlag == EF_SOLID3)
 		{
-			dsq->game->fillGridFromQuad(this, OT_INVISIBLEIN, false); 
+			game->fillGridFromQuad(this, OT_INVISIBLEIN, false);
 		}
 	}
 }
 
+void Element::setTag(int tag)
+{
+	this->tag = tag;
+}

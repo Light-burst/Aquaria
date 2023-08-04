@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../BBGE/DebugFont.h"
 
 #include "DSQ.h"
-#include "AquariaProgressBar.h"
 #include "ModSelector.h"
 #include <algorithm>
 
@@ -29,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ModDownloader.h"
 #endif
 
-#include "tinyxml2.h"
+#include <tinyxml2.h>
 using namespace tinyxml2;
 
 #define MOD_ICON_SIZE 150
@@ -41,8 +40,13 @@ static bool _modname_cmp(const ModIcon *a, const ModIcon *b)
 	return a->fname < b->fname;
 }
 
-ModSelectorScreen::ModSelectorScreen() : Quad(), ActionMapper(),
-currentPanel(-1), gotServerList(false), dlText(&dsq->smallFont), subtext(&dsq->subsFont)
+ModSelectorScreen::ModSelectorScreen()
+	: Quad()
+	, ActionMapper()
+	, dlText(dsq->smallFont)
+	, gotServerList(false)
+	, currentPanel(-1)
+	, subtext(dsq->subsFont)
 {
 	followCamera = 1;
 	shareAlphaWithChildren = false;
@@ -115,7 +119,7 @@ void ModSelectorScreen::onUpdate(float dt)
 		}
 	}
 
-	if(!AquariaGuiElement::currentFocus && dsq->inputMode == INPUT_JOYSTICK)
+	if(!AquariaGuiElement::currentFocus && dsq->getInputMode() == INPUT_JOYSTICK)
 	{
 		AquariaGuiElement *closest = AquariaGuiElement::getClosestGuiElement(core->mouse.position);
 		if(closest)
@@ -126,16 +130,16 @@ void ModSelectorScreen::onUpdate(float dt)
 	}
 }
 
-void ModSelectorScreen::showPanel(int id)
+void ModSelectorScreen::showPanel(size_t id)
 {
 	if(id == currentPanel)
 		return;
 
-	const float t = 0.2f;
+	//const float t = 0.2f;
 	IconGridPanel *newgrid = panels[id];
 
 	// fade in selected panel
-	if(currentPanel < 0) // just bringing up?
+	if(currentPanel == -1) // just bringing up?
 	{
 		newgrid->scale = Vector(0.8f,0.8f);
 		newgrid->alpha = 0;
@@ -150,7 +154,7 @@ void ModSelectorScreen::updateFade()
 {
 	// fade out background panels
 	// necessary to do all of them, that icon alphas are 0... they would trigger otherwise, even if invisible because parent panel is not shown
-	for(int i = 0; i < panels.size(); ++i)
+	for(size_t i = 0; i < panels.size(); ++i)
 		panels[i]->fade(i == currentPanel, true);
 }
 
@@ -174,7 +178,7 @@ static void _MenuIconClickCallback(int id, void *user)
 // can be called multiple times without causing trouble
 void ModSelectorScreen::init()
 {
-	leftbar.width = 100;
+	leftbar.setBarWidth(100);
 	leftbar.height = height;
 	leftbar.alpha = 0;
 	leftbar.alpha.interpolateTo(1, 0.2f);
@@ -189,7 +193,7 @@ void ModSelectorScreen::init()
 		std::fill(panels.begin(), panels.end(), (IconGridPanel*)NULL);
 	}
 
-	rightbar.width = 100;
+	rightbar.setBarWidth(100);
 	rightbar.height = height;
 	rightbar.alpha = 0;
 	rightbar.alpha.interpolateTo(1, 0.2f);
@@ -201,7 +205,7 @@ void ModSelectorScreen::init()
 		addChild(&rightbar, PM_STATIC);
 	}
 
-	for(int i = 0; i < panels.size(); ++i)
+	for(size_t i = 0; i < panels.size(); ++i)
 	{
 		if(panels[i])
 			continue;
@@ -258,7 +262,7 @@ void ModSelectorScreen::init()
 
 	subbox.position = Vector(0,260);
 	subbox.alpha = 0;
-	subbox.alphaMod = 0.7;
+	subbox.alphaMod = 0.7f;
 	subbox.followCamera = 1;
 	subbox.autoWidth = AUTO_VIRTUALWIDTH;
 	subbox.setHeight(80);
@@ -321,7 +325,7 @@ void ModSelectorScreen::initModAndPatchPanel()
 	}
 	std::sort(tv.begin(), tv.end(), _modname_cmp);
 
-	for(int i = 0; i < tv.size(); ++i)
+	for(size_t i = 0; i < tv.size(); ++i)
 	{
 		if(!tv[i]->getParent()) // ensure it was not added earlier
 		{
@@ -373,18 +377,18 @@ void ModSelectorScreen::close()
 	dsq->toggleVersionLabel(true);
 }
 
-JuicyProgressBar::JuicyProgressBar() : Quad(), txt(&dsq->smallFont)
+JuicyProgressBar::JuicyProgressBar() : Quad(), txt(dsq->smallFont)
 {
 	setTexture("modselect/tube");
 	followCamera = 1;
 	alpha = 1;
 
 	juice.setTexture("loading/juice");
-	juice.alpha = 0.8;
+	juice.alpha = 0.8f;
 	juice.followCamera = 1;
 	addChild(&juice, PM_STATIC);
 
-	txt.alpha = 0.7;
+	txt.alpha = 0.7f;
 	txt.followCamera = 1;
 	addChild(&txt, PM_STATIC);
 
@@ -399,7 +403,7 @@ void JuicyProgressBar::progress(float p)
 }
 
 BasicIcon::BasicIcon()
-: mouseDown(false), scaleNormal(1,1), scaleBig(scaleNormal * 1.1f)
+: mouseDown(false), scaleNormal(1,1), scaleBig(scaleNormal * 1.1f), _isRecCall(false)
 {
 	// HACK: Because AquariaMenuItem assigns onClick() in it's ctor,
 	// but we handle this ourselves.
@@ -426,7 +430,7 @@ void BasicIcon::onUpdate(float dt)
 	AquariaMenuItem::onUpdate(dt);
 
 	// Autoscroll if selecting icon outside of screen
-	if(hasFocus && dsq->modSelectorScr)
+	if(hasFocus() && dsq->modSelectorScr && !_isRecCall)
 	{
 		Vector pos = getRealPosition();
 		if(pos.y < 20 || pos.y > 580)
@@ -435,7 +439,9 @@ void BasicIcon::onUpdate(float dt)
 				dsq->modSelectorScr->move(5, true);
 			else
 				dsq->modSelectorScr->move(-5, true);
-			core->main(FRAME_TIME); // HACK: this is necessary to correctly position the mouse on the object after moving the panel
+			_isRecCall = true;
+			core->run(FRAME_TIME); // HACK: this is necessary to correctly position the mouse on the object after moving the panel
+			_isRecCall = false;
 			setFocus(true); // re-position mouse
 		}
 	}
@@ -478,7 +484,11 @@ void BasicIcon::onClick()
 	dsq->sound->playSfx("denied");
 }
 
-MenuIcon::MenuIcon(int id) : SubtitleIcon(), iconId(id), cb(0), cb_data(0)
+MenuIcon::MenuIcon(int id)
+	: SubtitleIcon()
+	, cb(0)
+	, cb_data(0)
+	, iconId(id)
 {
 }
 
@@ -519,16 +529,23 @@ void ModIcon::onClick()
 				break;
 			#endif
 
-			std::set<std::string>::iterator it = dsq->activePatches.find(fname);
-			if(it != dsq->activePatches.end())
+			bool on = false;
+			for(size_t i = 0; i < dsq->activePatches.size(); ++i)
+				if(dsq->activePatches[i] == fname)
+				{
+					on = true;
+					break;
+				}
+
+			if(on)
 			{
 				dsq->sound->playSfx("pet-off");
-				dsq->unapplyPatch(fname);
+				dsq->disablePatch(fname);
 			}
 			else
 			{
 				dsq->sound->playSfx("pet-on");
-				dsq->applyPatch(fname);
+				dsq->activatePatch(fname);
 			}
 			updateStatus();
 			break;
@@ -557,7 +574,7 @@ void ModIcon::loadEntry(const ModEntry& entry)
 
 	dsq->mod.loadModXML(&d, entry.path);
 
-	std::string ds = dsq->continuity.stringBank.get(2009);
+	std::string ds = stringbank.get(2009);
 
 	XMLElement *top = d.FirstChildElement("AquariaMod");
 	if (top)
@@ -614,7 +631,13 @@ void ModIcon::updateStatus()
 
 
 ModIconOnline::ModIconOnline()
-: SubtitleIcon(), pb(0), extraIcon(0), statusIcon(0), clickable(true), pkgtype(MPT_MOD), hasUpdate(false)
+	: SubtitleIcon()
+	, pb(0)
+	, extraIcon(0)
+	, statusIcon(0)
+	, pkgtype(MPT_MOD)
+	, clickable(true)
+	, hasUpdate(false)
 {
 	label = desc;
 }
@@ -651,7 +674,7 @@ bool ModIconOnline::fixIcon()
 		useQuad(ss.str());
 	}
 
-	quad->alpha = 0.001;
+	quad->alpha = 0.001f;
 	quad->setWidthHeight(MOD_ICON_SIZE, MOD_ICON_SIZE);
 	quad->alpha.interpolateTo(1, 0.5f);
 
@@ -724,13 +747,13 @@ void ModIconOnline::onClick()
 				if(hasPkgOnDisk())
 				{
 					if(hasUpdate)
-						proceed = dsq->confirm(dsq->continuity.stringBank.get(2024));
+						proceed = dsq->confirm(stringbank.get(2024));
 					else
-						proceed = dsq->confirm(dsq->continuity.stringBank.get(2025));
+						proceed = dsq->confirm(stringbank.get(2025));
 				}
 				else
 				{
-					dsq->confirm(dsq->continuity.stringBank.get(2026), "", true);
+					dsq->confirm(stringbank.get(2026), "", true);
 					proceed = false;
 				}
 
@@ -756,7 +779,7 @@ void ModIconOnline::onClick()
 		else if(pkgtype == MPT_WEBLINK)
 		{
 			mouseDown = false;
-			proceed = dsq->confirm(dsq->continuity.stringBank.get(2034));
+			proceed = dsq->confirm(stringbank.get(2034));
 			if(proceed)
 			{
 				openURL(packageUrl);
@@ -812,6 +835,12 @@ MenuBasicBar::MenuBasicBar()
 	shareAlphaWithChildren = false;
 }
 
+void MenuBasicBar::setBarWidth(float w)
+{
+	width = w;
+	repeatToFillScale.x = texture->width / w;
+}
+
 void MenuBasicBar::init()
 {
 }
@@ -823,7 +852,7 @@ void MenuIconBar::init()
 
 
 	ico = new MenuIcon(0);
-	ico->label = dsq->continuity.stringBank.get(2027);
+	ico->label = stringbank.get(2027);
 	ico->useQuad("modselect/installed");
 	y += ico->quad->height;
 	ico->position = Vector(0, y);
@@ -832,7 +861,7 @@ void MenuIconBar::init()
 
 	MenuIcon *prev = ico;
 	ico = new MenuIcon(1);
-	ico->label = dsq->continuity.stringBank.get(2028);
+	ico->label = stringbank.get(2028);
 	ico->useQuad("modselect/patches");
 	y += ico->quad->height;
 	ico->position = Vector(0, y);
@@ -842,7 +871,7 @@ void MenuIconBar::init()
 
 	prev = ico;
 	ico = new MenuIcon(2);
-	ico->label = dsq->continuity.stringBank.get(2029);
+	ico->label = stringbank.get(2029);
 	ico->useQuad("modselect/download");
 	y += ico->quad->height;
 	ico->position = Vector(0, y);
@@ -853,7 +882,7 @@ void MenuIconBar::init()
 
 	prev = ico;
 	ico = new MenuIcon(3);
-	ico->label = dsq->continuity.stringBank.get(2030);
+	ico->label = stringbank.get(2030);
 	ico->useQuad("modselect/exit");
 	ico->repeatTextureToFill(false);
 	y += ico->quad->height;
@@ -872,7 +901,7 @@ void MenuIconBar::add(MenuIcon *ico)
 }
 
 IconGridPanel::IconGridPanel()
-: spacing(0), y(0), x(0)
+: spacing(0), x(0), y(0)
 {
 	shareAlphaWithChildren = false; // patch selection icons need their own alpha, use fade() instead
 	alphaMod = 0.01f;

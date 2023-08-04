@@ -6,13 +6,14 @@
 // * Define VFS_ENABLE_C_API to 1 to use ttvfs overrides.
 
 /*
-    This file is a minimal wrapper to replace the C API and std::ifstream.
-    Note that if you have an advanced needs, this wrapper API is not for you.
+    This file is a poor man's wrapper to replace the C API and std::ifstream.
+    Note that if you have any advanced needs, this wrapper API is not for you.
 
     To use it, go through your code and rename all FILE* to VFILE*,
     and fopen() and related to vfopen() (so just put a 'v' in front).
     Instead of std::ifstream, use InStream. If you use std::fstream for reading ONLY,
     also use InStream.
+    Make sure that a FILE* is not opened twice at any time - this is not supported.
 
     Note that the seek and tell functions do not offer 64 bit offsets in this API.
 */
@@ -29,12 +30,17 @@ namespace ttvfs
 {
     class File;
     class Root;
-};
+}
 typedef ttvfs::File VFILE;
 
 
 void ttvfs_setroot(ttvfs::Root *root);
 
+// HACK
+VFILE *vfgetfile(const char *fn);
+
+// Note that vfopen() returns the same pointer for the same file name,
+// so effectively a file is a singleton object.
 VFILE *vfopen(const char *fn, const char *mode);
 size_t vfread(void *ptr, size_t size, size_t count, VFILE *vf);
 int vfclose(VFILE *vf);
@@ -42,6 +48,7 @@ size_t vfwrite(const void *ptr, size_t size, size_t count, VFILE *vf);
 int vfseek(VFILE *vf, long int offset, int origin);
 char *vfgets(char *str, int num, VFILE *vf);
 long int vftell(VFILE *vf);
+int vfeof(VFILE *vf);
 int vfsize(VFILE *vf, size_t *sizep); // extension
 
 // This class is a minimal adapter to support STL-like read-only file streams for VFS files, using std::istringstream.
@@ -64,9 +71,7 @@ private:
 #elif VFS_ENABLE_C_API-0 == 0
 
 #include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <sstream>
+#include <iosfwd>
 typedef std::ifstream InStream;
 typedef FILE VFILE;
 
@@ -79,6 +84,7 @@ int ttvfs_stdio_fsize(VFILE *f, size_t *sizep); // extension
 #define vfseek        fseek
 #define vfgets        fgets
 #define vftell        ftell
+#define vfeof         feof
 #define vfsize        ttvfs_stdio_fsize
 
 //-------------------------------------------------

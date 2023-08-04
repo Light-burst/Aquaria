@@ -18,9 +18,10 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#include "Shot.h"
+
+#include "Beam.h"
 #include "Game.h"
-#include "Avatar.h"
+#include "RenderBase.h"
 
 #include "../BBGE/MathFunctions.h"
 
@@ -31,7 +32,7 @@ Beam::Beam(Vector pos, float angle) : Quad()
 	addType(SCO_BEAM);
 	cull = false;
 	trace();
-	//rotation.z = angle;
+
 	this->angle = angle;
 	position = pos;
 
@@ -40,10 +41,10 @@ Beam::Beam(Vector pos, float angle) : Quad()
 
 	setBlendType(BLEND_ADD);
 	alpha = 0;
-	alpha.interpolateTo(1, 0.1);
+	alpha.interpolateTo(1, 0.1f);
 	trace();
 	damageData.damageType = DT_ENEMY_BEAM;
-	damageData.damage = 0.5;
+	damageData.damage = 0.5f;
 
 	beamWidth = 16;
 }
@@ -70,41 +71,27 @@ void Beam::onEndOfLife()
 
 void Beam::killAllBeams()
 {
-	std::queue<Beam*>beamDeleteQueue;
-	for (Beams::iterator i = beams.begin(); i != beams.end(); i++)
-	{
-		beamDeleteQueue.push(*i);
-	}
-	Beam *s = 0;
-	while (!beamDeleteQueue.empty())
-	{
-		s = beamDeleteQueue.front();
-		if (s)
-		{
+	Beams beamsToDelete = beams; // copy
+	for (Beams::iterator it = beamsToDelete.begin(); it != beamsToDelete.end(); it++)
+		if(Beam *s = *it)
 			s->safeKill();
-		}
-		beamDeleteQueue.pop();
-	}
+
 	beams.clear();
 }
 
 void Beam::trace()
 {
 	float angle = MathFunctions::toRadians(this->angle);
-		//(float(-this->angle)/180.0f)*PI;
-	//float angle = rotation.z;
+
+
 	Vector mov(sinf(angle), cosf(angle));
 	TileVector t(position);
 	Vector startTile(t.x, t.y);
 
-	/*
-	std::ostringstream os;
-	os << "rotation.z = " << rotation.z << " mov(" << mov.x << ", " << mov.y << ")";
-	debugLog(os.str());
-	*/
+
 
 	int moves = 0;
-	while (!dsq->game->isObstructed(TileVector(startTile.x, startTile.y)))
+	while (!game->isObstructed(TileVector(startTile.x, startTile.y)))
 	{
 		startTile += mov;
 		moves++;
@@ -114,38 +101,16 @@ void Beam::trace()
 	t = TileVector(startTile.x, startTile.y);
 	endPos = t.worldVector();
 
-	/*
-	offset = endPos - position;
-	offset /= 2;
-	offset *= -1;
-	*/
 
 
-	//width = (endPos - position).getLength2D();
 }
 
-void Beam::render()
+void Beam::onRender(const RenderState& rs) const
 {
 
-	/*
-	glLineWidth(4);
-	glColor4f(1,1,1,1);
-	glBegin(GL_LINES);
-		glVertex2f(position.x, position.y);
-		glVertex2f(endPos.x, endPos.y);
-	glEnd();
-	*/
-
-	Quad::render();
-}
-
-void Beam::onRender()
-{
-#ifdef BBGE_BUILD_OPENGL
-	//glDisable(GL_CULL_FACE);
 	Vector diff = endPos - position;
 	Vector side = diff;
-	//side.normalize2D();
+
 	side.setLength2D(beamWidth*2);
 	Vector sideLeft = side.getPerpendicularLeft();
 	Vector sideRight = side.getPerpendicularRight();
@@ -160,12 +125,11 @@ void Beam::onRender()
 		glTexCoord2f(0, 1);
 		glVertex2f(sideRight.x, sideRight.y);
 	glEnd();
-#endif
 }
 
 void Beam::onUpdate(float dt)
 {
-	if (dsq->game->isPaused()) return;
+	if (game->isPaused()) return;
 
 	Quad::onUpdate(dt);
 

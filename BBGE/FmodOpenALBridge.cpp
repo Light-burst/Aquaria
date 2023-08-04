@@ -31,11 +31,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <signal.h>
 #endif
 
+#include "SDL.h"
+
 #include "Base.h"
 #include "Core.h"
+#include "ttvfs_stdio.h"
 
 #include "FmodOpenALBridge.h"
 
+#define AL_LIBTYPE_STATIC
 #include "al.h"
 #include "alc.h"
 
@@ -44,12 +48,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "MT.h"
 
-#ifndef _DEBUG
-//#define _DEBUG 1
-#endif
-
 #undef min
 #undef max
+
+// HACK: Fix this == NULL checks with GCC 6 and up
+#if defined(__GNUC__) || defined (__clang__)
+#pragma GCC optimize("no-delete-null-pointer-checks")
+#endif
 
 // HACK: global because OpenAL has only one listener anyway
 static FMOD_VECTOR s_listenerPos;
@@ -139,17 +144,11 @@ private:
     bool stopped; // true if enqueued deletion
     unsigned int samples_done;  // Number of samples played and dequeued
 
-#ifdef BBGE_BUILD_SDL
     static SDL_Thread *decoderThread;
     static LockedQueue<OggDecoder*> decoderQ;
     static volatile bool stop_thread;
     static std::list<OggDecoder*> decoderList; // used by decoder thread only
 
-#else
-#warning Threads not supported, music may cut out on area changes!
-// ... because the stream runs out of decoded data while the area is
-// still loading, so OpenAL aborts playback.
-#endif
 
     static void detachDecoder(OggDecoder *);
 };
@@ -181,18 +180,15 @@ static const ov_callbacks ogg_memory_callbacks = {
     OggDecoder::mem_tell
 };
 
-#ifdef BBGE_BUILD_SDL
 SDL_Thread *OggDecoder::decoderThread = NULL;
 LockedQueue<OggDecoder*> OggDecoder::decoderQ;
 volatile bool OggDecoder::stop_thread;
 std::list<OggDecoder*> OggDecoder::decoderList;
-#endif
 
 void OggDecoder::startDecoderThread()
 {
-#ifdef BBGE_BUILD_SDL
     stop_thread = false;
-#ifdef BBGE_BUILD_SDL2
+#if SDL_VERSION_ATLEAST(2,0,0)
     decoderThread = SDL_CreateThread((int (*)(void *))decode_loop, "OggDecoder", NULL);
 #else
     decoderThread = SDL_CreateThread((int (*)(void *))decode_loop, NULL);
@@ -202,12 +198,10 @@ void OggDecoder::startDecoderThread()
         debugLog("Failed to create Ogg Vorbis decode thread: "
                  + std::string(SDL_GetError()));
     }
-#endif
 }
 
 void OggDecoder::stopDecoderThread()
 {
-#ifdef BBGE_BUILD_SDL
     if (decoderThread)
     {
         stop_thread = true;
@@ -215,27 +209,22 @@ void OggDecoder::stopDecoderThread()
         SDL_WaitThread(decoderThread, NULL);
         decoderThread = NULL;
     }
-#endif
 }
 
 void OggDecoder::detachDecoder(OggDecoder *ogg)
 {
-#ifdef BBGE_BUILD_SDL
     if(decoderThread)
     {
         ogg->thread = true;
         decoderQ.push(ogg);
     }
-#endif
 }
 
 void OggDecoder::decode_loop(OggDecoder *this_)
 {
     while (!this_->stop_thread)
     {
-#ifdef BBGE_BUILD_SDL
         SDL_Delay(10);
-#endif
         // Transfer decoder to this background thread
         OggDecoder *ogg;
         while(decoderQ.pop(ogg))
@@ -371,7 +360,7 @@ bool OggDecoder::preStart(ALuint source)
     /* NOTE: The failure to use alGetError() here and elsewhere is
      * intentional -- since alGetError() writes to a global buffer and
      * is thus not thread-safe, we can't use it either in the decoding
-     * threads _or_ here in the main thread.  In this case, we rely on 
+     * threads _or_ here in the main thread.  In this case, we rely on
      * the specification that failing OpenAL calls do not modify return
      * parameters to detect failure; for functions that do not return
      * values, we have no choice but to hope for the best.  (From a
@@ -462,7 +451,7 @@ double OggDecoder::position()
     return (double)samples_played / (double)freq;
 }
 
-#if (defined(BBGE_BUILD_SDL) && (SDL_BYTEORDER == SDL_BIG_ENDIAN))
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
 #define BBGE_BIGENDIAN 1
 #else
 #define BBGE_BIGENDIAN 0
@@ -1298,7 +1287,6 @@ void OpenALChannel::setSound(OpenALSound *_sound)
 
 
 
-
 // FMOD::System implementation ...
 
 class OpenALSystem
@@ -1396,7 +1384,7 @@ static void *decode_to_pcm(VFILE *io, ALenum &format, ALsizei &size, ALuint &fre
             if (rc > 0)
             {
                 size += rc;
-                if (size >= allocated)
+				if ((size_t) size >= allocated)
                 {
                     allocated *= 2;
                     ALubyte *tmp = (ALubyte *) realloc(retval, allocated);
@@ -1433,7 +1421,7 @@ FMOD_RESULT OpenALSystem::createSound(const char *name_or_data, const FMOD_MODE 
     strcat(fname, ".ogg");
 
     // just in case...
-    VFILE *io = vfopen(core->adjustFilenameCase(fname).c_str(), "rb");
+    VFILE *io = vfopen(adjustFilenameCase(fname).c_str(), "rb");
     if (io == NULL)
         return FMOD_ERR_INTERNAL;
     size_t filesize = 0;
@@ -1756,7 +1744,7 @@ FMOD_RESULT OpenALSystem::update()
 }
 
 ALBRIDGE(System, set3DListenerAttributes, (int listener, const FMOD_VECTOR *pos, const FMOD_VECTOR *vel, const FMOD_VECTOR *forward, const FMOD_VECTOR *up),
-    (listener, pos, vel, forward, up));
+	(listener, pos, vel, forward, up))
 FMOD_RESULT OpenALSystem::set3DListenerAttributes(int listener, const FMOD_VECTOR *pos, const FMOD_VECTOR *vel, const FMOD_VECTOR *forward, const FMOD_VECTOR *up)
 {
     // ignore listener parameter; there is only one listener in OpenAL.

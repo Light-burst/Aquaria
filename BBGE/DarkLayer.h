@@ -32,11 +32,11 @@ public:
 	void toggle(bool on);
 	void setLayers(int layer, int renderLayer);
 	void preRender();
-	void render();
+	void render() const;
 	int getLayer();
 	int getRenderLayer();
 	bool isUsed();
-	
+
 	void unloadDevice();
 	void reloadDevice();
 
@@ -47,10 +47,8 @@ protected:
 	int quality;
 	bool active;
 	int layer, renderLayer;
-	
-	
-	GLuint texture;
-	GLuint format;
+	unsigned texture;
+	unsigned format;
 };
 
 #endif

@@ -22,15 +22,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define AQ_WEB_H
 
 #include "../BBGE/Quad.h"
-#include "Entity.h"
+
+class Entity;
 
 class Web : public RenderObject
 {
 public:
 	Web();
 	int addPoint(const Vector &point = Vector(0,0));
-	void setPoint(int pt, const Vector &v);
-	Vector getPoint(int pt) const;
+	void setPoint(size_t pt, const Vector &v);
+	Vector getPoint(size_t pt) const;
 	void setParentEntity(Entity *e);
 	int getNumPoints();
 	typedef std::list<Web*> Webs;
@@ -40,10 +41,10 @@ public:
 protected:
 	float existence;
 	Entity *parentEntity;
-	void onEndOfLife();
+	void onEndOfLife() OVERRIDE;
 	std::vector<Vector> points;
-	void onUpdate(float dt);
-	void onRender();
+	void onUpdate(float dt) OVERRIDE;
+	void onRender(const RenderState& rs) const OVERRIDE;
 };
 
 #endif

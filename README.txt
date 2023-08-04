@@ -10,6 +10,18 @@ In case of problems, you can get support via IRC:
 #bitblot @ irc.esper.net.
 
 
+TL;DR for contributions:
+-------------------------
+- Branches:
+  * master - stable branch
+  * experimental - merged into master when a new release is due
+  Other branches are feature/testing branches.
+
+- Pull requests / new developments should go into experimental.
+- Major bug fixes, security relevant things, or easy platform compile fixes can be made against master.
+
+
+
 [1] BUILDING
 ------------
 
@@ -175,27 +187,3 @@ are updated with those from the repo's game_scripts/_mods directory.
 If this doesn't apply to your setup, ask. [email, github, IRC, ...]
 
 
-
-
-
-
-[SDL 1.2 ONLY -- LINUX RUMBLE SUPPORT]
----------------------------------------
-
-SDL 1.2 does not support rumble features, even though Linux does. This
-feature will be added in SDL 1.3, which is still a long time coming.
-
-In the meantime there is a hackish rumble implementation for Linux that
-needs environment variables to be set that map joysticks via their indices
-to event devices. E.g. to map the first joystick to the event device
-"/dev/input/event6" you need to run aquaria like this:
-
-$ export AQUARIA_EVENT_JOYSTICK0=/dev/input/event6
-$ aquaria
-
-Because aquaria is a single player game you never need to map another joystick
-than the first one. Also keep in mind that your joystick event device has
-another path. E.g. I use this command to run aquaria:
-
-$ export AQUARIA_EVENT_JOYSTICK0=/dev/input/by-id/usb-©Microsoft_Corporation_Controller_0709960-event-joystick
-$ aquaria

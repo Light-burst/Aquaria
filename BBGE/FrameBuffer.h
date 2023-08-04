@@ -27,35 +27,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 class FrameBuffer
 {
 public:
-	FrameBuffer();	
+	FrameBuffer();
 	~FrameBuffer();
-	bool init(int width, int height, bool fitToScreen=false, GLint filter=GL_LINEAR);
+	bool init(int width, int height, bool fitToScreen=false);
 	bool isInited() { return inited; }
-	bool isEnabled() { return enabled; }
-	void setEnabled(bool e);
-	void startCapture();
-	void endCapture();
-	void bindTexture();
+	void startCapture() const;
+	void endCapture() const;
+	void bindTexture() const;
 	int getWidth() { return w; }
 	int getHeight() { return h; }
 	float getWidthP();
 	float getHeightP();
-	
+
 	void unloadDevice();
 	void reloadDevice();
-
-#if defined(BBGE_BUILD_SDL)
-	static void resetOpenGL();
-#endif
 
 protected:
 	int _w, _h;
 	bool _fitToScreen;
-	GLuint g_frameBuffer;
-	GLuint g_depthRenderBuffer;
-	GLuint g_dynamicTextureID;
+	unsigned g_frameBuffer;
+	unsigned g_depthRenderBuffer;
+	unsigned g_dynamicTextureID;
 	int w,h;
-	bool enabled, inited;
+	bool inited;
 };
 
 #endif

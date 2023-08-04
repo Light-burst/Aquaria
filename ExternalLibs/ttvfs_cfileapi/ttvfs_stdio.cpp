@@ -1,10 +1,14 @@
 #define VFS_ENABLE_C_API 1
 
-#include "ttvfs.h"
+#include <ttvfs.h>
 #include "ttvfs_stdio.h"
 #include <assert.h>
 #include <sstream>
 #include <stdio.h>
+
+// HACK: add a big lock to make this thing not crash when multiple threads are active
+#include "../../BBGE/MT.h"
+static Lockable lock;
 
 
 static ttvfs::Root *vfs = NULL;
@@ -14,14 +18,15 @@ void ttvfs_setroot(ttvfs::Root *root)
     vfs = root;
 }
 
+VFILE* vfgetfile(const char* fn)
+{
+    MTGuard g(lock);
+    return vfs->GetFile(fn);
+}
+
 VFILE *vfopen(const char *fn, const char *mode)
 {
-    if (strchr(mode, 'w'))
-    {
-        assert(0 && "ttvfs_stdio: File writing via VFS not yet supported!");
-        return NULL;
-    }
-
+    MTGuard g(lock);
     VFILE *vf = vfs->GetFile(fn);
     if (!vf || !vf->open(mode))
         return NULL;
@@ -36,6 +41,7 @@ size_t vfread(void *ptr, size_t size, size_t count, VFILE *vf)
 
 int vfclose(VFILE *vf)
 {
+    MTGuard g(lock);
     vf->close();
     vf->decref();
     return 0;
@@ -92,6 +98,10 @@ long int vftell(VFILE *vf)
     return (long int)vf->getpos();
 }
 
+int vfeof(VFILE *vf)
+{
+    return vf->iseof();
+}
 
 InStream::InStream(const std::string& fn)
 : std::istringstream()
@@ -107,11 +117,15 @@ InStream::InStream(const char *fn)
 
 bool InStream::open(const char *fn)
 {
-    ttvfs::File *vf = vfs->GetFile(fn);
-    if(!vf || !vf->open("r"))
+    ttvfs::File *vf = NULL;
     {
-        setstate(std::ios::failbit);
-        return false;
+        MTGuard g(lock);
+        vf = vfs->GetFile(fn);
+        if(!vf || !vf->open("r"))
+        {
+            setstate(std::ios::failbit);
+            return false;
+        }
     }
     size_t sz = (size_t)vf->size();
     std::string s;

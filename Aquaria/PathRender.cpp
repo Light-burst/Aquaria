@@ -19,59 +19,71 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "GridRender.h"
+#include "RenderBase.h"
+#include "Game.h"
 
 PathRender::PathRender() : RenderObject()
 {
-	//color = Vector(1, 0, 0);
+
 	position.z = 5;
 	cull = false;
 	alpha = 0.5f;
 }
 
-void PathRender::onRender()
-{	
-#ifdef BBGE_BUILD_OPENGL
-	const int pathcount = dsq->game->getNumPaths();
-	if (pathcount <= 0)
+void PathRender::onRender(const RenderState& rs) const
+{
+	const size_t pathcount = game->getNumPaths();
+	if (pathcount == 0)
 		return;
 
-	for (int i = 0; i < pathcount; i++)
+	glLineWidth(4);
+
+	const size_t selidx = game->sceneEditor.selectedIdx;
+
+	for (size_t i = 0; i < pathcount; i++)
 	{
-		Path *p = dsq->game->getPath(i);
-#ifdef AQUARIA_BUILD_SCENEEDITOR
-		if (dsq->game->sceneEditor.selectedIdx == i)
-			glColor4f(1, 1, 1, 0.75);
+		const Path *p = game->getPath(i);
+
+		if (selidx == i)
+			glColor4f(1, 1, 1, 0.75f);
+		else if(p->hasScript())
+			glColor4f(0.5f, 0.8f, 0.5f, 0.75f);
 		else
-#endif
-			glColor4f(1, 0.5, 0.5, 0.75);
+			glColor4f(1, 0.5f, 0.5f, 0.75f);
 
 		glBegin(GL_LINES);
-		for (int n = 0; n < p->nodes.size()-1; n++)
+		for (size_t n = 0; n < p->nodes.size()-1; n++)
 		{
-			PathNode *nd = &p->nodes[n];
-			PathNode *nd2 = &p->nodes[n+1];
+			const PathNode *nd = &p->nodes[n];
+			const PathNode *nd2 = &p->nodes[n+1];
 			glVertex3f(nd->position.x, nd->position.y, 0);
 			glVertex3f(nd2->position.x, nd2->position.y, 0);
 		}
 		glEnd();
+	}
 
-		for (int n = 0; n < p->nodes.size(); n++)
+	glLineWidth(1);
+
+	for (size_t i = 0; i < pathcount; i++)
+	{
+		const Path *p = game->getPath(i);
+		for (size_t n = 0; n < p->nodes.size(); n++)
 		{
-			PathNode *nd = &p->nodes[n];
+			const PathNode *nd = &p->nodes[n];
 
 			if (n == 0)
 			{
 				if (p->pathShape == PATHSHAPE_RECT)
 				{
-					glColor4f(0.5, 0.5, 1, 0.2);
+					glColor4f(0.5f, 0.5f, 1, 0.2f);
 					glBegin(GL_QUADS);
 						glVertex2f(nd->position.x+p->rect.x1, nd->position.y+p->rect.y2);
 						glVertex2f(nd->position.x+p->rect.x2, nd->position.y+p->rect.y2);
 						glVertex2f(nd->position.x+p->rect.x2, nd->position.y+p->rect.y1);
-						glVertex2f(nd->position.x+p->rect.x1, nd->position.y+p->rect.y1);														
+						glVertex2f(nd->position.x+p->rect.x1, nd->position.y+p->rect.y1);
 					glEnd();
-			
-					glColor4f(1, 1, 1, 0.3);
+
+					glColor4f(1, 1, 1, 0.3f);
 					glBegin(GL_LINES);
 						glVertex2f(nd->position.x+p->rect.x1, nd->position.y+p->rect.y1);
 						glVertex2f(nd->position.x+p->rect.x2, nd->position.y+p->rect.y1);
@@ -85,29 +97,29 @@ void PathRender::onRender()
 				}
 				else
 				{
-					glColor4f(0.5, 0.5, 1, 0.5);
+					glColor4f(0.5f, 0.5f, 1, 0.4f);
 					glTranslatef(nd->position.x, nd->position.y, 0);
 					drawCircle(p->rect.getWidth()*0.5f, 16);
 					glTranslatef(-nd->position.x, -nd->position.y, 0);
 				}
 			}
 
-			float a = 0.75;
+			Vector color = p->hasScript() ? Vector(0.5f, 0.8f, 0.5f) : Vector(1, 0.5f, 0.5f);
+			float a = 0.75f;
 			if (!p->active)
-				a = 0.3;
+			{
+				a = 0.3f;
+				color *= 0.5f;
+			}
 
-#ifdef AQUARIA_BUILD_SCENEEDITOR
-			if (dsq->game->sceneEditor.selectedIdx == i)
-				glColor4f(1, 1, 1, a);
-			else
-#endif
-				glColor4f(1, 0.5, 0.5, a);
+			if (selidx == i)
+				color.x = color.y = color.z = 1;
 
+			glColor4f(color.x, color.y, color.z, a);
 			glPushMatrix();
-			glTranslatef(nd->position.x, nd->position.y, 0);			
+			glTranslatef(nd->position.x, nd->position.y, 0);
 			drawCircle(32);
 			glPopMatrix();
 		}
 	}
-#endif
 }

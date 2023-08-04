@@ -18,16 +18,19 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#ifndef __render_object__
-#define __render_object__
+#ifndef RENDER_OBJECT_H
+#define RENDER_OBJECT_H
 
 #include "Base.h"
+#include "EngineEnums.h"
 #include "Texture.h"
-#include "Flags.h"
 #include "ScriptObject.h"
+#include "RenderState.h"
+#include <list>
 
 class Core;
 class StateData;
+class Texture;
 
 enum RenderObjectFlags
 {
@@ -45,9 +48,9 @@ enum AutoSize
 
 enum ParentManaged
 {
-	PM_NONE					= 0,
-	PM_POINTER				= 1,
-	PM_STATIC				= 2
+	PM_NONE					= 0, // child is destroyed with parent, but not deleted. The childs' update() is NOT called.
+	PM_POINTER				= 1, // child is deleted together with parent. update() is called.
+	PM_STATIC				= 2  // child is destroyed with parent, but not deleted. update() is called.
 };
 
 enum ChildOrder
@@ -69,7 +72,14 @@ struct MotionBlurFrame
 	float rotz;
 };
 
-typedef std::vector<RectShape> CollideRects;
+struct MotionBlurData
+{
+	MotionBlurData();
+	bool transition;
+	unsigned frameOffsetCounter, frameOffset;
+	float transitionTimer;
+	std::vector<MotionBlurFrame> positions;
+};
 
 class RenderObjectLayer;
 
@@ -79,9 +89,7 @@ public:
 	friend class Core;
 	RenderObject();
 	virtual ~RenderObject();
-	virtual void render();
-
-	static RenderObjectLayer *rlayer;
+	virtual void render(const RenderState& rs) const;
 
 	void setTexturePointer(CountedPtr<Texture> t)
 	{
@@ -92,38 +100,38 @@ public:
 	void setStateDataObject(StateData *state);
 	bool setTexture(const std::string &name);
 
-	void toggleAlpha(float t = 0.2);
+	void toggleAlpha(float t = 0.2f);
 
 	virtual void update(float dt);
 	bool isDead() const {return _dead;}
 	bool isHidden() const {return _hidden || (parent && parent->isHidden());}
-	bool isStatic() const {return _static;}
+
+	bool shouldTryToRender() const; // somewhat expensive
+	bool isVisibleInPass(int pass) const;
 
 	// Set whether the object is hidden.  If hidden, no updates (except
 	// lifetime checks) or render operations will be performed, and no
 	// child objects will be updated or rendered.
 	void setHidden(bool hidden) {_hidden = hidden;}
 
-	// Set whether the object is static.  If static, the object's data
-	// (including position, scale, rotation, color, etc.) are assumed
-	// not to change over the lifetime of the object, to allow for
-	// optimized rendering.
-	void setStatic(bool staticFlag) {_static = staticFlag;}
-
-	void setLife(float life)
+	void setLife(float newlife)
 	{
-		maxLife = this->life = life;
+		maxLife = this->life = newlife;
 	}
-	void setDecayRate(float decayRate)
+	void setDecayRate(float newdecayRate)
 	{
-		this->decayRate = decayRate;
+		this->decayRate = newdecayRate;
 	}
-	void setBlendType (int bt)
+	void setBlendType (BlendType bt)
 	{
-		blendType = bt;
+		_blendType = bt;
+	}
+	inline BlendType getBlendType() const
+	{
+		return (BlendType)_blendType;
 	}
 
-	//enum DestroyType { RANDOM=0, REMOVE_STATE };
+
 	virtual void destroy();
 
 	virtual void flipHorizontal();
@@ -133,17 +141,17 @@ public:
 	bool isfv() const { return _fv; }
 
 	// recursive
-	bool isfhr();
-	bool isfvr();
+	bool isfhr() const;
+	bool isfvr() const;
 
-	int getIdx() const { return idx; }
-	void setIdx(int idx) { this->idx = idx; }
+	size_t getIdx() const { return idx; }
+	void setIdx(size_t newidx) { this->idx = newidx; }
 	void moveToFront();
 	void moveToBack();
 
 	inline float getCullRadiusSqr() const
 	{
-		if (overrideCullRadiusSqr)
+		if (overrideCullRadiusSqr != 0)
 			return overrideCullRadiusSqr;
 		if (width == 0 || height == 0)
 			return 0;
@@ -152,10 +160,7 @@ public:
 		return w*w + h*h;
 	}
 
-	int getTopLayer();
-
-	void setColorMult(const Vector &color, const float alpha);
-	void clearColorMult();
+	int getTopLayer() const;
 
 	void enableMotionBlur(int sz=10, int off=5);
 	void disableMotionBlur();
@@ -163,194 +168,154 @@ public:
 	void addChild(RenderObject *r, ParentManaged pm, RenderBeforeParent rbp = RBP_NONE, ChildOrder order = CHILD_BACK);
 	void removeChild(RenderObject *r);
 
-	Vector getRealPosition();
-	Vector getRealScale();
+	Vector getRealPosition() const;
+	Vector getRealScale() const;
 
-	virtual float getSortDepth();
-
-	StateData *getStateData();
-
-	void setPositionSnapTo(InterpolatedVector *positionSnapTo);
+	StateData *getStateData() const;
 
 	// HACK: This is defined in RenderObject_inline.h because it needs
 	// the class Core definition.  --achurch
-	inline bool isOnScreen();
+	inline bool isOnScreen() const;
 
-	bool isCoordinateInRadius(const Vector &pos, float r);
-
-	void copyProperties(RenderObject *target);
-
-	const RenderObject &operator=(const RenderObject &r);
+	bool isCoordinateInRadius(const Vector &pos, float r) const;
 
 	void toggleCull(bool value);
-	
+
 	void safeKill();
 
-	void enqueueChildDeletion(RenderObject *r);
+	Vector getWorldPosition() const;
+	Vector getWorldCollidePosition(const Vector &vec=Vector(0,0,0)) const;
 
-	Vector getWorldPosition();
-	Vector getWorldCollidePosition(const Vector &vec=Vector(0,0,0));
-	Vector getInvRotPosition(const Vector &vec);
-	bool isPieceFlippedHorizontal();
-
-	RenderObject *getTopParent();
+	RenderObject *getTopParent() const;
 
 	virtual void onAnimationKeyPassed(int key){}
 
-	Vector getAbsoluteRotation();
-	float getWorldRotation();
-	Vector getWorldPositionAndRotation(); // more efficient shortcut, returns rotation in vector z component
-	Vector getNormal();
-	Vector getForward();
+	Vector getAbsoluteRotation() const;
+	float getWorldRotation() const;
+	Vector getWorldPositionAndRotation() const; // more efficient shortcut, returns rotation in vector z component
+	Vector getNormal() const;
+	Vector getForward() const;
 	void setOverrideCullRadius(float ovr);
 	void setRenderPass(int pass) { renderPass = pass; }
-	int getRenderPass() { return renderPass; }
-	void setOverrideRenderPass(int pass) { overrideRenderPass = pass; }
-	int getOverrideRenderPass() { return overrideRenderPass; }
-	enum { RENDER_ALL=314, OVERRIDE_NONE=315 };
+	int getRenderPass() const { return renderPass; }
+
+	// TODO: remove this once the render loop is split into a per-pass object collection phase
+	// and an actual rendering phase
+	enum { RENDER_ALL=999 };
 
 	// Defined in RenderObject_inline.h
 	inline Vector getFollowCameraPosition() const;
+	inline Vector getFollowCameraPosition(const Vector& pos) const;
 
 	void lookAt(const Vector &pos, float t, float minAngle, float maxAngle, float offset=0);
 	inline RenderObject *getParent() const {return parent;}
-	void applyBlendType();
 	void fhTo(bool fh);
 	void addDeathNotify(RenderObject *r);
 	virtual void unloadDevice();
 	virtual void reloadDevice();
 
-	Vector getCollisionMaskNormal(int index);
+	MotionBlurData *ensureMotionBlur();
+	void freeMotionBlur();
 
 	//-------------------------------- Methods above, fields below
 
 	static bool renderCollisionShape;
 	static bool renderPaths;
-	static int lastTextureApplied;
+	static size_t lastTextureApplied;
 	static bool lastTextureRepeat;
 
-	float width, height;  // Only used by Quads, but stored here for getCullRadius()
-	InterpolatedVector position, scale, color, alpha, rotation;
+	//--------------------------
+
+	// fields ordered by hotness
+
+	// TODO: this should be a bitmask
+	bool fadeAlphaWithLife;
+	bool renderBeforeParent;
+	bool shareAlphaWithChildren;
+	bool shareColorWithChildren;
+	bool cull;
+	bool ignoreUpdate;
+	bool useOldDT;
+	bool repeatTexture;
+	bool _dead;
+	bool _hidden;
+	bool _fv, _fh;
+	bool _markedForDelete;
+
+	unsigned char pm;  // unsigned char to save space
+
+	char _blendType;
+
+
+	InterpolatedVector position;
+	InterpolatedVector scale;
+	InterpolatedVector color, alpha;
+	InterpolatedVector rotation;
 	InterpolatedVector offset, rotationOffset, internalOffset, beforeScaleOffset;
 	InterpolatedVector velocity, gravity;
 
 	CountedPtr<Texture> texture;
 
-	//int mode;
-
-	bool fadeAlphaWithLife;
-
-	bool blendEnabled;
-	enum BlendTypes { BLEND_DEFAULT = 0, BLEND_ADD, BLEND_SUB, BLEND_MULT };
-	unsigned char blendType;
-
 	float life;
-	//float lifeAlphaFadeMultiplier;
+
+	// if 0: use value from RenderLayer. If still 0, render normally.
+	// UI elements have this == 1, ie. are totally unaffected by camera movement
+	// and stay always on the same place on the screen.
+	// Any value > 0 and < 1 is parallax scrolling, where closer to 0 moves slower
+	// (looks like further away).
 	float followCamera;
 
-	//bool useColor;
-	bool renderBeforeParent;
-	bool updateAfterParent;
-
-	//bool followXOnly;
-	//bool renderOrigin;
-
-	//float updateMultiplier;
-	//EventPtr deathEvent;
-
-	bool colorIsSaved;  // Used for both color and alpha
-	Vector savedColor;  // Saved values from setColorMult()
-	float savedAlpha;
-
-	bool shareAlphaWithChildren;
-	bool shareColorWithChildren;
-
-	bool cull;
+	float alphaMod;
 	float updateCull;
 	int layer;
 
-	InterpolatedVector *positionSnapTo;
+	float decayRate;
+	float maxLife;
 
-	//DestroyType destroyType;
+	// In layers that have multi-pass rendering enabled, the object will only be rendered
+	// in this pass (single-pass layers always render, regardless of this setting).
+	int renderPass;
+
+
+	float overrideCullRadiusSqr;
+
+
+	float width, height;  // Only used by Quads, but stored here for getCullRadius()
+
+	// ----------------------
+
 	typedef std::vector<RenderObject*> Children;
-	Children children, childGarbage;
+	Children children;
 
-	//Flags flags;
-
-#ifdef BBGE_BUILD_DIRECTX
-	bool useDXTransform;
-	//D3DXMATRIX matrix;
-#endif
-
-	float collideRadius;
-	Vector collidePosition;
-	std::vector<Vector> collisionMask;
-	std::vector<Vector> transformedCollisionMask;
-
-	CollideRects collisionRects;
-	float collisionMaskRadius;
-
-	float alphaMod;
-
-	bool ignoreUpdate;
-	bool useOldDT;
-	
 protected:
+	RenderObject *parent;
+
 	virtual void onFH(){}
 	virtual void onFV(){}
-	virtual void onDestroy(){}
 	virtual void onSetTexture(){}
-	virtual void onRender(){}
+	virtual void onRender(const RenderState& rs) const {}
 	virtual void onUpdate(float dt);
 	virtual void deathNotify(RenderObject *r);
 	virtual void onEndOfLife() {}
 
-	inline void updateLife(float dt)
-	{
-		if (decayRate > 0)
-		{
-			life -= decayRate*dt;
-			if (life<=0)
-			{
-				safeKill();
-			}
-		}
-		if (fadeAlphaWithLife && !alpha.isInterpolating())
-		{
-			//alpha = ((life*lifeAlphaFadeMultiplier)/maxLife);
-			alpha = life/maxLife;
-		}
-	}
+	bool updateLife(float dt);
 
 	// Is this object or any of its children rendered in pass "pass"?
-	bool hasRenderPass(const int pass);
+	bool hasRenderPass(const int pass) const;
 
-	inline void renderCall();
-	void renderCollision();
+	inline void renderCall(const RenderState& rs, const Vector& renderAt, float renderRotation) const;
+	virtual void renderCollision(const RenderState& rs) const;
+	void debugRenderPaths() const;
 
-	bool repeatTexture;
-	//ParentManaged pm;
-	unsigned char pm;  // unsigned char to save space
 	typedef std::list<RenderObject*> RenderObjectList;
 	RenderObjectList deathNotifications;
-	int overrideRenderPass;
-	int renderPass;
-	float overrideCullRadiusSqr;
-	float motionBlurTransitionTimer;
-	int motionBlurFrameOffsetCounter, motionBlurFrameOffset;
-	std::vector<MotionBlurFrame>motionBlurPositions;
-	bool motionBlur, motionBlurTransition;
 
-	bool _dead;
-	bool _hidden;
-	bool _static;
-	bool _fv, _fh;
-	//bool rotateFirst;
-	int idx;
-	RenderObject *parent;
+	size_t idx; // index in layer
 	StateData *stateData;
-	float decayRate;
-	float maxLife;
+	MotionBlurData *motionBlur;
+
+private:
+	const RenderObject &operator=(const RenderObject &r); // undefined
 };
 
 #endif

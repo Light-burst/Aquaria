@@ -18,10 +18,11 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#ifndef __quad__
-#define __quad__
+#ifndef BBGE_QUAD_H
+#define BBGE_QUAD_H
 
 #include "RenderObject.h"
+#include "DataStructures.h"
 
 class OutlineRect : public RenderObject
 {
@@ -30,114 +31,100 @@ public:
 	void setWidthHeight(int w, int h);
 	void setLineSize(int ls);
 
-	bool renderCenter;
 protected:
-	
+
 	int w, h, w2, h2;
 	int lineSize;
 
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 };
+
+class RenderGrid;
 
 class Quad : public RenderObject
 {
 public:
 	Quad(const std::string &tex, const Vector &pos);
-	Quad();	
-	void createGrid(int x, int y);
-	void destroy();
-	bool isCoordinateInside(Vector coord, int minSize=0);
-	bool isCoordinateInsideWorld(const Vector &coord, int minSize=0);
-	bool isCoordinateInsideWorldRect(const Vector &coord, int w, int h);
+	Quad();
+	virtual ~Quad();
+	RenderGrid *createGrid(int x, int y);
+	void destroy() OVERRIDE;
+	bool isCoordinateInside(Vector coord, int minSize=0) const;
+	bool isCoordinateInsideWorld(const Vector &coord, int minSize=0) const;
+	bool isCoordinateInsideWorldRect(const Vector &coord, int w, int h) const;
 
-	void flipVertical();
-	void flipHorizontal();
-	void setTextureSmooth(const std::string &texture, float t);
-	void spawnChildClone(float t);
-	void burn();
-	void unburn();
+	void flipVertical() OVERRIDE;
+	void flipHorizontal() OVERRIDE;
 	void setWidthHeight(float w, float h=-1);
 	void setWidth(float w);
 	void setHeight(float h);
-	int getWidth() const {return int(width);}
-	int getHeight() const {return int(height);}
-	
-	void setSegs(int x, int y, float dgox, float dgoy, float dgmx, float dgmy, float dgtm, bool dgo);	
-	void setDrawGridAlpha(int x, int y, float alpha);
-	void calculateQuadLighting();
+	float getWidth() const {return width;}
+	float getHeight() const {return height;}
+
+	RenderGrid *setSegs(int x, int y, float dgox, float dgoy, float dgmx, float dgmy, float dgtm, bool dgo);
+	void setDrawGridAlpha(size_t x, size_t y, float alpha);
 	void repeatTextureToFill(bool on);
 	void refreshRepeatTextureToFill();
-	bool isRepeatingTextureToFill() const { return repeatingTextureToFill; }
-	void setGridPoints(bool vert, const std::vector<Vector> &points);
-	void setStrip(const std::vector<Vector> &strip);
-	virtual void createStrip(bool stripVert, int num);
-	float getStripSegmentSize();
-	void resetStrip();
-	Vector ** getDrawGrid() { return drawGrid; }
-	
-	void reloadDevice();
+	bool isRepeatingTextureToFill() const { return repeatTexture; }
+	void setStripPoints(bool vert, const Vector *points, size_t n);
+	RenderGrid *getGrid() { return grid; }
+	const RenderGrid *getGrid() const { return grid; }
+
+	void reloadDevice() OVERRIDE;
 
 	void deleteGrid();
 
+	Vector upperLeftTextureCoordinates, lowerRightTextureCoordinates;
 
-	InterpolatedVector upperLeftTextureCoordinates, lowerRightTextureCoordinates;
-	//InterpolatedVector upperLeftColor, upperRightColor, lowerLeftColor, lowerRightColor;
-	//InterpolatedVector llalpha, lralpha, ulalpha, uralpha;
-	//bool oriented;
+	// TODO: this should be a bitmask
+	char autoWidth, autoHeight;
+	bool renderQuad, renderCenter, renderBorder;
 
-	enum GridType
-	{
-		GRID_WAVY	= 0,
-		GRID_SET	= 1
-	};
-	unsigned char gridType;  // unsigned char to save space
-
-	char autoWidth, autoHeight;  // char to save space
-	
-	bool renderQuad, renderBorder, renderCenter;
-	bool stripVert;
-	std::vector<Vector>strip;
 	Vector texOff;
 
 	float borderAlpha;
+	Vector renderBorderColor;
 	Vector repeatToFillScale;
 
 protected:
-	bool repeatingTextureToFill;
-	float gridTimer;
-	int xDivs, yDivs;
-	Vector ** drawGrid;
+
+	RenderGrid *grid;
+
 
 	void resetGrid();
-	void updateGrid(float dt);
-	void renderGrid();
-	
+	void renderGrid(const RenderState& rs) const;
 
-	float drawGridOffsetX;
-	float drawGridOffsetY;
-	float drawGridModX;
-	float drawGridModY;
-	float drawGridTimeMultiplier;
-	bool drawGridOut;
-	
-	static Vector renderBorderColor;
-	
-	void onSetTexture();
-	void onRender();
-	void onUpdate(float dt);
+	void onSetTexture() OVERRIDE;
+	void onRender(const RenderState& rs) const OVERRIDE;
+	void onUpdate(float dt) OVERRIDE;
+
 private:
-	bool doUpdateGrid;
 	void initQuad();
+	void _renderBorder(const RenderState& rs, Vector color, float borderalpha) const;
 };
 
 class PauseQuad : public Quad
 {
 public:
 	PauseQuad();
+	virtual ~PauseQuad();
 	int pauseLevel;
+
+	void setPositionSnapTo(InterpolatedVector *positionSnapTo);
 protected:
-	
+	InterpolatedVector *positionSnapTo;
+
 	void onUpdate(float dt);
+};
+
+class CollideQuad : public Quad
+{
+public:
+	CollideQuad();
+	virtual ~CollideQuad();
+	virtual void renderCollision(const RenderState& rs) const OVERRIDE;
+
+	float collideRadius;
 };
 
 #define QUAD(x) Quad *x = new Quad; addRenderObject(x);

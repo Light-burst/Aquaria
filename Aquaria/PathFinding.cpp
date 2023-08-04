@@ -19,7 +19,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include <JPS.h>
+#include <jps.hh>
 #include "PathFinding.h"
 #include "DSQ.h"
 #include "Game.h"
@@ -28,28 +28,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 class SearchGridRaw
 {
 public:
-	SearchGridRaw(ObsType blocking) : game(dsq->game), blockingObsBits(blocking) {}
+	SearchGridRaw(ObsType blocking) : blockingObsBits(blocking) {}
 	inline bool operator()(unsigned x, unsigned y) const
 	{
 		return (game->getGridRaw(TileVector(x, y)) & blockingObsBits) == OT_EMPTY;
 	}
 
 	ObsType blockingObsBits;
-	const Game *game;
 };
 
 class PathFinding::State : public ScriptObject
 {
 public:
-	State(ObsType obs) : grid(obs), searcher(grid), result(JPS::NO_PATH) {}
+	State(ObsType obs) : grid(obs), searcher(grid), result(JPS_NO_PATH) {}
 	SearchGridRaw grid;
 	JPS::Searcher<SearchGridRaw> searcher;
-	JPS::Result result;
+	JPS_Result result;
 };
 
 static void generateVectorPath(const JPS::PathVector& rawpath, VectorPath& vp, int offx, int offy)
 {
-	for(JPS::PathVector::const_iterator it = rawpath.begin(); it != rawpath.end(); ++it)
+	for(JPS::PathVector::const_iterator it = rawpath.cbegin(); it != rawpath.cend(); ++it)
 		vp.addPathNode(Vector((it->x*TILE_SIZE)+TILE_SIZE/2+offx, (it->y*TILE_SIZE)+TILE_SIZE/2)+offy, 0);
 }
 
@@ -58,7 +57,7 @@ void PathFinding::forceMinimumPath(VectorPath &path, const Vector &start, const 
 {
 	if (path.getNumPathNodes() <= 2)
 	{
-		//debugLog(" Path is <= 2 nodes... setting up simple path");
+
 		path.clear();
 		path.addPathNode(start, 0);
 		path.addPathNode(dest, 1);
@@ -67,35 +66,33 @@ void PathFinding::forceMinimumPath(VectorPath &path, const Vector &start, const 
 
 void PathFinding::molestPath(VectorPath &path)
 {
-	int sz=path.getNumPathNodes();
+	size_t sz=path.getNumPathNodes();
 	if(!sz)
 		return;
 
-	int i = 0;
+	size_t i = 0;
 	// make normals
 	std::vector<Vector> normals;
 	normals.resize(sz);
 	for (i = 0; i < sz; i++)
 	{
 		Vector node = path.getPathNode(i)->value;
-		float dist;
-		int sample = 20;
-		float maxDist = sample * TILE_SIZE;
+		const int sample = 20;
 		{
-			Vector n = dsq->game->getWallNormal(node, sample, &dist);
-			if (dist != -1 && (n.x != 0 || n.y != 0))
+			Vector n = game->getWallNormal(node, sample);
+			if (!n.isZero())
 			{
 				n.setLength2D(200);
 				TileVector test(node + n);
-				if (dsq->game->isObstructed(test))
+				if (game->isObstructed(test))
 				{
 					n.setLength2D(100);
 					test = TileVector(node+n);
-					if (dsq->game->isObstructed(test))
+					if (game->isObstructed(test))
 					{
 						n.setLength2D(50);
 						test = TileVector(node+n);
-						if (dsq->game->isObstructed(test))
+						if (game->isObstructed(test))
 						{
 							n = Vector(0,0,0);
 						}
@@ -105,12 +102,15 @@ void PathFinding::molestPath(VectorPath &path)
 			}
 		}
 	}
-	
+
 	// use wall normal to push out node a bit
 	std::vector<Vector> newNormals;
 	newNormals.resize(normals.size());
-	for (i = 1; i < normals.size()-1; i++)
-		newNormals[i] = (normals[i] + normals[i-1] + normals[i+1])/3.0f;
+	if(normals.size() > 0) {
+		for (i = 1; i < normals.size()-1; i++) {
+			newNormals[i] = (normals[i] + normals[i-1] + normals[i+1])/3.0f;
+		}
+	}
 	for (i = 1; i < sz-1; i++)
 		path.getPathNode(i)->value += newNormals[i];
 
@@ -133,10 +133,10 @@ void PathFinding::molestPath(VectorPath &path)
 		lastSuccessNode = 0;
 		hadSuccess = false;
 		Vector node = path.getPathNode(i)->value;
-		for (int j = sz-1; j >= i+adjust; j--)
+		for (size_t j = sz-1; j >= i+adjust; j--)
 		{
 			Vector target = path.getPathNode(j)->value;
-			if (dsq->game->trace(node, target))
+			if (game->trace(node, target))
 			{
 				hadSuccess = true;
 				lastSuccessNode = j;
@@ -210,32 +210,38 @@ void PathFinding::beginFindPath(PathFinding::State *state, const Vector& start, 
 		obs = OT_BLOCKING;
 
 	state->grid.blockingObsBits = (ObsType)obs;
-	JPS::Position istart = JPS::Pos(start.x, start.y);
-	JPS::Position iend = JPS::Pos(end.x, end.y);
+	TileVector tstart(start);
+	TileVector tend(end);
+	JPS::Position istart = JPS::Pos(tstart.x, tstart.y);
+	JPS::Position iend = JPS::Pos(tend.x, tend.y);
 	state->result = state->searcher.findPathInit(istart, iend);
 }
 
 bool PathFinding::updateFindPath(PathFinding::State *state, int limit)
 {
-	int oldres = state->result;
-	if(oldres == JPS::NEED_MORE_STEPS)
+	if(state->result == JPS_NEED_MORE_STEPS)
 	{
 		state->result = state->searcher.findPathStep(limit);
-		return oldres != state->result;
+		return state->result != JPS_NEED_MORE_STEPS;
 	}
 	return true; // done
 }
 
 bool PathFinding::finishFindPath(PathFinding::State *state, VectorPath& path, unsigned step /* = 0 */)
 {
-	if(state->result != JPS::FOUND_PATH)
-		return false;
+	if(state->result != JPS_FOUND_PATH)
+		return state->result == JPS_EMPTY_PATH;
 
 	JPS::PathVector rawpath;
 	state->searcher.findPathFinish(rawpath, step);
 	generateVectorPath(rawpath, path, 0, 0);
 	molestPath(path);
 	return true;
+}
+
+void PathFinding::purgeFindPath(PathFinding::State *state)
+{
+	state->searcher.freeMemory();
 }
 
 void PathFinding::getStats(PathFinding::State *state, unsigned& stepsDone, unsigned& nodesExpanded)

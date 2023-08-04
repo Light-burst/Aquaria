@@ -18,20 +18,23 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
+
+#include "Spore.h"
 #include "Shot.h"
 #include "Game.h"
 #include "Avatar.h"
+
 
 Spore::Spores Spore::spores;
 
 Spore::Spore (const Vector &position) : CollideEntity()
 {
 	spores.push_back(this);
-	scale = Vector(0.1, 0.1);
+	scale = Vector(0.1f, 0.1f);
 	alpha = 0;
 
 	this->position = position;
-	alpha.interpolateTo(1, 0.5);
+	alpha.interpolateTo(1, 0.5f);
 	scale.interpolateTo(Vector(1, 1), 4);
 
 	setTexture("Spore");
@@ -47,9 +50,9 @@ Spore::Spore (const Vector &position) : CollideEntity()
 
 bool Spore::isPositionClear(const Vector &position)
 {
-	if (dsq->game->isObstructed(TileVector(position)))
+	if (game->isObstructed(TileVector(position)))
 		return false;
-	for (Spores::iterator i = spores.begin(); i != spores.end(); i++)	
+	for (Spores::iterator i = spores.begin(); i != spores.end(); i++)
 	{
 		Spore *s = *i;
 		if (s->position == position)
@@ -68,7 +71,7 @@ void Spore::destroy()
 
 void Spore::onEndOfLife()
 {
-	//::onEndLife();
+
 	spores.remove(this);
 }
 
@@ -84,32 +87,23 @@ void Spore::onEnterState(int state)
 }
 
 void Spore::killAllSpores()
-{	
-	std::queue<Spore*>sporeDeleteQueue;
-	for (Spores::iterator i = spores.begin(); i != spores.end(); i++)	
-	{
-		sporeDeleteQueue.push(*i);
-	}
-	Spore *s = 0;
-	while (!sporeDeleteQueue.empty())
-	{
-		s = sporeDeleteQueue.front();
-		if (s)
-		{
+{
+	Spores sporesToDelete = spores; // copy
+
+	for (Spores::iterator it = sporesToDelete.begin(); it != sporesToDelete.end(); it++)
+		if(Spore *s = *it)
 			s->safeKill();
-		}
-		sporeDeleteQueue.pop();
-	}
+
 	spores.clear();
 }
 
 void Spore::onUpdate(float dt)
-{	
-	
+{
+
 	CollideEntity::onUpdate(dt);
 
 	if (life < 1) return;
-	if (!(dsq->game->avatar->position - position).isLength2DIn(1024))
+	if (!(game->avatar->position - position).isLength2DIn(1024))
 	{
 		safeKill();
 	}
@@ -118,12 +112,12 @@ void Spore::onUpdate(float dt)
 		int sporeCr = 48;
 
 		collideRadius = scale.x * sporeCr;
-		
+
 		if (touchAvatarDamage(collideRadius, 1, Vector(-1,-1,-1), 500))
 		{
 			// YAY!
 		}
 
-		dsq->game->handleShotCollisions(this);
+		game->handleShotCollisions(this);
 	}
 }

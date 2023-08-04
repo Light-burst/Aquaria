@@ -42,13 +42,12 @@ protected:
 	void applyAlignment(Vector &accumulator, const Vector &dir);
 	void applyAvoidance(Vector &accumulator);
 	void updateVelocity(Vector &accumulator);
-	
+
 	void onEnterState(int action);
 	void onUpdate(float dt);
-	void onRender();
 
 	float avoidTime;
-	
+
 };
 
 #endif

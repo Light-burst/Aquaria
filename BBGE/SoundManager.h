@@ -24,11 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdlib.h>
 #include <string>
 #include <list>
-#include <queue>
-#include <set>
 #include "Vector.h"
-
-#define BBGE_BUILD_FMODEX
+#include "Event.h"
 
 
 #define BBGE_AUDIO_NOCHANNEL NULL
@@ -95,12 +92,10 @@ enum SoundMode
 
 struct PlaySfx
 {
-	PlaySfx() : priority(0.5), handle(0), vol(1), fade(SFT_NONE),
-		time(0), freq(1), loops(0),
-		maxdist(0), x(0), y(0), relative(true), positional(false) {}
+	PlaySfx() : vol(1), time(0), freq(1), loops(0), priority(0.5),
+		maxdist(0), fade(SFT_NONE), x(0), y(0), relative(true), positional(false) {}
 
 	std::string name;
-	intptr_t handle;
 	float vol;
 	float time;
 	float freq;
@@ -131,7 +126,7 @@ public:
 
 	void clearLocalSounds();
 
-	void setVoicePath2(const std::string &voicePath2) { this->voicePath2 = voicePath2; }
+	void setVoicePath2(const std::string &newVoicePath2) { this->voicePath2 = newVoicePath2; }
 
 	SoundCore::Buffer loadLocalSound(const std::string &sound);
 	SoundCore::Buffer loadSoundIntoBank(const std::string &filename, const std::string &path, const std::string &format, SoundLoadType = SFXLOAD_CACHE);
@@ -175,7 +170,7 @@ public:
 	void stopMusic();
 	void stopSfx(void *channel);
 
-	void fadeSfx(void *channel, SoundFadeType sft=SFT_OUT, float t=0.8);
+	void fadeSfx(void *channel, SoundFadeType sft=SFT_OUT, float t=0.8f);
 
 	void fadeMusic(SoundFadeType sft=SFT_OUT, float t=1);
 
@@ -199,19 +194,6 @@ public:
 	void pause();
 	void resume();
 
-	/*
-	void setMusVol(float v, float t=0);
-	void setSfxVol(float v, float t=0);
-	void setVoxVol(float v, float t=0);
-
-	void setMusMul(float v, float t=0);
-	void setSfxMul(float v, float t=0);
-	void setVoxMul(float v, float t=0);
-
-	float getTotalSfxVol();
-	float getTotalMusVol();
-	float getTotalVoxVol();
-	*/
 
 
 	float getVoiceTime();
@@ -228,7 +210,7 @@ public:
 
 	std::string lastVoice, lastMusic;
 
-	typedef std::list<std::string> LocalSounds;
+	typedef std::vector<std::string> LocalSounds;
 	LocalSounds localSounds;
 	void setOverrideVoiceFader(float v);
 
@@ -255,7 +237,7 @@ private:
 	float sfxVol;
 	float voiceFader, sfxFader;
 
-	std::queue<std::string> voxQueue;
+	std::list<std::string> voxQueue;
 
 	void (*loadProgressCallback)();
 };
@@ -274,13 +256,11 @@ protected:
 	virtual ~SoundHolder();
 
 private:
-	std::set<void*> activeSounds;
+	std::vector<void*> activeSounds;
 };
 
 
 extern SoundManager *sound;
-
-
 
 
 

@@ -19,12 +19,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "Segmented.h"
+#include "RenderBase.h"
 
-Strand::Strand(const Vector &position, int segs, int dist) : RenderObject(), Segmented(dist, dist)
+Strand::Strand(const Vector &position, size_t segs, size_t dist) : RenderObject(), Segmented(dist, dist)
 {
 	cull = false;
 	segments.resize(segs);
-	for (int i = 0; i < segments.size(); i++)
+	for (size_t i = 0; i < segments.size(); i++)
 	{
 		segments[i] = new RenderObject;
 	}
@@ -34,7 +35,7 @@ Strand::Strand(const Vector &position, int segs, int dist) : RenderObject(), Seg
 void Strand::destroy()
 {
 	RenderObject::destroy();
-	for (int i = 0; i < segments.size(); i++)
+	for (size_t i = 0; i < segments.size(); i++)
 	{
 		segments[i]->destroy();
 		delete segments[i];
@@ -48,9 +49,8 @@ void Strand::onUpdate(float dt)
 	updateSegments(position);
 }
 
-void Strand::onRender()
+void Strand::onRender(const RenderState& rs) const
 {
-#ifdef BBGE_BUILD_OPENGL
 	const int numSegments = segments.size();
 	if (numSegments == 0) return;
 
@@ -59,8 +59,8 @@ void Strand::onRender()
 	glLineWidth(1);
 
 	glBegin(GL_LINE_STRIP);
-	//glColor4f(0.25,0.25,0.5,1);
-	// Use fixed-point math to speed things up.  --achurch
+
+
 	unsigned int r = (unsigned int)(color.x * (255<<8));
 	unsigned int g = (unsigned int)(color.y * (255<<8));
 	unsigned int b = (unsigned int)(color.z * (255<<8));
@@ -90,5 +90,4 @@ void Strand::onRender()
 		glVertex2f(segments[i]->position.x, segments[i]->position.y);
 	}
 	glEnd();
-#endif
 }

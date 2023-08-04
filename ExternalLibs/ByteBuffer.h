@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string>
 #include <algorithm>
+#include "minipstdint.h"
 
 #if defined(__GNUC__) && __GNUC__ <= 2
 #  define BB_OLD_GNUC
@@ -65,7 +66,7 @@ namespace ByteBufferTools
 	template<typename T> void ToLittleEndian(T*);   // will generate link error
 	template<typename T> void ToBigEndian(T*);      // will generate link error
 
-};
+}
 
 #ifdef BB_OLD_GNUC
 #  define BB_MAKE_WRITE_OP(T) inline ByteBuffer& operator<<(T val) { appendT(&val, sizeof(T)); return *this; }
@@ -89,25 +90,14 @@ public:
 		TAKE_OVER, //- Take over the passed-in buffer; it will be deleted on object destruction.
 	};
 
-#ifdef _MSC_VER
-	typedef __int64            int64;
-	typedef long               int32;
-	typedef short              int16;
-	typedef char               int8;
-	typedef unsigned __int64   uint64;
-	typedef unsigned long      uint32;
-	typedef unsigned short     uint16;
-	typedef unsigned char      uint8;
-#else
-	typedef long long          int64;
-	typedef int                int32;
-	typedef short              int16;
-	typedef char               int8;
-	typedef unsigned long long uint64;
-	typedef unsigned int       uint32;
-	typedef unsigned short     uint16;
-	typedef unsigned char      uint8;
-#endif
+	typedef int64_t      int64;
+	typedef int32_t      int32;
+	typedef int16_t      int16;
+	typedef int8_t       int8;
+	typedef uint64_t     uint64;
+	typedef uint32_t     uint32;
+	typedef uint16_t     uint16;
+	typedef uint8_t      uint8;
 
 	class Exception
 	{
@@ -148,26 +138,26 @@ public:
 
 
 	ByteBuffer()
-		: _rpos(0), _wpos(0), _buf(NULL), _size(0), _growable(true), _res(0), _mybuf(false), _delfunc(NULL),
-		_allocfunc(NULL)
+                : _buf(NULL), _rpos(0), _wpos(0), _res(0), _size(0), _delfunc(NULL),
+                _allocfunc(NULL), _mybuf(false), _growable(true)
 	{
 	}
 	ByteBuffer(uint32 res)
-		: _rpos(0), _wpos(0), _buf(NULL), _size(0), _growable(true), _res(0), _mybuf(false), _delfunc(NULL),
-		_allocfunc(NULL)
+                : _buf(NULL), _rpos(0), _wpos(0), _res(0), _size(0), _delfunc(NULL),
+                  _allocfunc(NULL), _mybuf(false), _growable(true)
 	{
 		_allocate(res);
 	}
 	ByteBuffer(ByteBuffer &buf, Mode mode = COPY, uint32 extra = 0)
-		: _rpos(0), _wpos(0), _buf(NULL), _size(0), _growable(true), _res(0), _mybuf(false), _delfunc(NULL),
-		_allocfunc(NULL)
-	{
+                : _buf(NULL), _rpos(0), _wpos(0), _res(0), _size(0), _delfunc(NULL),
+                  _allocfunc(NULL), _mybuf(false), _growable(true)
+        {
 		init(buf, mode, extra);
 	}
 	// del param only used with TAKE_OVER, extra only used with COPY
 	ByteBuffer(void *buf, uint32 size, Mode mode = COPY, delete_func del = NULL, uint32 extra = 0)
-		: _rpos(0), _wpos(0), _size(size), _buf(NULL), _growable(true), _delfunc(del),
-		_mybuf(false), _allocfunc(NULL) // for mode == REUSE
+                : _buf(NULL), _rpos(0), _wpos(0), _res(0), _size(0), _delfunc(NULL),
+                  _allocfunc(NULL), _mybuf(false), _growable(true)  // for mode == REUSE
 	{
 		init(buf, size, mode, del, extra);
 	}

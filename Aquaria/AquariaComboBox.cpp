@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 AquariaComboBox::AquariaComboBox(Vector textscale) : RenderObject()
 {
-	//Quad *bar, *window, *scrollBtnUp, *scrollBtnDown, *scrollBar;
+
 	bar = new Quad("gui/combo-drop", Vector(0,0));
 	addChild(bar, PM_POINTER);
 
@@ -42,7 +42,7 @@ AquariaComboBox::AquariaComboBox(Vector textscale) : RenderObject()
 	scrollBtnDown->alpha = 0;
 	addChild(scrollBtnDown, PM_POINTER);
 
-	selectedItemLabel = new BitmapText(&dsq->smallFont);
+	selectedItemLabel = new BitmapText(dsq->smallFont);
 	selectedItemLabel->setAlign(ALIGN_LEFT);
 	selectedItemLabel->setFontSize(8);
 	selectedItemLabel->offset.y = -10;
@@ -67,24 +67,19 @@ AquariaComboBox::AquariaComboBox(Vector textscale) : RenderObject()
 	this->textscale = textscale;
 }
 
-void AquariaComboBox::destroy()
-{
-	RenderObject::destroy();
-}
-
-void AquariaComboBox::enqueueSelectItem(int index)
+void AquariaComboBox::enqueueSelectItem(size_t index)
 {
 	enqueuedSelectItem = index;
 }
 
-void AquariaComboBox::setScroll(int sc)
+void AquariaComboBox::setScroll(size_t sc)
 {
 	scroll = sc;
 }
 
 std::string AquariaComboBox::getSelectedItemString()
 {
-	if (selectedItem >= 0 && selectedItem < items.size())
+	if (selectedItem < items.size())
 		return items[selectedItem];
 	return "";
 }
@@ -93,10 +88,8 @@ void AquariaComboBox::doScroll(int t)
 {
 	if (t == 0)
 	{
-		scroll--;
-		if (scroll < 0) scroll = 0;
-		else
-		{
+		if(scroll > 0) {
+			scroll--;
 			close(0);
 			open(0);
 		}
@@ -104,7 +97,9 @@ void AquariaComboBox::doScroll(int t)
 	else
 	{
 		scroll++;
-		if (scroll+numDrops > items.size()) scroll = (items.size()) - numDrops;
+		if (scroll+numDrops > items.size()) {
+			scroll = items.size() - numDrops;
+		}
 		else
 		{
 			close(0);
@@ -120,7 +115,7 @@ void AquariaComboBox::onUpdate(float dt)
 	if (alpha.x < 1)
 		return;
 
-	//window->alpha.interpolateTo(1, 0.2);
+
 
 	if (enqueuedSelectItem != -1)
 	{
@@ -130,6 +125,8 @@ void AquariaComboBox::onUpdate(float dt)
 
 	scrollDelay -= dt;
 	if (scrollDelay < 0) scrollDelay = 0;
+
+	bool clickedInside = false;
 
 	if (isopen)
 	{
@@ -141,6 +138,7 @@ void AquariaComboBox::onUpdate(float dt)
 
 		if (core->mouse.buttons.left && scrollBtnDown->isCoordinateInsideWorldRect(core->mouse.position, 20, 32))
 		{
+			clickedInside = true;
 			if (scrollDelay == 0)
 			{
 				doScroll(1);
@@ -164,6 +162,7 @@ void AquariaComboBox::onUpdate(float dt)
 
 		if (core->mouse.buttons.left && scrollBtnUp->isCoordinateInsideWorldRect(core->mouse.position, 20, 32))
 		{
+			clickedInside = true;
 			if (scrollDelay == 0)
 			{
 				doScroll(0);
@@ -190,6 +189,7 @@ void AquariaComboBox::onUpdate(float dt)
 
 	if (bar->isCoordinateInsideWorld(core->mouse.position))
 	{
+		clickedInside = true;
 		if (!mb && core->mouse.buttons.left)
 		{
 			mb = true;
@@ -221,6 +221,18 @@ void AquariaComboBox::onUpdate(float dt)
 		{
 			doScroll(1);
 		}
+
+		if(!clickedInside && core->mouse.buttons.left)
+		{
+			for(size_t i = 0; i < shownItems.size(); ++i)
+				if(shownItems[i]->mb)
+				{
+					clickedInside = true;
+					break;
+				}
+			if(!clickedInside)
+				close();
+		}
 	}
 
 }
@@ -229,7 +241,7 @@ void AquariaComboBox::open(float t)
 {
 	shownItems.clear();
 
-	for (int i = scroll; i < scroll + numDrops; i++)
+	for (size_t i = scroll; i < scroll + numDrops; i++)
 	{
 		if (i < items.size())
 		{
@@ -254,15 +266,15 @@ void AquariaComboBox::close(float t)
 
 	isopen = false;
 
-	for (int i = 0; i < shownItems.size(); i++)
+	for (size_t i = 0; i < shownItems.size(); i++)
 	{
 		shownItems[i]->alpha.interpolateTo(0, t);
 	}
 
 	if (t>0)
-		dsq->main(t);
+		dsq->run(t, true);
 
-	for(int i = 0; i < shownItems.size(); i++)
+	for(size_t i = 0; i < shownItems.size(); i++)
 	{
 		removeChild(shownItems[i]);
 		shownItems[i]->destroy();
@@ -277,7 +289,7 @@ void AquariaComboBox::close(float t)
 
 bool AquariaComboBox::setSelectedItem(const std::string &item)
 {
-	for (int i = 0; i < items.size(); i++)
+	for (size_t i = 0; i < items.size(); i++)
 	{
 		if (items[i] == item)
 		{
@@ -288,9 +300,10 @@ bool AquariaComboBox::setSelectedItem(const std::string &item)
 	return false;
 }
 
-void AquariaComboBox::setSelectedItem(int index)
+void AquariaComboBox::setSelectedItem(size_t index)
 {
-	if (isopen) close();
+	if (isopen)
+		close();
 
 	if (index == AQUARIACOMBOBOXITEM_UP)
 	{
@@ -300,30 +313,27 @@ void AquariaComboBox::setSelectedItem(int index)
 	{
 		doScroll(0);
 	}
-	else
+	else if(index < items.size())
 	{
-		if (index >= 0 && index < items.size())
+		selectedItem = index;
+		selectedItemLabel->setText(items[index]);
+		scroll = index;
+		if (scroll + numDrops > items.size())
 		{
-			selectedItem = index;
-			selectedItemLabel->setText(items[index]);
-			scroll = index;
-			if (scroll + numDrops > items.size())
-			{
-				if (items.size() < numDrops)
-					scroll = 0;
-				else
-					scroll = items.size() - numDrops;
-			}
+			if (items.size() < numDrops)
+				scroll = 0;
+			else
+				scroll = items.size() - numDrops;
 		}
-	}
+}
 }
 
-int AquariaComboBox::getSelectedItem()
+size_t AquariaComboBox::getSelectedItem()
 {
 	return selectedItem;
 }
 
-int AquariaComboBox::addItem(const std::string &n)
+size_t AquariaComboBox::addItem(const std::string &n)
 {
 	items.push_back(n);
 
@@ -335,17 +345,17 @@ int AquariaComboBox::addItem(const std::string &n)
 	return items.size()-1;
 }
 
-Vector unselectedColor(0.7, 0.7, 0.7);
+Vector unselectedColor(0.7f, 0.7f, 0.7f);
 Vector selectedColor(1,1,1);
 
-AquariaComboBoxItem::AquariaComboBoxItem(const std::string &str, int idx, AquariaComboBox *combo, Vector textscale) : Quad()
+AquariaComboBoxItem::AquariaComboBoxItem(const std::string &str, size_t idx, AquariaComboBox *combo, Vector textscale) : Quad()
 {
 	this->combo = combo;
 	index = idx;
 
 	setTexture("gui/combo-drop");
 
-	label = new BitmapText(&dsq->smallFont);
+	label = new BitmapText(dsq->smallFont);
 	label->setAlign(ALIGN_LEFT);
 	label->setFontSize(8);
 	label->setText(str);
@@ -375,7 +385,7 @@ void AquariaComboBoxItem::onUpdate(float dt)
 	{
 		color = selectedColor;
 		label->color = selectedColor;
-		//alphaMod = 1;
+
 		if (!mb && core->mouse.buttons.left)
 		{
 			mb = true;
@@ -396,6 +406,6 @@ void AquariaComboBoxItem::onUpdate(float dt)
 		label->color = unselectedColor;
 
 		mb = false;
-		//alphaMod = 0.5;
+
 	}
 }

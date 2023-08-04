@@ -64,7 +64,7 @@ void EventPtr::call()
 	}
 	if (actionMapperCallback)
 	{
-		actionMapperCallback->action(actionValue, stateToCall);
+		actionMapperCallback->action(actionValue, stateToCall, -1, INPUT_NODEVICE);
 	}
 }
 
@@ -221,7 +221,7 @@ void Timer::update(float dt)
 		}
 	break;
 	case 2:
-		timer += dt; 
+		timer += dt;
 	break;
 	}
 }
@@ -239,5 +239,5 @@ float Timer::getValue()
 {
 	return timer;
 }
-//EventPtr endEvent, startEvent;
+
 

@@ -18,14 +18,16 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#ifndef __state_data__
-#define __state_data__
+#ifndef BBGE_STATE_DATA_H
+#define BBGE_STATE_DATA_H
 
 #include "Base.h"
-#include "RenderObject.h"
+#include <map>
 #include "ActionMapper.h"
+#include "Event.h"
 
 class StateManager;
+class RenderObject;
 
 class StateObject;
 
@@ -41,7 +43,7 @@ public:
 	StateObject *stateObject;
 
 	void clearGarbage();
-	void addRenderObject(RenderObject *renderObject, int layer);
+	void addRenderObject(RenderObject *renderObject, unsigned layer);
 	void eraseRenderObjects();
 	void removeRenderObject(RenderObject *renderObject);
 	void removeRenderObjectFromList(RenderObject *renderObject);
@@ -54,15 +56,16 @@ class StateObject : public ActionMapper
 public:
 	StateObject();
 	virtual ~StateObject();
-	void action(int id, int state);
-	
+
 	virtual void applyState(){}
 	virtual void removeState();
 	virtual void update(float dt);
 
-	void addRenderObject(RenderObject *renderObject, int layer=0);
+	void addRenderObject(RenderObject *renderObject, unsigned layer);
 	void removeRenderObject(RenderObject *renderObject);
 	std::string name;
+
+	virtual void action(int actionID, int state, int source, InputDevice device) {}
 
 protected:
 	void registerState(StateObject *sb, const std::string &name);
@@ -75,19 +78,19 @@ public:
 	StateManager();
 	~StateManager();
 
-	
+
 	void clearStateObjects();
 
 	virtual void applyState (const std::string &state) {}
 	virtual void removeState (std::string state);
 
-	
+
 	void enqueueJumpState (const std::string &state, bool force = false, bool staged = false);
 	bool isStateJumpPending();
 	void pushState(const std::string &state);
 	void popState();
 	void popAllStates();
-	
+
 
 	StateData *getState(const std::string &state);
 	StateData *getTopStateData();
@@ -120,7 +123,7 @@ protected:
 	typedef std::map<std::string, StateObject*> StateObjectMap;
 	StateObjectMap stateObjects;
 
-	
+
 private:
 	void jumpState (const std::string &state); // call enqueueJumpState
 };

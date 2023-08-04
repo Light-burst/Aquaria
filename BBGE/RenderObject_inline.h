@@ -21,10 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef RENDEROBJECT_INLINE_H
 #define RENDEROBJECT_INLINE_H
 
-inline bool RenderObject::isOnScreen()
+inline bool RenderObject::isOnScreen() const
 {
 	if (followCamera == 1) return true;
-	//if (followCamera != 0) return true;
+
 
 	// note: radii are sqr-ed for speed
 	const float cullRadiusSqr = (getCullRadiusSqr() * core->invGlobalScaleSqr) + core->cullRadiusSqr;
@@ -34,42 +34,41 @@ inline bool RenderObject::isOnScreen()
 
 Vector RenderObject::getFollowCameraPosition() const
 {
-	float f = followCamera;
-	if (f == 0 && layer != -1)
-		f = core->renderObjectLayers[layer].followCamera;
+	return getFollowCameraPosition(position);
+}
 
-	if (f <= 0)
-	{
-		return position;
-	}
-	else
-	{
-		Vector pos = position;
-		int fcl = 0;
-		if (layer != -1)
-			fcl = core->renderObjectLayers[layer].followCameraLock;
+Vector RenderObject::getFollowCameraPosition(const Vector& v) const
+{
+	assert(layer != LR_NONE);
+	assert(!parent); // this makes no sense when we're not a root object
+	const RenderObjectLayer &rl = core->renderObjectLayers[layer];
+	Vector M = rl.followCameraMult;
+	float F = followCamera;
+	if(!F)
+		F = rl.followCamera;
+	if (F <= 0)
+		return v;
 
-		switch (fcl)
-		{
-		case FCL_HORZ:
-			pos.x = position.x - core->screenCenter.x;
-			pos.x *= f;
-			pos.x = core->screenCenter.x + pos.x;
-		break;
-		case FCL_VERT:
-			pos.y = position.y - core->screenCenter.y;
-			pos.y *= f;
-			pos.y = core->screenCenter.y + pos.y;
-		break;
-		default:
-			pos = position - core->screenCenter;
-			pos *= f;
-			pos = core->screenCenter + pos;
-		break;
-		}
+	/* Originally, not accounting for parallax lock on an axis, this was:
+		pos = v - core->screenCenter;
+		pos *= F;
+		pos = core->screenCenter + pos;
+	*/
 
-		return pos;
-	}
+	// uppercase are effectively constants that are not per-object
+	// lowercase are per-object
+
+	// more concise math:
+	//const Vector pos = (v - core->screenCenter) * F + core->screenCenter;
+	//return v * (Vector(1,1) - M) + (pos * M); // lerp
+
+	// optimized and rearranged
+	const Vector C = core->screenCenter;
+	const Vector M1 = Vector(1,1) - M;
+	const Vector T = C * (1 - F);
+
+	const Vector pos = T + (F * v);
+	return v * M1 + (pos * M); // lerp, used to select whether to use original v or parallax-corrected v
 }
 
 #endif

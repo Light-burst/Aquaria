@@ -13,59 +13,27 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
+
 #include "ActionMapper.h"
 #include "Core.h"
 
-//bool ActionMapper::isActing(const std::string &action)
-//{
-//	ButtonList::iterator i = actionMap[action].begin();
-//	for (; i != actionMap[action].end(); i++)
-//	{
-//		if (keyDownMap[(*i)])
-//			return true;
-//	}
-//	return false;
-// //return keyDownMap[actionMap[action]];
-//}
 
-//bool ActionMapper::isActing(int actionID)
-//{
-//	std::string action = "A";
-//	action[0] = char(actionID);
-//	ButtonList::iterator i = actionMap[action].begin();
-//	for (; i != actionMap[action].end(); i++)
-//	{
-//		if (keyDownMap[(*i)])
-//			return true;
-//	}
-//	return false;
-// //return keyDownMap[actionMap[action]];
-//}
-
-//void ActionMapper::addAction (const std::string &action, int k)
-//{
-//	actionMap[action].push_back(k);
-//	keyDownMap[k] = core->getKeyState(k);
-//}
-//
-//void ActionMapper::addAction (int actionID, int k)
-//{
-//	std::string action = "A";
-//	action[0] = char(actionID);
-//	actionMap[action].push_back(k);
-//	keyDownMap[k] = core->getKeyState(k);
-//}
+InputDevice getDeviceForActionbutton(int k)
+{
+	if(k <= KEY_MAXARRAY)
+		return INPUT_KEYBOARD;
+	if(k < MOUSE_BUTTON_EXTRA_END)
+		return INPUT_MOUSE;
+	return INPUT_JOYSTICK;
+}
 
 ActionMapper::ActionMapper()
 {
 	cleared = false;
 	inputEnabled = true;
 	inUpdate = false;
+	//memset(keyStatus, 0, sizeof(keyStatus));
 }
 
 ActionMapper::~ActionMapper()
@@ -73,67 +41,64 @@ ActionMapper::~ActionMapper()
 	clearCreatedEvents();
 }
 
-ActionData *ActionMapper::getActionDataByID(int actionID)
+ActionData *ActionMapper::getActionDataByIDAndSource(int actionID, int source)
 {
-	for (ActionDataSet::iterator i = actionData.begin(); i != actionData.end(); i++)
+	for (ActionDataSet::iterator i = actionData.begin(); i != actionData.end(); ++i)
 	{
-		if ((*i).id == actionID)
+		if (i->id == actionID && i->source == source)
 			return &(*i);
 	}
 	return 0;
 }
 
-bool ActionMapper::isActing(int actionID)
+bool ActionMapper::isActing(int actionID, int source)
 {
-	ActionData *ad = getActionDataByID(actionID);
+	if(source < 0)
+	{
+		for (ActionDataSet::iterator i = actionData.begin(); i != actionData.end(); ++i)
+		{
+			ActionData& ad = *i;
+			if(ad.id == actionID)
+				for (ButtonList::iterator ii = ad.buttonList.begin(); ii != ad.buttonList.end(); ++ii)
+					if (getKeyState(*ii, source))
+						return true;
+		}
+		return false;
+	}
+
+	ActionData *ad = getActionDataByIDAndSource(actionID, source);
 	if (ad)
 	{
 		ButtonList::iterator i = ad->buttonList.begin();
 		for (; i != ad->buttonList.end(); i++)
 		{
-			if (keyDownMap[(*i)])
+			if (getKeyState(*i, source))
 				return true;
 		}
 	}
 	return false;
 }
 
-void ActionMapper::addAction (int actionID, int k)
+void ActionMapper::addAction(int actionID, int k, int source)
 {
-	ActionData *ad = getActionDataByID(actionID);
+	ActionData *ad = getActionDataByIDAndSource(actionID, source);
 
-	if (ad)
-	{
-		/*
-		std::ostringstream os;
-		os << "Action ID [" << actionID << "] already exists!";
-		debugLog(os.str());
-		*/
-	}
-	else
+	if (!ad)
 	{
 		ActionData data;
 		data.id = actionID;
+		data.source = source;
 		actionData.push_back(data);
-		ad = getActionDataByID(actionID);
-		if (!ad)
-		{
-			std::ostringstream os;
-			os << "Could not create action for Action ID [" << actionID << "]";
-			errorLog(os.str());
-			return;
-		}
+		ad = &actionData.back();
 	}
 
 	if (ad)
 	{
 		if(std::find(ad->buttonList.begin(), ad->buttonList.end(), k) == ad->buttonList.end())
 			ad->buttonList.push_back(k);
-		keyDownMap[k] = core->getKeyState(k);
+		//keyStatus[k] = core->getKeyState(k);
 	}
 }
-
-
 
 void ActionMapper::addAction(Event *event, int k, int state)
 {
@@ -143,12 +108,12 @@ void ActionMapper::addAction(Event *event, int k, int state)
 	data.buttonList.push_back(k);
 	actionData.push_back(data);
 
-	keyDownMap[k] = core->getKeyState(k);
+	//keyStatus[k] = core->getKeyState(k);
 }
 
 Event* ActionMapper::addCreatedEvent(Event *event)
 {
-	for (int i = 0; i < createdEvents.size(); i++)
+	for (size_t i = 0; i < createdEvents.size(); i++)
 	{
 		if (createdEvents[i] == event)
 			return event;
@@ -159,62 +124,12 @@ Event* ActionMapper::addCreatedEvent(Event *event)
 
 void ActionMapper::clearCreatedEvents()
 {
-	for (int i = 0; i < createdEvents.size(); i++)
+	for (size_t i = 0; i < createdEvents.size(); i++)
 	{
 		delete createdEvents[i];
 	}
 	createdEvents.clear();
 }
-
-/*
-void ActionMapper::addMouseButtonAction (const std::string &action, int b)
-{
-	actionMap[action].push_back (0-b);
-	keyDownMap[0-b] = mouse_b & b;
-}
-
-void ActionMapper::addJoystickButtonAction (const std::string &action, int b)
-{
-	if (num_joysticks)
-	{
-		actionMap[action].push_back (b+9000);
-		keyDownMap[b+9000] = joy[0].button[b].b;
-	}
-}
-
-int ActionMapper::getDPad(int dir)
-{
-//	for (int = 0; i < joy[0].num_sticks; i++)
-	//int s = 4;
-	int s = 0;
-	switch (dir)
-	{
-	case 0:
-		return (joy[0].stick[s].axis[0].d1);
-	break;
-	case 1:
-		return (joy[0].stick[s].axis[0].d2);
-	break;
-	case 2:
-		return (joy[0].stick[s].axis[1].d1);
-	break;
-	case 3:
-		return (joy[0].stick[s].axis[1].d2);
-	break;
-	}
-	return 0;
-}
-
-
-void ActionMapper::addJoystickDPadAction (const std::string &action, int dir)
-{
-	if (num_joysticks)
-	{
-		actionMap[action].push_back (dir+8000);
-		keyDownMap[dir+8000] = getDPad(dir);
-	}
-}
-*/
 
 void ActionMapper::enableInput()
 {
@@ -226,187 +141,62 @@ void ActionMapper::disableInput()
 	inputEnabled = false;
 }
 
-void ActionMapper::removeAction(int actionID)
+/*
+bool ActionMapper::pollAction(int actionID, int source)
 {
-	ActionData *ad = getActionDataByID(actionID);
-	if (ad)
+	if(source < 0)
 	{
-		ButtonList::iterator i = ad->buttonList.begin();
-		for (; i != ad->buttonList.end(); i++)
-		{
-			int k = (*i);
-			cleared = true; // it's a hack, but it works	
-			keyDownMap.erase(k);
-		}
-		for (ActionDataSet::iterator i = actionData.begin(); i != actionData.end();)
-		{
-			if (i->id == actionID)
-				i = actionData.erase(i);
-			else
-				i++;
-		}
+		for (ActionDataSet::iterator i = actionData.begin(); i != actionData.end(); i++)
+			if(i->id == actionID && _pollActionData(*i))
+				return true;
+		return false;
 	}
+
+	ActionData *ad = getActionDataByIDAndSource(actionID, source);
+	return ad && _pollActionData(*ad);
 }
 
-//int ActionMapper::getKeyForAction (std::string action)
-//{
-//	ButtonList b = actionMap[action];
-//	if (!b.empty())
-//	{
-//		return b[0];
-//	}
-//	else
-//	{
-//		debugLog ("no action: " +action);
-//		return -1;
-//	}
-//}
-
-bool ActionMapper::pollAction(int actionID)
+bool ActionMapper::_pollActionData(const ActionData& ad)
 {
-	bool down = false;
-
-	ActionData *ad = getActionDataByID(actionID);
-	if (ad)
-	{
-		ButtonList *blist = &ad->buttonList;
-		ButtonList::iterator j;
-		j = blist->begin();
-		
-		for (; j != blist->end(); j++)
-		{
-			if (getKeyState((*j)))
-			{
-				down = true;
-				break;
-			}
-		}
-	}
-
-	return down;
+	const ButtonList& blist = ad.buttonList;
+	for (ButtonList::const_iterator j = blist.begin(); j != blist.end(); j++)
+		if (getKeyState((*j)))
+			return true;
+	return false;
 }
-
-bool ActionMapper::getKeyState(int k)
-{
-	bool keyState = false;
-	if (k == KEY_ANYKEY)
-	{
-		keyState = false;
-		for (int i = 0; i < KEY_MAXARRAY; i ++)
-		{
-			if (core->getKeyState(i))
-			{
-				keyState = true;
-				break;
-			}
-		}
-	}
-	else if (k >= 0 && k < KEY_MAXARRAY)
-	{
-		keyState = (core->getKeyState(k));
-	}
-	else if (k == MOUSE_BUTTON_LEFT)
-	{
-		keyState = (core->mouse.buttons.left == DOWN);
-	}
-	else if (k == MOUSE_BUTTON_RIGHT)
-	{
-		keyState = (core->mouse.buttons.right == DOWN);
-	}
-	else if (k == MOUSE_BUTTON_MIDDLE)
-	{
-		keyState = (core->mouse.buttons.middle == DOWN);
-	}			
-	else if (k >= JOY1_BUTTON_0 && k <= JOY1_BUTTON_16)
-	{
-		int v = k - JOY1_BUTTON_0;
-		
-		if (core->joystickEnabled)
-			keyState = core->joystick.buttons[v];
-	}
-	else if (k == JOY1_STICK_LEFT)
-	{
-		keyState = core->joystick.position.x < -0.6f;
-	}
-	else if (k == JOY1_STICK_RIGHT)
-	{
-		keyState = core->joystick.position.x > 0.6f;
-	}
-	else if (k == JOY1_STICK_UP)
-	{
-		keyState = core->joystick.position.y < -0.6f;
-	}
-	else if (k == JOY1_STICK_DOWN)
-	{
-		keyState = core->joystick.position.y > 0.6f;
-	}
-	else if (k == X360_BTN_START)
-	{
-		keyState = core->joystick.btnStart;
-	}
-	else if (k == X360_BTN_BACK)
-	{
-		keyState = core->joystick.btnSelect;
-	}
-	else if (k == JOY1_DPAD_LEFT)
-	{
-		keyState = core->joystick.dpadLeft;
-	}
-	else if (k == JOY1_DPAD_RIGHT)
-	{
-		keyState = core->joystick.dpadRight;
-	}
-	else if (k == JOY1_DPAD_UP)
-	{
-		keyState = core->joystick.dpadUp;
-	}
-	else if (k == JOY1_DPAD_DOWN)
-	{
-		keyState = core->joystick.dpadDown;
-	}
-
-	return keyState;
-}
+*/
 
 void ActionMapper::onUpdate (float dt)
-{	
-	if (inUpdate) return;
+{
+	if (inUpdate)
+		return;
+
 	inUpdate = true;
-	/*
-	if (num_joysticks)
-		poll_joystick();
-	*/
-	if (cleared) cleared = false;
-	ActionDataSet::iterator i;
-	KeyDownMap oldKeyDownMap = keyDownMap;
-	for (i = actionData.begin(); i != actionData.end(); ++i)
+	cleared = false;
+
+	for (ActionDataSet::iterator i = actionData.begin(); i != actionData.end(); ++i)
 	{
-		ButtonList::iterator j;
-		j = i->buttonList.begin();
-		for (; j != i->buttonList.end(); j++)
+		for (ButtonList::iterator j = i->buttonList.begin(); j != i->buttonList.end(); j++)
 		{
-			int k = (*j);
-			int keyState=false;
-			//joystick
+			const int k = (*j);
+			const ActionData *ad = &(*i);
+			const bool keyChanged = isKeyChanged(k, ad->source);
 
-			keyState = getKeyState(k);
-
-			if (keyState != oldKeyDownMap[k])
-			{				
-				keyDownMap[k] = keyState;
+			if (keyChanged)
+			{
+				bool keyState = getKeyState(k, ad->source);
 				if (inputEnabled)
 				{
-					ActionData *ad = &(*i);
 					if (ad->event)
 					{
-						if (ad->state==-1 || keyState == ad->state)
+						if (ad->state==-1 || keyState == !!ad->state)
 						{
 							ad->event->act();
 						}
 					}
 					else
 					{
-						action(ad->id, keyState);
+						action(ad->id, keyState, ad->source, getDeviceForActionbutton(k));
 					}
 					if (core->loopDone) goto out;
 				}
@@ -417,27 +207,44 @@ void ActionMapper::onUpdate (float dt)
 
 out:
 	inUpdate = false;
-//		keyDownMap[k] = ;
+}
+
+bool ActionMapper::getKeyState(int k, int sourceID)
+{
+	if(sourceID < 0)
+		return getKeyState(k);
+	return core->getActionStatus(sourceID)->getKeyState(k);
+}
+
+bool ActionMapper::getKeyState(int k)
+{
+	// all including sentinel
+	const int m = core->getMaxActionStatusIndex();
+	for(int i = -1; i <= m; ++i)
+		if(core->getActionStatus(i)->getKeyState(k))
+			return true;
+	return false;
 }
 
 void ActionMapper::clearActions()
 {
 	cleared = true;
-	keyDownMap.clear();
 	actionData.clear();
 }
 
-void ActionMapper::removeAllActions()
+bool ActionMapper::isKeyChanged(int k, int sourceID)
 {
-	std::vector <int> deleteList;
-	ActionDataSet::iterator i;
-	for (i = actionData.begin(); i != actionData.end(); i++)
-	{
-		deleteList.push_back(i->id);
-	}
-	for (int c = 0; c < deleteList.size(); c++)
-	{
-		removeAction (deleteList[c]);
-	}
-	actionData.clear();
+	if(sourceID < 0)
+		return isKeyChanged(k);
+	return core->getActionStatus(sourceID)->isKeyChanged(k);
+}
+
+bool ActionMapper::isKeyChanged(int k)
+{
+	// all including sentinel
+	const int m = core->getMaxActionStatusIndex();
+	for(int i = -1; i <= m; ++i)
+		if(core->getActionStatus(i)->isKeyChanged(k))
+			return true;
+	return false;
 }

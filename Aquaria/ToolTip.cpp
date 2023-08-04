@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ToolTip.h"
 #include "DSQ.h"
 #include "Game.h"
+#include "InGameMenu.h"
 
 bool ToolTip::toolTipsOn = true;
 
@@ -29,16 +30,16 @@ ToolTip::ToolTip() : RenderObject()
 	followCamera = 1;
 
 	back = new Quad();
-	back->alphaMod = 0.8;
+	back->alphaMod = 0.8f;
 	back->setWidthHeight(50,50);
 	back->color = 0;
 	back->renderBorder = true;
-	back->borderAlpha = 0.2;
+	back->borderAlpha = 0.2f;
 	back->renderCenter = false;
 	addChild(back, PM_POINTER);
 
-	text = new BitmapText(&dsq->smallFont);
-	text->alpha = 0.9;
+	text = new BitmapText(dsq->smallFont);
+	text->alpha = 0.9f;
 	text->setAlign(ALIGN_LEFT);
 	addChild(text, PM_POINTER);
 
@@ -54,7 +55,7 @@ void ToolTip::setText(const std::string &t, const Vector &center, int width)
 	int height = 0;
 
 	back->position = center;
-	
+
 	text->setWidth(width - 40);
 
 	text->setText(t);
@@ -62,7 +63,7 @@ void ToolTip::setText(const std::string &t, const Vector &center, int width)
 
 	back->setWidthHeight(width, height);
 
-	text->position = center - Vector(width,height)*0.5f + Vector(5, 5);	
+	text->position = center - Vector(width,height)*0.5f + Vector(5, 5);
 }
 
 void ToolTip::setArea(const Vector &p1, const Vector &p2)
@@ -114,7 +115,7 @@ void ToolTip::onUpdate(float dt)
 		break;
 		}
 
-		const float t = 0.0;//0.4;//0.05;
+		const float t = 0.0;
 		if (in && (required || dsq->user.control.toolTipsOn))
 		{
 			back->alpha.interpolateTo(1, t);
@@ -128,10 +129,10 @@ void ToolTip::onUpdate(float dt)
 	}
 }
 
-void ToolTip::render()
+void ToolTip::render(const RenderState& rs) const
 {
-	if (!dsq->game->recipeMenu.on && toolTipsOn)
+	if (!game->getInGameMenu()->recipeMenu.on && toolTipsOn)
 	{
-		RenderObject::render();
+		RenderObject::render(rs);
 	}
 }

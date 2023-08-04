@@ -39,6 +39,7 @@ protected:
 	bool mouseDown;
 	Vector scaleNormal;
 	Vector scaleBig;
+	bool _isRecCall;
 	virtual void onUpdate(float dt);
 	virtual void onClick();
 };
@@ -112,6 +113,7 @@ class MenuBasicBar : public Quad
 {
 public:
 	MenuBasicBar();
+	void setBarWidth(float w);
 	virtual void init();
 };
 
@@ -147,9 +149,9 @@ public:
 	void init();
 	void close();
 
-	void showPanel(int id);
+	void showPanel(size_t id);
 	void updateFade();
-	
+
 	void initModAndPatchPanel();
 	void initNetPanel();
 
@@ -164,12 +166,14 @@ public:
 	AquariaMenuItem arrowUp, arrowDown;
 
 	void setSubText(const std::string& s);
+		
+	virtual void action(int actionID, int state, int source, InputDevice device) {}
 
 protected:
 	virtual void onUpdate(float dt);
 	MenuIconBar leftbar;
 	MenuBasicBar rightbar;
-	int currentPanel;
+	size_t currentPanel;
 	BitmapText subtext;
 	Quad subbox;
 	float subFadeT;

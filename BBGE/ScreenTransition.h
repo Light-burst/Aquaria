@@ -30,21 +30,19 @@ public:
 	void go(float time);
 	virtual void capture();
 	void transition(float time);
-	void reloadDevice();
-	void unloadDevice();
+	void reloadDevice() OVERRIDE;
+	void unloadDevice() OVERRIDE;
 	bool isGoing();
 protected:
 	void createTexture();
 	void destroyTexture();
 	int textureWidth, textureHeight;
 	int windowWidth, windowHeight;
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 	float width, height;
-	//void onUpdate(float dt);
 
-#ifdef BBGE_BUILD_OPENGL
-	GLuint screen_texture;
-#endif
+
+	unsigned screen_texture;
 };
 
 #endif

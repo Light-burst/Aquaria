@@ -23,8 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "CollideEntity.h"
 #include "Segmented.h"
-#include "../BBGE/Particles.h"
-#include "../BBGE/ScriptObject.h"
+#include "Scriptable.h"
+
+class ParticleEffect;
+class Script;
 
 struct ShotData
 {
@@ -34,7 +36,7 @@ struct ShotData
 	std::string hitPrt, trailPrt, firePrt, bouncePrt;
 	std::string spawnEntity;
 	BounceType bounceType;
-	int blendType;
+	BlendType blendType;
 	bool segments;
 	float damage;
 	float maxSpeed, homing, homingMax;
@@ -61,7 +63,7 @@ struct ShotData
 	float waveSpeed, waveMag;
 
 	float spinSpeed;
-	bool invisible, checkDamageTarget, hitWalls, hitEnts, alwaysDoHitEffects;
+	bool invisible, checkDamageTarget, hitWalls, hitEnts, alwaysDoHitEffects, alwaysMaxSpeed;
 	float rotIncr;
 
 	float avatarKickBack, avatarKickBackTime;
@@ -69,15 +71,15 @@ struct ShotData
 	Vector gravity;
 
 	void bankLoad(const std::string &file, const std::string &path);
-	
+
 };
 
-class Shot : public Quad, public Segmented
+class Shot : public CollideQuad, public Segmented, public Scriptable
 {
 public:
-	//Shot(DamageType damageType, Entity *firer, Vector pos, Entity *target, std::string tex="", float homingness=1000, int maxSpeed=400, int segments=10, float segMin=0.1, float segMax=5, float damage = 1, float lifeTime = 0);
+
 	Shot();
-	//void destroy();
+
 	void reflectFromEntity(Entity *e);
 	void setParticleEffect(const std::string &particleEffect);
 	typedef std::vector<Shot*> Shots;
@@ -93,23 +95,20 @@ public:
 	int targetPt;
 	float maxSpeed;
 
+	void init();
 	void fire(bool playSfx = true);
 	void hitEntity(Entity *e, Bone *b);
-	
+
 	void noSegs();
 
 	void rotateToVec(Vector addVec, float time, int offsetAngle);
 	void doHitEffects();
 
-	typedef std::map<std::string, ShotData> ShotBank;
-	static ShotBank shotBank;
-
-
 	static void loadShotBank(const std::string &bank1, const std::string &bank2);
 	static void clearShotBank();
 	static ShotData* getShotData(const std::string &ident);
 	static void loadBankShot(const std::string &ident, Shot *shot);
-	void applyShotData(ShotData *shotData);
+	void applyShotData(const ShotData& shotData);
 
 	void setAimVector(const Vector &aim);
 	void setTarget(Entity *target);
@@ -117,9 +116,10 @@ public:
 	float getDamage() const;
 	int getCollideRadius() const;
 	DamageType getDamageType() const;
-	ShotData *shotData;
+	const ShotData *shotData;
 	void updatePosition();
 	bool isHitEnts() const;
+	bool canHit(Entity *e, Bone *b);
 	bool isObstructed(float dt) const;
 	inline bool isActive() const { return !dead; }
 	inline const char *getName() const { return shotData ? shotData->name.c_str() : ""; }
@@ -129,6 +129,7 @@ public:
 	float lifeTime;
 	DamageType damageType;
 	bool checkDamageTarget;
+	bool alwaysMaxSpeed;
 
 protected:
 
@@ -138,71 +139,17 @@ protected:
 
 	ParticleEffect *emitter;
 
-	void onHitWall();
+	bool onHitWall(bool reflect);
 	void onEndOfLife();
 
 	bool dead;
 	bool fired;
 	bool enqueuedForDelete;
 	void onUpdate(float dt);
+	bool updateScript;
 
 private:
 	unsigned int shotIdx;
-};
-
-class Beam : public Quad
-{
-public:
-	Beam(Vector pos, float angle);
-	typedef std::list<Beam*> Beams;
-	static Beams beams;
-	//static void targetDied(Entity *t);
-	static void killAllBeams();
-
-	float angle;
-	void trace();
-	Vector endPos;
-	void render();
-	DamageData damageData;
-
-	void setDamage(float dmg);
-	void setFirer(Entity *e);
-	void setBeamWidth(float w);
-protected:
-	float beamWidth;
-	void onRender();
-	void onEndOfLife();
-	void onUpdate(float dt);
-};
-
-class GasCloud : public Entity
-{
-public:
-	GasCloud(Entity *source, const Vector &position, const std::string &particles, const Vector &color, int radius, float life, float damage=0, bool isMoney=false, float poisonTime=0);
-protected:
-	ParticleEffect *emitter;
-	std::string gfx, particles;
-	int radius;
-	float damage;
-	float pTimer;
-	void onUpdate(float dt);
-	float poisonTime;
-	Entity *sourceEntity;
-};
-
-class Spore : public CollideEntity
-{
-public:
-	Spore(const Vector &position);
-	typedef std::list<Spore*> Spores;
-	static Spores spores;
-	static void killAllSpores();
-	static bool isPositionClear(const Vector &position);
-	void destroy();
-protected:
-	void onEnterState(int state);
-	void onUpdate(float dt);
-	void onEndOfLife();
 };
 
 #endif

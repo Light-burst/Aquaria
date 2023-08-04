@@ -30,11 +30,11 @@ namespace AQCredits
 
 	std::vector<Quad*> slides;
 
-	void watchSlide(int slide)
+	void watchSlide(size_t slide)
 	{
-		float t = 10;//15;
+		float t = 10;
 
-		if (!(slide >= 0 && slide < slides.size())) return;
+		if (slide >= slides.size()) return;
 
 		Quad *q = slides[slide];
 
@@ -45,26 +45,26 @@ namespace AQCredits
 		q->alpha.startPath(t);
 
 		q->scale.ensureData();
-		q->scale.data->path.addPathNode(Vector(0.8, 0.8), 0);
-		q->scale.data->path.addPathNode(Vector(1.4, 1.4), 1);
+		q->scale.data->path.addPathNode(Vector(0.8f, 0.8f), 0);
+		q->scale.data->path.addPathNode(Vector(1.4f, 1.4f), 1);
 		q->scale.startPath(t);
 
-		core->main(t);
+		core->run(t);
 	}
 
 	void cred(Quad *cred, bool show)
 	{
 		float t= 3;
-		cred->scale = Vector(0.7, 0.7);
+		cred->scale = Vector(0.7f, 0.7f);
 		if (show)
 		{
-			cred->alpha.interpolateTo(0.7, t, 0, 0, 1);
+			cred->alpha.interpolateTo(0.7f, t, 0, 0, 1);
 			cred->offset.interpolateTo(Vector(100, 0), 60);
 		}
 		else
 			cred->alpha.interpolateTo(0, t, 0, 0, 1);
 	}
-};
+}
 
 using namespace AQCredits;
 
@@ -81,9 +81,9 @@ void Credits::applyState()
 
 	dsq->setCutscene(1,0);
 	core->resetCamera();
-	
+
 	core->sound->stopMusic();
-	
+
 	// load everything here:
 
 	bg1 = new Quad("particles/gas", Vector(400,300));
@@ -92,7 +92,7 @@ void Credits::applyState()
 	bg1->followCamera = 1;
 	bg1->rotation.interpolateTo(Vector(0, 0, 360), 20, -1);
 	bg1->alpha = 0.5;
-	bg1->setSegs(32, 32, 0.5, 0.5, 0.008, 0.008, 2.0, 1);
+	bg1->setSegs(32, 32, 0.5f, 0.5f, 0.008f, 0.008f, 2.0f, 1);
 	addRenderObject(bg1, LR_BACKGROUND);
 
 	bg2 = new Quad("particles/gas", Vector(400,300));
@@ -101,7 +101,7 @@ void Credits::applyState()
 	bg2->followCamera = 1;
 	bg2->rotation.interpolateTo(Vector(0, 0, -360), 20, -1);
 	bg2->alpha = 0.5;
-	bg2->setSegs(32, 32, 0.5, 0.5, 0.008, 0.008, 2.0, 1);
+	bg2->setSegs(32, 32, 0.5f, 0.5f, 0.008f, 0.008f, 2.0f, 1);
 	addRenderObject(bg2, LR_BACKGROUND);
 
 	alec = new Quad("credits/alec", Vector(200, 500));
@@ -127,26 +127,26 @@ void Credits::applyState()
 
 	slides.resize(numSlides);
 
-	for (int i = 0; i < slides.size(); i++)
+	for (size_t i = 0; i < slides.size(); i++)
 	{
 		slides[i] = new Quad("credits/slide-" + numToZeroString(i, 4), Vector(400, 300));
 		slides[i]->alpha = 0;
 		slides[i]->followCamera = 1;
-		slides[i]->setBlendType(RenderObject::BLEND_ADD);
+		slides[i]->setBlendType(BLEND_ADD);
 		addRenderObject(slides[i], LR_ENTITIES);
 	}
 
 	// start:
-	core->main(1);
+	core->run(1);
 
 	dsq->sound->playMusic("losttothewaves", SLT_NONE, SFT_CROSS, 1);
 
 	dsq->overlay->alpha.interpolateTo(0, 12);
 	dsq->overlay2->alpha.interpolateTo(0, 12);
 
-	core->main(12);
+	core->run(12);
 
-	core->main(6);
+	core->run(6);
 
 	cred(derek, true);
 
@@ -179,18 +179,18 @@ void Credits::applyState()
 	watchSlide(15);
 
 	dsq->overlay->alpha.interpolateTo(1, 6);
-	core->main(6);
+	core->run(6);
 
 	while (dsq->sound->isPlayingMusic() && !dsq->isSkippingCutscene())
 	{
-		core->main(1);
+		core->run(1);
 	}
-	
+
 	dsq->setCutscene(0);
 
-	dsq->game->transitionToScene("thirteenlair");
+	game->transitionToScene("thirteenlair");
 #endif
-	//dsq->title();
+
 }
 
 void Credits::removeState()

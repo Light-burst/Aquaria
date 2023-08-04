@@ -22,9 +22,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SCRIPTINTERFACE_H
 
 #include "../BBGE/Base.h"
-#include "../BBGE/MemoryAllocatorSmallBlock.h"
 
 struct lua_State;
+struct LuaAlloc;
 
 class Entity;
 class CollideEntity;
@@ -49,10 +49,14 @@ public:
 	bool call(const char *name, void *param1, float param2, float param3);
 	// boolean = function(pointer, number, number)
 	bool call(const char *name, void *param1, float param2, float param3, bool *ret1);
+	// boolean = function(pointer, int, int, int)
+	bool call(const char *name, void *param1, int param2, int param3, int param4, bool *ret1);
 	// function(pointer, string, number)
 	bool call(const char *name, void *param1, const char *param2, float param3);
 	// function(pointer, string, pointer)
 	bool call(const char *name, void *param1, const char *param2, void *param3);
+	// function(pointer, pointer, int)
+	bool call(const char *name, void *param1, void *param2, int param3);
 	// function(pointer, pointer, pointer)
 	bool call(const char *name, void *param1, void *param2, void *param3);
 	// function(pointer, number, number, number)
@@ -63,6 +67,12 @@ public:
 	bool call(const char *name, void *param1, void *param2, void *param3, float param4, float param5, float param6, float param7, void *param8, bool *ret1);
 	// boolean = function(string)
 	bool call(const char *name, const char *param, bool *ret);
+	// boolean = function(pointer)
+	bool call(const char *name, void *param1, bool *ret1);
+	// boolean = function(pointer, bool)
+	bool call(const char *name, void *param1, bool param2, bool *ret1);
+	// boolean = function(pointer, pointer)
+	bool call(const char *name, void *param1, void *param2, bool *ret1);
 	// string = function(string)
 	bool call(const char *name, const char *param, std::string *ret);
 	// string = function(string, string, string)
@@ -70,6 +80,8 @@ public:
 	// function(pointer, ...) - anything that is already on the stack is forwarded. Results are left on the stack.
 	// Returns how many values the called function returned, or -1 in case of error.
 	int callVariadic(const char *name, lua_State *L, int nparams, void *param);
+	// Pushes the entity's "v" table on top of the passed Lua stack. Returns number of things pushed (0 or 1)
+	int pushLocalVars(lua_State *Ltarget);
 
 	lua_State *getLuaState() {return L;}
 	const std::string &getFile() {return file;}
@@ -101,15 +113,16 @@ public:
 	bool runScript(const std::string &file, const std::string &func, bool ignoremissing = false);
 	bool runScriptNum(const std::string &file, const std::string &func, int num);
 
+	static std::string MakeScriptFileName(const std::string& name, const char *subdir);
+
 protected:
 	lua_State *createLuaVM();
-	void destroyLuaVM(lua_State *state);
 	lua_State *createLuaThread(const std::string &file);
 	int destroyLuaThread(const std::string &file, lua_State *thread);
 	static void *the_alloc(void *ud, void *ptr, size_t osize, size_t nsize);
 
 	lua_State *baseState;
-	SmallBlockAllocator _sballoc;
+	LuaAlloc *_LA;
 };
 
 #endif

@@ -8,7 +8,7 @@
 #include "Network.h"
 #include "ttvfs.h"
 
-#include "tinyxml2.h"
+#include "ReadXML.h"
 using namespace tinyxml2;
 
 using Network::NetEvent;
@@ -154,9 +154,10 @@ void ModDL::GetModlist(const std::string& url, bool allowChaining, bool first)
 	}
 	else
 	{
-		std::string host, dummy_file;
+		std::string host, dummy_file, dummy_protocol;
 		int dummy_port;
-		minihttp::SplitURI(url, host, dummy_file, dummy_port);
+		bool dummy_useSSL;
+		minihttp::SplitURI(url, dummy_protocol, host, dummy_file, dummy_port, dummy_useSSL);
 		stringToLower(host);
 		if(knownServers.find(host) != knownServers.end())
 		{
@@ -188,7 +189,7 @@ void ModDL::GetModlist(const std::string& url, bool allowChaining, bool first)
 	{
 		scr->globeIcon->quad->color.interpolateTo(Vector(1,1,1), 0.3f);
 		scr->globeIcon->alpha.interpolateTo(0.5f, 0.2f, -1, true, true);
-		scr->dlText.setText(dsq->continuity.stringBank.get(2033));
+		scr->dlText.setText(stringbank.get(2033));
 		scr->dlText.alpha.stopPath();
 		scr->dlText.alpha.interpolateTo(1, 0.1f);
 	}
@@ -209,12 +210,12 @@ void ModDL::NotifyModlist(ModlistRequest *rq, NetEvent ev, size_t recvd, size_t 
 			scr->globeIcon->alpha.stop();
 			scr->globeIcon->alpha.interpolateTo(1, 0.5f, 0, false, true);
 			scr->globeIcon->quad->color.interpolateTo(Vector(0.5f, 0.5f, 0.5f), 0.3f);
-			scr->dlText.setText(dsq->continuity.stringBank.get(2021));
+			scr->dlText.setText(stringbank.get(2021));
 			scr->dlText.alpha = 0;
 			scr->dlText.alpha.ensureData();
 			scr->dlText.alpha.data->path.addPathNode(0, 0);
-			scr->dlText.alpha.data->path.addPathNode(1, 0.1);
-			scr->dlText.alpha.data->path.addPathNode(1, 0.7);
+			scr->dlText.alpha.data->path.addPathNode(1, 0.1f);
+			scr->dlText.alpha.data->path.addPathNode(1, 0.7f);
 			scr->dlText.alpha.data->path.addPathNode(0, 1);
 			scr->dlText.alpha.startPath(5);
 
@@ -242,7 +243,7 @@ void ModDL::NotifyModlist(ModlistRequest *rq, NetEvent ev, size_t recvd, size_t 
 		{
 			scr->dlText.alpha.stopPath();
 			scr->dlText.alpha.interpolateTo(1, 0.5f);
-			scr->dlText.setText(dsq->continuity.stringBank.get(2022) + " " + rq->url);
+			scr->dlText.setText(stringbank.get(2022) + " " + rq->url);
 		}
 	}
 }
@@ -309,14 +310,13 @@ bool ModDL::ParseModXML(const std::string& fn, bool allowChaining)
 		ModPackageType pkgtype = MPT_MOD;
 		int serverSize = 0;
 		int serverIconSize = 0;
-		XMLElement *fullname, *desc, *icon, *pkg, *confirm, *props, *web;
+		XMLElement *fullname, *desc, *icon, *pkg, *confirm, *props;
 		fullname = modx->FirstChildElement("Fullname");
 		desc = modx->FirstChildElement("Description");
 		icon = modx->FirstChildElement("Icon");
 		pkg = modx->FirstChildElement("Package");
 		confirm = modx->FirstChildElement("Confirm");
 		props = modx->FirstChildElement("Properties");
-		web = modx->FirstChildElement("Web");
 
 		if(fullname && fullname->Attribute("text"))
 			namestr = fullname->Attribute("text");
@@ -477,7 +477,7 @@ void ModDL::NotifyMod(ModRequest *rq, NetEvent ev, size_t recvd, size_t total)
 	if(!ico)
 	{
 		if(ev == NE_FINISH)
-			dsq->centerMessage(dsq->continuity.stringBank.get(2023) + " " + rq->modname, 420);
+			dsq->centerMessage(stringbank.get(2023) + " " + rq->modname, 420);
 		return;
 	}
 
@@ -527,7 +527,7 @@ void ModDL::NotifyMod(ModRequest *rq, NetEvent ev, size_t recvd, size_t total)
 		if(!dsq->modIsKnown(localname))
 		{
 			// yay, got something new!
-			DSQ::loadModsCallback(archiveFile, 0); // does not end in ".xml" but thats no problem here
+			DSQ::LoadModsCallback(archiveFile, dsq); // does not end in ".xml" but thats no problem here
 			if(dsq->modSelectorScr)
 				dsq->modSelectorScr->initModAndPatchPanel(); // HACK
 		}

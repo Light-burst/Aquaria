@@ -19,12 +19,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "Quad.h"
-
+#include "RenderBase.h"
 
 OutlineRect::OutlineRect() : RenderObject()
 {
 	lineSize = 1;
-	renderCenter = false;
 }
 
 void OutlineRect::setWidthHeight(int w, int h)
@@ -40,9 +39,8 @@ void OutlineRect::setLineSize(int ls)
 	lineSize = ls;
 }
 
-void OutlineRect::onRender()
+void OutlineRect::onRender(const RenderState& rs) const
 {
-#ifdef BBGE_BUILD_OPENGL
 	glLineWidth(lineSize);
 	glBegin(GL_LINES);
 		// l
@@ -58,20 +56,6 @@ void OutlineRect::onRender()
 		glVertex2f(-w2,h2);
 		glVertex2f(w2,h2);
 	glEnd();
-
-	if (renderCenter)
-	{
-		glColor3f(0.9, 0.9, 1);
-		glBegin(GL_LINES);
-			// lr
-			glVertex2f(-w2,0);
-			glVertex2f(w2,0);
-			// ud
-			glVertex2f(0,-h2);
-			glVertex2f(0,h2);
-		glEnd();
-	}
-#endif
 }
 
 

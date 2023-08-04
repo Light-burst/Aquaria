@@ -18,48 +18,15 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#include "States.h"
+
+#include "Intro.h"
 #include "../BBGE/AfterEffect.h"
 #include "Gradient.h"
+#include "DSQ.h"
+#include "SkeletalSprite.h"
 
 
-//class Mappy;
 
-namespace IntroStuff
-{
-	//Mappy *m;
-	bool quitFlag;
-};
-
-using namespace IntroStuff;
-
-/*
-class Mappy : public RenderObject, public ActionMapper
-{
-public:
-	Mappy() : RenderObject(), ActionMapper() {}
-	void render() {}
-	//bool isOnScreen() { return false; }
-	void action(int id, int state)
-	{
-		ActionMapper::action(id, state);
-		if (!quitFlag)
-		{
-			if (state)
-			{
-				quitFlag = true;
-				dsq->quitNestedMain();
-			}
-		}
-	}
-protected:
-	void onUpdate(float dt)
-	{
-		ActionMapper::onUpdate(dt);
-		RenderObject::onUpdate(dt);
-	}
-};
-*/
 
 Intro::Intro() : StateObject()
 {
@@ -68,8 +35,6 @@ Intro::Intro() : StateObject()
 
 void Intro::applyState()
 {
-	quitFlag = false;
-
 	dsq->jiggleCursor();
 	dsq->cursor->alpha = 0;
 	//core->sound->streamOgg("sc/theme", 0);
@@ -80,12 +45,6 @@ void Intro::applyState()
 	dsq->user.load(true);
 
 	ActionMapper::clearActions();
-
-	/*
-	m = new Mappy;
-	dsq->user.control.actionSet.importAction(m, "Escape", ACTION_ESC);
-	addRenderObject(m, LR_BACKGROUND);
-	*/
 
 	done = false;
 }
@@ -100,8 +59,6 @@ void Intro::removeState()
 
 void Intro::endIntro()
 {
-	quitFlag = true;
-
 	dsq->overlay->color.stop();
 	dsq->overlay->alpha.stop();
 
@@ -111,7 +68,7 @@ void Intro::endIntro()
 	dsq->overlay2->color = Vector(1,1,1);
 	dsq->overlay2->alpha.interpolateTo(1, 1);
 
-	dsq->main(1);
+	dsq->run(1);
 
 	dsq->overlay->color = Vector(0,0,0);
 	dsq->overlay->alpha = 0;
@@ -120,61 +77,19 @@ void Intro::endIntro()
 
 	dsq->sound->clearLocalSounds();
 
-	cachy.clean();
+	cachy.clear();
 
 	dsq->toggleBlackBars(0);
 
 	dsq->setCutscene(0);
 
-	dsq->title();
+	dsq->title(true);
 }
 
 bool Intro::waitQuit(float t)
 {
-	dsq->main(t);
+	dsq->run(t);
 	return false;
-
-	/*
-	dsq->main(t);
-	if (quitFlag)
-	{
-		//errorLog("quitFlag!");
-		endIntro();
-		return true;
-	}
-	return false;
-	*/
-
-	/*
-	float frameTime = 0.01;
-	float c = 0;
-	bool tminus=false;
-	while (c < t)
-	{
-		float dt = frameTime;
-		if ((c + dt) > t)
-		{
-			dt = (t-c);
-			tminus = true;
-		}
-
-		std::ostringstream os;
-		os << " tminus: " << tminus << " dt: " << dt << " c: " << c;
-		debugLog(os.str());
-
-		dsq->main(dt);
-		c += dt;
-
-		if (m->isActing(ACTION_ESC))
-		//if (core->getKeyState(KEY_ESCAPE))
-		{
-			endIntro();
-			return true;
-		}
-	}
-
-	return false;
-	*/
 }
 
 void Intro::createMeteor(int layer, Vector pos, Vector off, Vector sz)
@@ -184,7 +99,7 @@ void Intro::createMeteor(int layer, Vector pos, Vector off, Vector sz)
 	m->rotationOffset.interpolateTo(Vector(0,0,-360), 2.5, -1);
 	m->rotation.z = rand()%360;
 	Quad *g = new Quad("particles/glow", Vector(0,0));
-	g->setBlendType(RenderObject::BLEND_ADD);
+	g->setBlendType(BLEND_ADD);
 	g->scale = Vector(24, 24);
 	g->alpha = 0.5;
 	g->color = Vector(1, 0.5, 0.5);
@@ -198,7 +113,7 @@ void Intro::createMeteor(int layer, Vector pos, Vector off, Vector sz)
 
 void Intro::clearMeteors()
 {
-	for (int i = 0; i < meteors.size(); i++)
+	for (size_t i = 0; i < meteors.size(); i++)
 	{
 		meteors[i]->setLife(1);
 		meteors[i]->setDecayRate(100);
@@ -227,7 +142,7 @@ void Intro::update(float dt)
 
 		dsq->toggleBlackBars(1);
 		dsq->setBlackBarsColor(Vector(0,0,0));
-		
+
 		cachy.precacheTex("intro/*.png");
 
 		meteors.clear();
@@ -245,17 +160,17 @@ void Intro::update(float dt)
 		dsq->sound->loadLocalSound("aqfocus");
 		dsq->sound->loadLocalSound("thewave");
 		dsq->sound->loadLocalSound("screaming");
-		
+
 
 		SkeletalSprite *citybg = new SkeletalSprite();
 		citybg->loadSkeletal("citybg");
 		citybg->animate("idle", -1);
-		citybg->color = Vector(0.1, 0.08, 0.08);
+		citybg->color = Vector(0.1f, 0.08f, 0.08f);
 		citybg->position = Vector(400,300);
 		citybg->offset = Vector(-100, 0);
-		citybg->scale = Vector(0.6, 0.6);
+		citybg->scale = Vector(0.6f, 0.6f);
 		citybg->alpha = 0;
-		for (int i = 0; i < citybg->bones.size(); i++)
+		for (size_t i = 0; i < citybg->bones.size(); i++)
 		{
 			if (citybg->bones[i]->name != "meteor")
 			{
@@ -267,18 +182,18 @@ void Intro::update(float dt)
 		SkeletalSprite *eric = new SkeletalSprite();
 		eric->loadSkeletal("cc");
 		eric->animate("runLow", -1);
-		eric->color = Vector(0.08,0.08,0.08);
+		eric->color = Vector(0.08f,0.08f,0.08f);
 		eric->flipHorizontal();
 		eric->position = Vector(50, 400);
 		eric->alpha = 0;
-		eric->scale = Vector(0.4, 0.4);
-		for (int i = 0; i < eric->bones.size(); i++)
+		eric->scale = Vector(0.4f, 0.4f);
+		for (size_t i = 0; i < eric->bones.size(); i++)
 		{
 			eric->bones[i]->color = eric->color;
 		}
 		addRenderObject(eric, LR_ENTITIES);
 
-	
+
 
 		dsq->overlay->alpha = 0;
 		dsq->overlay2->alpha = 0;
@@ -288,7 +203,7 @@ void Intro::update(float dt)
 		dsq->overlay2->color.interpolateTo(Vector(0,0,0), 1);
 
 		dsq->overlay2->alpha = 1;
-		
+
 		core->cacheRender();
 
 
@@ -302,7 +217,7 @@ void Intro::update(float dt)
 		play.fade = SFT_IN;
 		play.loops = -1;
 		play.time = 40;
-		play.vol = 0.7;
+		play.vol = 0.7f;
 		void *drone = dsq->sound->playSfx(play);
 
 
@@ -311,12 +226,12 @@ void Intro::update(float dt)
 		play2.fade = SFT_IN;
 		play2.loops = -1;
 		play2.time = 20;
-		play2.vol = 0.9;
+		play2.vol = 0.9f;
 		void *windLoop = dsq->sound->playSfx(play2);
 
-		dsq->main(3);
+		dsq->run(3);
 
-		dsq->setClearColor(Vector(0.2,0.2,0.21));
+		dsq->setClearColor(Vector(0.2f,0.2f,0.21f));
 
 		float bt = 11;
 
@@ -329,9 +244,9 @@ void Intro::update(float dt)
 		Quad *cloud_bg = new Quad("intro/cloud-bg", Vector(400,300));
 		cloud_bg->setWidthHeight(800,600);
 		cloud_bg->followCamera = 1;
-		cloud_bg->alpha = 0.2;
+		cloud_bg->alpha = 0.2f;
 		cloud_bg->flipVertical();
-		cloud_bg->scale.interpolateTo(Vector(1.2, 1.5), bt*2);
+		cloud_bg->scale.interpolateTo(Vector(1.2f, 1.5f), bt*2);
 		addRenderObject(cloud_bg, LR_BACKGROUND);
 
 		Quad *mc1 = new Quad("intro/intro-big-cloud", Vector(200, 300));
@@ -365,15 +280,15 @@ void Intro::update(float dt)
 		bbp->alpha = 0;
 		bbp->alpha.interpolateTo(1, 8);
 		bbp->followCamera = 1;
-		bbp->scale = Vector(0.5, 0.5);
-		bbp->scale.interpolateTo(Vector(0.8, 0.8), bt);
+		bbp->scale = Vector(0.5f, 0.5f);
+		bbp->scale.interpolateTo(Vector(0.8f, 0.8f), bt);
 		bbp->color.ensureData();
 		bbp->color.data->path.addPathNode(Vector(1,1,1), 0);
-		bbp->color.data->path.addPathNode(Vector(0.5,0.5,0.5), 0.1);
-		bbp->color.data->path.addPathNode(Vector(1,1,1), 0.2);
-		bbp->color.data->path.addPathNode(Vector(0.5,0.5,0.5), 0.9);
-		bbp->color.data->path.addPathNode(Vector(1,1,1), 0.95);
-		bbp->color.data->path.addPathNode(Vector(0.5,0.5,0.5), 1.0);
+		bbp->color.data->path.addPathNode(Vector(0.5f,0.5f,0.5f), 0.1f);
+		bbp->color.data->path.addPathNode(Vector(1,1,1), 0.2f);
+		bbp->color.data->path.addPathNode(Vector(0.5f,0.5f,0.5f), 0.9f);
+		bbp->color.data->path.addPathNode(Vector(1,1,1), 0.95f);
+		bbp->color.data->path.addPathNode(Vector(0.5f,0.5f,0.5f), 1.0f);
 		bbp->color.startPath(2.5);
 		bbp->color.data->loopType = -1;
 		addRenderObject(bbp, LR_HUD);
@@ -383,14 +298,14 @@ void Intro::update(float dt)
 
 		if (waitQuit(1)) return;
 
-		dsq->sound->playSfx("lululu", 0.6);
+		dsq->sound->playSfx("lululu", 0.6f);
 
 		if (waitQuit(9)) return;
 
 		dsq->sound->playSfx("thunder");
-		dsq->overlay->alpha.interpolateTo(1, 0.2);
+		dsq->overlay->alpha.interpolateTo(1, 0.2f);
 
-		if (waitQuit(0.5)) return;
+		if (waitQuit(0.5f)) return;
 
 		bbp->alpha = 0;
 		cloud_bg->alpha = 0;
@@ -404,8 +319,8 @@ void Intro::update(float dt)
 
 		// -- floating city in clouds
 
-		
-		dsq->setClearColor(Vector(0.4,0.4,0.4));
+
+		dsq->setClearColor(Vector(0.4f,0.4f,0.4f));
 
 		/*
 		Gradient *grad = new Gradient();
@@ -438,12 +353,12 @@ void Intro::update(float dt)
 		for (int i = 3; i <=5; i++)
 		{
 			Bone *b = city->getBoneByIdx(i);
-			b->scale.interpolateTo(Vector(0.2, 1), 0.2, -1, 1);
+			b->scale.interpolateTo(Vector(0.2f, 1), 0.2f, -1, 1);
 		}
 		city->alpha.interpolateTo(1.0, bt*0.75f);
 		city->internalOffset = Vector(0, 50);
-		city->scale = Vector(0.6, 0.6);
-		city->scale.interpolateTo(Vector(0.75, 0.75), bt);
+		city->scale = Vector(0.6f, 0.6f);
+		city->scale.interpolateTo(Vector(0.75f, 0.75f), bt);
 		city->animate("idle");
 		addRenderObject(city, LR_HUD);
 
@@ -452,7 +367,7 @@ void Intro::update(float dt)
 		play3.fade = SFT_IN;
 		play3.loops = -1;
 		play3.time = 10;
-		play3.vol = 0.7;
+		play3.vol = 0.7f;
 		void *propLoop = dsq->sound->playSfx(play3);
 
 		dsq->overlay->alpha.interpolateTo(0, 1);
@@ -474,7 +389,7 @@ void Intro::update(float dt)
 
 		if (waitQuit(2)) return;
 
-		
+
 
 		// -- window
 
@@ -514,37 +429,37 @@ void Intro::update(float dt)
 		ericHead->alpha = 0;
 
 
-		
+
 		// -- brush
 
 		float brusht=7;
 		Quad *painting = new Quad("intro/painting", Vector(400,300));
-		painting->scale = Vector(0.9, 0.9);
+		painting->scale = Vector(0.9f, 0.9f);
 		// 1.2
 		painting->scale.interpolateTo(Vector(2,2), brusht, 0, 0, 1);
 		painting->followCamera = 1;
 		addRenderObject(painting, LR_HUD);
 
 		Quad *ericHandBrush = new Quad("intro/eric-hand-brush", Vector(800-256 + 20,600-256 + 20));
-		ericHandBrush->scale = Vector(0.99, 0.99);
-		ericHandBrush->scale.interpolateTo(Vector(1.7,1.7), brusht, 0, 0, 1);
+		ericHandBrush->scale = Vector(0.99f, 0.99f);
+		ericHandBrush->scale.interpolateTo(Vector(1.7f,1.7f), brusht, 0, 0, 1);
 		ericHandBrush->followCamera = 1;
 		ericHandBrush->rotation.interpolateTo(Vector(0,0,-20), brusht);
 		ericHandBrush->offset.interpolateTo(Vector(550, 550), brusht*0.75f, 0, 0, 1);
 		addRenderObject(ericHandBrush, LR_HUD);
 
 
-		dsq->fade(0, 0.5);
-		if (waitQuit(0.5)) return;
+		dsq->fade(0, 0.5f);
+		if (waitQuit(0.5f)) return;
 
 		if (waitQuit(2)) return;
 
 		// music bit
 
-		dsq->sound->playSfx("aqfocus", 0.8);
+		dsq->sound->playSfx("aqfocus", 0.8f);
 
-		if (waitQuit(1.5)) return;
-		
+		if (waitQuit(1.5f)) return;
+
 
 		if (waitQuit(2)) return;
 
@@ -554,11 +469,11 @@ void Intro::update(float dt)
 
 		dsq->sound->playSfx("thewave");
 
-		if (waitQuit(0.5)) return;
+		if (waitQuit(0.5f)) return;
 
 		dsq->sound->playSfx("heartbeat");
-		dsq->fade(1, 0.5);
-		if (waitQuit(0.5)) return;
+		dsq->fade(1, 0.5f);
+		if (waitQuit(0.5f)) return;
 
 		painting->alpha = 0;
 		ericHandBrush->alpha = 0;
@@ -572,34 +487,34 @@ void Intro::update(float dt)
 		window->alpha = 1;
 		ericHead->alpha = 1;
 
-		window->color.interpolateTo(Vector(1, 0.5, 0.5), wrt);
-		ericHead->color.interpolateTo(Vector(1, 0.7, 0.7), wrt);
+		window->color.interpolateTo(Vector(1, 0.5f, 0.5f), wrt);
+		ericHead->color.interpolateTo(Vector(1, 0.7f, 0.7f), wrt);
 		ericHead->offset = Vector(-200,0);
 		ericHead->offset.interpolateTo(Vector(-800, 200), wrt);
 
-		window->scale.interpolateTo(Vector(1.3, 1.3), wrt);
+		window->scale.interpolateTo(Vector(1.3f, 1.3f), wrt);
 
-		dsq->fade(0, 0.5);
-		if (waitQuit(0.5)) return;
+		dsq->fade(0, 0.5f);
+		if (waitQuit(0.5f)) return;
 
 		if (waitQuit(wrt-1)) return;
 
 		dsq->sound->playSfx("heartbeat");
-		dsq->fade(1, 0.5);
-		if (waitQuit(0.5)) return;
+		dsq->fade(1, 0.5f);
+		if (waitQuit(0.5f)) return;
 
 		ericHead->alpha = 0;
 		window->alpha = 0;
 
 		// -- city under attack by meteors
 
-		dsq->setClearColor(Vector(0.6,0.1,0.1));
+		dsq->setClearColor(Vector(0.6f,0.1f,0.1f));
 
-		createMeteor(LR_ENTITIES, Vector(600, -50), Vector(-600, 600), Vector(0.05, 0.05));
+		createMeteor(LR_ENTITIES, Vector(600, -50), Vector(-600, 600), Vector(0.05f, 0.05f));
 
 
-		cloud_bg->alpha = 0.99;
-		cloud_bg->alpha.interpolateTo(0.8, 4);
+		cloud_bg->alpha = 0.99f;
+		cloud_bg->alpha.interpolateTo(0.8f, 4);
 		//grad->alpha = 0.5;
 		city->alpha = 1;
 
@@ -607,13 +522,13 @@ void Intro::update(float dt)
 
 		city->animate("idle");
 
-		dsq->fade(0, 0.5);
-		if (waitQuit(0.5)) return;
+		dsq->fade(0, 0.5f);
+		if (waitQuit(0.5f)) return;
 
-		if (waitQuit(0.5)) return;
+		if (waitQuit(0.5f)) return;
 
-		createMeteor(LR_ENTITIES, Vector(300, -50), Vector(-500, 900), Vector(0.2, 0.2));
-		createMeteor(LR_HUD, Vector(400, -100), Vector(-400, 1000), Vector(0.2, 0.2));
+		createMeteor(LR_ENTITIES, Vector(300, -50), Vector(-500, 900), Vector(0.2f, 0.2f));
+		createMeteor(LR_HUD, Vector(400, -100), Vector(-400, 1000), Vector(0.2f, 0.2f));
 
 		if (waitQuit(2)) return;
 
@@ -622,11 +537,11 @@ void Intro::update(float dt)
 		for (int i = 0; i < 16; i++)
 		{
 			int l = LR_ENTITIES;
-			Vector sz(0.1, 0.1);
+			Vector sz(0.1f, 0.1f);
 			if (rand()%5 < 2)
 			{
 				l = LR_HUD;
-				sz = Vector(0.15, 0.15);
+				sz = Vector(0.15f, 0.15f);
 			}
 			createMeteor(l, Vector(200+rand()%600, -50 - rand()%100), Vector(-200 - rand()%400, 900 + rand()%400), sz);
 		}
@@ -637,23 +552,23 @@ void Intro::update(float dt)
 		for (int i = 0; i < 8; i++)
 		{
 			int l = LR_ENTITIES;
-			Vector sz(0.1, 0.1);
+			Vector sz(0.1f, 0.1f);
 			if (rand()%5 < 2)
 			{
 				l = LR_HUD;
-				sz = Vector(0.15, 0.15);
+				sz = Vector(0.15f, 0.15f);
 			}
 			createMeteor(l, Vector(200+rand()%600, -50 - rand()%100), Vector(-200 - rand()%400, 900 + rand()%400), sz);
 		}
 
-		if (waitQuit(0.4)) return;
+		if (waitQuit(0.4f)) return;
 
 		dsq->sound->playSfx("heartbeat");
-		dsq->sound->fadeSfx(drone, SFT_OUT, 0.1);
-		dsq->sound->fadeSfx(windLoop, SFT_OUT, 0.1);
+		dsq->sound->fadeSfx(drone, SFT_OUT, 0.1f);
+		dsq->sound->fadeSfx(windLoop, SFT_OUT, 0.1f);
 
-		dsq->overlay->color = Vector(1, 0.5, 0.5);
-		dsq->fade(1, 0.1);
+		dsq->overlay->color = Vector(1, 0.5f, 0.5f);
+		dsq->fade(1, 0.1f);
 		if (waitQuit(1)) return;
 
 		city->alpha = 0;
@@ -690,18 +605,18 @@ void Intro::update(float dt)
 
 		dsq->overlay->color = Vector(0,0,0);
 
-		dsq->fade(1, 0.1);
+		dsq->fade(1, 0.1f);
 
-		if (waitQuit(3.5)) return;
+		if (waitQuit(3.5f)) return;
 
 
 		// -- outside scene
 
 
-		dsq->setClearColor(Vector(0.3,0.1,0.1));
+		dsq->setClearColor(Vector(0.3f,0.1f,0.1f));
 
-		cloud_bg->alpha = 0.4;
-		cloud_bg->scale = Vector(1.5, 1.5);
+		cloud_bg->alpha = 0.4f;
+		cloud_bg->scale = Vector(1.5f, 1.5f);
 		//cloud_bg->setSegs(32, 32, 0.5, 0.5, 0.008, 0.008, 4, 1);
 		//cloud_bg->setSegs(10, 10, 0.1, 0.1, 1, 1, 0.1, 1);
 		cloud_bg->rotation.z = 180;
@@ -713,13 +628,13 @@ void Intro::update(float dt)
 		pScreaming.fade = SFT_IN;
 		pScreaming.loops = -1;
 		pScreaming.time = 8;
-		pScreaming.vol = 1.0;
+		pScreaming.vol = 1.0f;
 		void *screaming = dsq->sound->playSfx(pScreaming);
 
 		eric->alpha = 1;
 		eric->offset.interpolateTo(Vector(150, 0), 1);
 
-		dsq->fade(0, 0.2);
+		dsq->fade(0, 0.2f);
 
 		if (waitQuit(1)) return;
 		eric->animate("idle", -1);
@@ -729,19 +644,19 @@ void Intro::update(float dt)
 		eric->animate("runLow", -1);
 
 		eric->offset.interpolateTo(Vector(150+150, 0), 1);
-		if (waitQuit(0.5)) return;
+		if (waitQuit(0.5f)) return;
 
-		dsq->sound->playSfx("thunder", 0.1);
+		dsq->sound->playSfx("thunder", 0.1f);
 
-		if (waitQuit(0.5)) return;
+		if (waitQuit(0.5f)) return;
 
 		eric->offset.interpolateTo(Vector(150+150+150, 0), 1);
 		if (waitQuit(1)) return;
 
 		eric->offset.interpolateTo(Vector(150+150+150+150, 0), 1);
-		if (waitQuit(0.5)) return;
-		dsq->sound->playSfx("thunder", 0.7);
-		if (waitQuit(0.5)) return;
+		if (waitQuit(0.5f)) return;
+		dsq->sound->playSfx("thunder", 0.7f);
+		if (waitQuit(0.5f)) return;
 
 		eric->animate("idle", -1);
 
@@ -750,7 +665,7 @@ void Intro::update(float dt)
 		eric->flipHorizontal();
 
 		citybg->animate("crash");
-		if (waitQuit(1.9)) return;
+		if (waitQuit(1.9f)) return;
 
 		dsq->sound->playSfx("bridgebreak");
 
@@ -758,18 +673,16 @@ void Intro::update(float dt)
 		dsq->sound->stopSfx(drone);
 		dsq->sound->stopSfx(screaming);
 
-		eric->rotation.interpolateTo(Vector(0,0,96), 1.5);
+		eric->rotation.interpolateTo(Vector(0,0,96), 1.5f);
 		eric->offset.interpolateTo(Vector(eric->offset.x, 800), 1);
 
-		if (waitQuit(1.9)) return;
+		if (waitQuit(1.9f)) return;
 
-
-		
 
 
 		dsq->overlay->color = Vector(0,0,0);
-		dsq->fade(1, 0.1);
-		if (waitQuit(0.1)) return;
+		dsq->fade(1, 0.1f);
+		if (waitQuit(0.1f)) return;
 
 		citybg->alpha = 0;
 		eric->alpha = 0;
@@ -793,8 +706,8 @@ void Intro::update(float dt)
 		addRenderObject(underwaterBG, LR_ENTITIES);
 
 		Quad *ericHandSink = new Quad("intro/eric-hand-sink", Vector(550,610));
-		ericHandSink->scale = Vector(0.99, 0.99);
-		ericHandSink->scale.interpolateTo(Vector(1.5,1.5), st, 0, 0, 1);
+		ericHandSink->scale = Vector(0.99f, 0.99f);
+		ericHandSink->scale.interpolateTo(Vector(1.5f,1.5f), st, 0, 0, 1);
 		ericHandSink->internalOffset = Vector(0, -256);
 		ericHandSink->rotation = Vector(0,0,-10);
 		ericHandSink->rotation.interpolateTo(Vector(0,0,10), st, 0, 0, 1);
@@ -802,11 +715,11 @@ void Intro::update(float dt)
 		ericHandSink->followCamera = 1;
 		addRenderObject(ericHandSink, LR_ENTITIES);
 
-		dsq->setClearColor(Vector(0, 0.05, 0.1));
+		dsq->setClearColor(Vector(0, 0.05f, 0.1f));
 
 
 		if (core->afterEffectManager)
-			core->afterEffectManager->addEffect(new ShockEffect(Vector(core->width/2, core->height/2),core->screenCenter,0.08,0.05,22,0.2f, 1.2));
+			core->afterEffectManager->addEffect(new ShockEffect(Vector(core->width/2, core->height/2),core->screenCenter,0.08f,0.05f,22,0.2f, 1.2f));
 
 
 		dsq->fade(0, 3);
@@ -817,7 +730,7 @@ void Intro::update(float dt)
 		play4.name = "bgloop-interior";
 		play4.loops = -1;
 		play4.time = 1;
-		play4.fade = SFT_IN; 
+		play4.fade = SFT_IN;
 		void *bgLoop = dsq->sound->playSfx(play4);
 
 		if (waitQuit(3)) return;
@@ -827,27 +740,27 @@ void Intro::update(float dt)
 
 
 
-		dsq->sound->playSfx("heartbeat", 0.5);
+		dsq->sound->playSfx("heartbeat", 0.5f);
 
 		dsq->fade(1, 5);
-		if (waitQuit(2.5)) return;
+		if (waitQuit(2.5f)) return;
 
 		core->sound->playVoice("titleb");
 
-		dsq->sound->playSfx("heartbeat", 0.2);
-		
-		if (waitQuit(2.5)) return;
+		dsq->sound->playSfx("heartbeat", 0.2f);
+
+		if (waitQuit(2.5f)) return;
 
 		underwaterBG->alphaMod = 0;
 
-		core->sound->playSfx("mother", 0.6);
+		core->sound->playSfx("mother", 0.6f);
 
 		dsq->fade(0, 2);
 
 		Quad *mom = new Quad("gameover-0004", Vector(400,300));
 		mom->setWidthHeight(600,600);
-		mom->alphaMod = 0.035;
-		mom->setBlendType(RenderObject::BLEND_ADD);
+		mom->alphaMod = 0.035f;
+		mom->setBlendType(BLEND_ADD);
 		mom->alpha = 0;
 		mom->alpha.interpolateTo(1, 5);
 		mom->followCamera = 1;

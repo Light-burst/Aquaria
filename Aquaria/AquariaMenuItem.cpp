@@ -21,13 +21,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "AquariaMenuItem.h"
 #include "DSQ.h"
 #include "Game.h"
+#include "ActionInput.h"
+#include "InGameMenu.h"
+
+#include <tinyxml2.h>
+using namespace tinyxml2;
+
+const float moveDelay = 0.2f;
 
 float AquariaGuiElement::guiMoveTimer = 0;
 AquariaGuiElement::GuiElements AquariaGuiElement::guiElements;
 bool AquariaGuiElement::canDirMoveGlobal = true;
 
 int AquariaGuiElement::currentGuiInputLevel = 0;
-
 AquariaGuiElement *AquariaGuiElement::currentFocus = 0;
 
 AquariaGuiElement::AquariaGuiElement()
@@ -36,7 +42,6 @@ AquariaGuiElement::AquariaGuiElement()
 	{
 		dirMove[i] = 0;
 	}
-	hasFocus = false;
 
 	guiMoveTimer = 0;
 
@@ -74,14 +79,17 @@ void AquariaGuiElement::setCanDirMove(bool on)
 	canDirMove = on;
 }
 
+bool AquariaGuiElement::hasFocus() const
+{
+	return this == currentFocus;
+}
+
 void AquariaGuiElement::setFocus(bool v)
 {
-	hasFocus = v;
-	
 	if (v)
 	{
 		currentFocus = this;
-		if (dsq->inputMode == INPUT_JOYSTICK)
+		if (dsq->getInputMode() == INPUT_JOYSTICK || dsq->getInputMode() == INPUT_KEYBOARD)
 			core->setMousePosition(getGuiPosition());
 
 		AquariaGuiElement *gui=0, *guiThis = (AquariaGuiElement*)this;
@@ -100,155 +108,143 @@ void AquariaGuiElement::setFocus(bool v)
 
 void AquariaGuiElement::updateMovement(float dt)
 {
-	//debugLog("in update movement");
-	if (hasFocus && isGuiVisible() && canDirMove && canDirMoveGlobal && hasInput())
+	if (hasFocus() && isGuiVisible() && canDirMove && canDirMoveGlobal && hasInput())
 	{
-		//debugLog("has focus");
-		/*
-		if (alpha.x <= 0 || alphaMod <= 0)
-		{
-			setFocus(false);
-			return;
-		}
-		*/
-
-		if (guiMoveTimer > 0)
-		{
-			guiMoveTimer -= dt;
-			if (guiMoveTimer < 0) guiMoveTimer = 0;
-		}
-
 		if (guiMoveTimer==0)
 		{
-			Direction dir = DIR_NONE;
-			Vector p = core->joystick.position;
-			if (!p.isLength2DIn(0.4))
-			{
-				if (fabsf(p.x) > fabsf(p.y))
-				{
-					if (p.x > 0)
-						dir = DIR_RIGHT;
-					else
-						dir = DIR_LEFT;
-				}
-				else
-				{
-					if (p.y > 0)
-						dir = DIR_DOWN;
-					else
-						dir = DIR_UP;
-				}
-			}
-			else
-			{
-				StateObject *obj = dsq->getTopStateObject();
-				if (obj)
-				{
-					if (obj->isActing(ACTION_MENULEFT))			dir = DIR_LEFT;
-					else if (obj->isActing(ACTION_MENURIGHT))	dir = DIR_RIGHT;
-					else if (obj->isActing(ACTION_MENUUP))		dir = DIR_UP;
-					else if (obj->isActing(ACTION_MENUDOWN))	dir = DIR_DOWN;
-				}
-			}
+			Direction dir = GetDirection();
 
 			if (dir == DIR_NONE) return;
-
-			const float moveDelay = 0.2;
 
 			AquariaGuiElement *gui = 0;
 			if (dir > DIR_NONE && dir < DIR_MAX)
 			{
 				gui = dirMove[dir];
+				if (!gui)
+					gui = FindClosestTo(this, getGuiPosition(), dir);
 				if (gui)
 				{
 					gui->setFocus(true);
-					//this->setFocus(false);
-
-					
-
-					guiMoveTimer = moveDelay;
-				}
-			}
-			
-			if (!gui)
-			{
-				debugLog("updating closest");
-				int smallDist = -1, dist = 0;
-
-				AquariaGuiElement *gui = 0, *closest = 0;
-				int ch = 64;
-				for (GuiElements::iterator i = guiElements.begin(); i != guiElements.end(); i++)
-				{
-					gui = (*i);
-					if (gui != this && gui->isGuiVisible() && gui->canDirMove)
-					{
-						int go = 0;
-						Vector p1 = getGuiPosition();
-						Vector p2 = gui->getGuiPosition();
-
-						if (dir == DIR_DOWN)
-						{
-							if (fabsf(p1.x - p2.x) < ch)
-							{
-								if (p2.y > p1.y) go = 1;
-								p1.x = p2.x = 0;
-							}
-						}
-						else if (dir == DIR_UP)
-						{
-							if (fabsf(p1.x - p2.x) < ch)
-							{
-								if (p2.y < p1.y) go = 1;
-								p1.x = p2.x = 0;
-							}
-						}
-						else if (dir == DIR_RIGHT)
-						{
-							if (fabsf(p1.y - p2.y) < ch)
-							{
-								if (p2.x > p1.x) go = 1;
-								p1.y = p2.y = 0;
-							}
-						}
-						else if (dir == DIR_LEFT)
-						{
-							if (fabsf(p1.y - p2.y) < ch)
-							{
-								if (p2.x < p1.x) go = 1;
-								p1.y = p2.y = 0;
-							}
-						}
-						else
-						{
-							continue;
-						}
-
-						if (go)
-						{
-							dist = (p1 - p2).getSquaredLength2D();
-
-							if (smallDist == -1 || dist < smallDist)
-							{
-								closest = gui;
-								smallDist = dist;
-							}
-						}
-						else
-						{
-							continue;
-						}
-					}
-				}
-
-				if (closest)
-				{
-					closest->setFocus(true);
-
 					guiMoveTimer = moveDelay;
 				}
 			}
 		}
 	}
+}
+
+AquariaGuiElement *AquariaGuiElement::FocusClosestToMouse(Direction dir)
+{
+	if (dir > DIR_NONE && dir < DIR_MAX)
+	{
+		AquariaGuiElement *gui = FindClosestTo(NULL, core->mouse.position, dir);
+		if (gui)
+		{
+			gui->setFocus(true);
+			guiMoveTimer = moveDelay;
+			return gui;
+		}
+	}
+	return NULL;
+}
+
+void AquariaGuiElement::UpdateGlobalFocus(float dt)
+{
+	if (guiMoveTimer > 0)
+	{
+		guiMoveTimer -= dt;
+		if (guiMoveTimer < 0) guiMoveTimer = 0;
+	}
+
+	if(!currentFocus && guiMoveTimer == 0)
+		FocusClosestToMouse(GetDirection());
+}
+
+Direction AquariaGuiElement::GetDirection()
+{
+	Direction dir = DIR_NONE;
+	
+	StateObject *obj = dsq->getTopStateObject(); // usually Game...
+	if (obj)
+	{
+		if (obj->isActing(ACTION_MENULEFT, -1))			dir = DIR_LEFT;
+		else if (obj->isActing(ACTION_MENURIGHT, -1))	dir = DIR_RIGHT;
+		else if (obj->isActing(ACTION_MENUUP, -1))		dir = DIR_UP;
+		else if (obj->isActing(ACTION_MENUDOWN, -1))	dir = DIR_DOWN;
+	}
+
+	return dir;
+}
+
+AquariaGuiElement *AquariaGuiElement::FindClosestTo(AquariaGuiElement *cur, Vector pos, Direction dir)
+{
+	float dist = 0, smallDist = -1;
+
+	AquariaGuiElement *gui = 0, *closest = 0;
+	const float ch = 64;
+	for (GuiElements::iterator i = guiElements.begin(); i != guiElements.end(); i++)
+	{
+		gui = (*i);
+		if (gui != cur && gui->isGuiVisible() && gui->canDirMove && gui->hasInput())
+		{
+			int go = 0;
+			Vector p1 = pos;
+			Vector p2 = gui->getGuiPosition();
+
+			if (dir == DIR_DOWN)
+			{
+				if (fabsf(p1.x - p2.x) < ch)
+				{
+					if (p2.y > p1.y) go = 1;
+					p1.x = p2.x = 0;
+				}
+			}
+			else if (dir == DIR_UP)
+			{
+				if (fabsf(p1.x - p2.x) < ch)
+				{
+					if (p2.y < p1.y) go = 1;
+					p1.x = p2.x = 0;
+				}
+			}
+			else if (dir == DIR_RIGHT)
+			{
+				if (fabsf(p1.y - p2.y) < ch)
+				{
+					if (p2.x > p1.x) go = 1;
+					p1.y = p2.y = 0;
+				}
+			}
+			else if (dir == DIR_LEFT)
+			{
+				if (fabsf(p1.y - p2.y) < ch)
+				{
+					if (p2.x < p1.x) go = 1;
+					p1.y = p2.y = 0;
+				}
+			}
+			else
+			{
+				continue;
+			}
+
+			if (go)
+			{
+				dist = (p1 - p2).getSquaredLength2D();
+
+				if (smallDist == -1 || dist < smallDist)
+				{
+					closest = gui;
+					smallDist = dist;
+				}
+			}
+			else
+			{
+				continue;
+			}
+		}
+	}
+
+	return closest;
 }
 
 AquariaGuiElement *AquariaGuiElement::getClosestGuiElement(const Vector& pos)
@@ -315,11 +311,11 @@ void AquariaGuiQuad::onUpdate(float dt)
 
 // Joystick input threshold at which we start sliding (0.0-1.0); must be
 // less than updateMovement() threshold.
-const float SLIDER_JOY_THRESHOLD = 0.39;
+const float SLIDER_JOY_THRESHOLD = 0.39f;
 // Initial delay before repeating for slider input (seconds).
-const float SLIDER_REPEAT_DELAY = 0.4;
+const float SLIDER_REPEAT_DELAY = 0.4f;
 // Scale factor for delay as repeats continue.
-const float SLIDER_REPEAT_ACCEL = 0.8;
+const float SLIDER_REPEAT_ACCEL = 0.8f;
 
 AquariaSlider::AquariaSlider()
 : Slider(90, 12, "gui/slider-bg", "gui/slider-fg"), AquariaGuiElement()
@@ -350,23 +346,13 @@ bool AquariaSlider::doSliderInput(float dt)
 	if (!(core->mouse.position - this->position).isLength2DIn(5))
 		return false;
 
-	float inputAmount;  // How much to adjust by?
+	float inputAmount = 0;  // How much to adjust by?
 
 	StateObject *obj = dsq->getTopStateObject();
-	if (core->joystick.position.x <= -SLIDER_JOY_THRESHOLD)
+	if (obj && obj->isActing(ACTION_MENULEFT, -1))
 		inputAmount = -0.1f;
-	else if (core->joystick.position.x >= SLIDER_JOY_THRESHOLD)
+	else if (obj && obj->isActing(ACTION_MENURIGHT, -1))
 		inputAmount = +0.1f;
-	else if (core->joystick.dpadLeft)
-		inputAmount = -0.1f;
-	else if (core->joystick.dpadRight)
-		inputAmount = +0.1f;
-	else if (obj && obj->isActing(ACTION_MENULEFT))
-		inputAmount = -0.1f;
-	else if (obj && obj->isActing(ACTION_MENURIGHT))
-		inputAmount = +0.1f;
-	else
-		inputAmount = 0;
 
 	if (inputAmount != 0)
 	{
@@ -448,41 +434,44 @@ AquariaKeyConfig *AquariaKeyConfig::waitingForInput = 0;
 
 
 AquariaKeyConfig::AquariaKeyConfig(const std::string &actionInputName, InputSetType inputSetType, int inputIdx)
-: AquariaGuiElement(), RenderObject(), actionInputName(actionInputName), inputSetType(inputSetType), inputIdx(inputIdx)
+: AquariaGuiElement(), RenderObject()
+, actionInputName(actionInputName)
+, inputSetType(inputSetType)
+, inputIdx(inputIdx)
+, actionSetIndex(0)
+, rejectJoyAxis(false)
 {
-
 	bg = new Quad();
+	bg2 = new Quad();
 	if (inputSetType == INPUTSET_OTHER)
+	{
 		bg->setWidthHeight(40, 20);
+		bg2->setWidthHeight(40, 20);
+	}
 	else
-		bg->setWidthHeight(100, 20);
+	{
+		bg->setWidthHeight(90, 20);
+		bg2->setWidthHeight(90, 20);
+	}
 
-	bg->color = Vector(0.5, 0.5, 0.5);
+	bg->color = Vector(0.5f, 0.5f, 0.5f);
 	bg->alphaMod = 0;
+	bg->position = Vector(0, -3);
+	bg2->color = Vector(0.4f, 0.4f, 0.6f);
+	bg2->alphaMod = 0;
+	bg2->position = Vector(0, -3);
 	addChild(bg, PM_POINTER);
+	addChild(bg2, PM_POINTER);
 
-	/*
-	label = new BitmapText(&dsq->smallFont);
-	label->setText("KeyConfig");
-	label->parentManagedPointer = 1;
-	label->position = Vector(0, -10);
-	label->scale = Vector(0.8, 0.8);
-	addChild(label);
-	*/
 
-	//keyConfigFont = new DebugFont(6, "keyConfig");
 
 	keyConfigFont = new TTFText(&dsq->fontArialSmallest);
 
 	keyConfigFont->setAlign(ALIGN_CENTER);
-	//keyConfigFont->position = Vector(0, -10);
+
 	addChild(keyConfigFont, PM_POINTER);
 
-
 	keyDown = false;
-
-	locked = 0;
-
 
 	toggleEnterKey(false);
 }
@@ -510,34 +499,20 @@ void AquariaKeyConfig::toggleEnterKey(int on)
 {
 	if (on==1)
 	{
-		bg->color = Vector(0.75, 0.75, 0.75);
-		bg->alphaMod = 0.25;
+		bg->color = Vector(0.75f, 0.75f, 0.75f);
+		bg->alphaMod = 0.25f;
 	}
 	else if (on == 0)
 	{
 		bg->alphaMod = 0;
-		bg->color = Vector(0.1, 0.1, 0.1);
+		bg->color = Vector(0.1f, 0.1f, 0.1f);
 	}
 	else
 	{
-		bg->alphaMod = 0.5;
-		bg->color = Vector(0.5, 0.5, 0.5);
+		bg->alphaMod = 0.5f;
+		bg->color = Vector(0.5f, 0.5f, 0.5f);
 	}
-	/*
-	if (on)
-	{
-		label->scale = Vector(2, 2);
-	}
-	else
-	{
-		label->scale = Vector(1, 1);
-	}
-	*/
-}
 
-void AquariaKeyConfig::setLock(int lock)
-{
-	locked = lock;
 }
 
 void AquariaKeyConfig::onUpdate(float dt)
@@ -546,9 +521,7 @@ void AquariaKeyConfig::onUpdate(float dt)
 
 	if (inLoop) return;
 
-	
 
-	
 
 	AquariaGuiElement::updateMovement(dt);
 
@@ -557,15 +530,22 @@ void AquariaKeyConfig::onUpdate(float dt)
 
 	if (!hasInput() || alpha.x <= 0) return;
 
+	if(actionSetIndex >= dsq->user.control.actionSets.size())
+		return;
+
+	ActionSet& as = dsq->user.control.actionSets[actionSetIndex];
+
 	inLoop = true;
 
-	int *k = 0;
+	unsigned int *k = 0;
 
 	ActionInput *ai = 0;
-	
+
+	bool used = false;
+
 	if (inputSetType != INPUTSET_OTHER)
 	{
-		ai = dsq->user.control.actionSet.getActionInputByName(actionInputName);
+		ai = as.getActionInputByName(actionInputName);
 
 		if (!ai)
 		{
@@ -574,39 +554,47 @@ void AquariaKeyConfig::onUpdate(float dt)
 		switch(inputSetType)
 		{
 		case INPUTSET_KEY:
-			k = &ai->key[inputIdx];
+			k = &ai->data.single.key[inputIdx];
 		break;
 		case INPUTSET_MOUSE:
-			k = &ai->mse[inputIdx];
+			k = &ai->data.single.mse[inputIdx];
 		break;
 		case INPUTSET_JOY:
-			k = &ai->joy[inputIdx];
+			k = &ai->data.single.joy[inputIdx];
 		break;
-		default:
+		case INPUTSET_NONE:
+		case INPUTSET_OTHER:
 			k = 0;
 		break;
 		}
+		used = k && *k;
 	}
 
-	int *value = 0;
 
 	if (inputSetType == INPUTSET_OTHER)
 	{
 		if (actionInputName == "s1ax")
-			value = &dsq->user.control.s1ax;
+			k = &as.joycfg.s1ax;
 		else if (actionInputName == "s1ay")
-			value = &dsq->user.control.s1ay;
+			k = &as.joycfg.s1ay;
 		else if (actionInputName == "s2ax")
-			value = &dsq->user.control.s2ax;
+			k = &as.joycfg.s2ax;
 		else if (actionInputName == "s2ay")
-			value = &dsq->user.control.s2ay;
+			k = &as.joycfg.s2ay;
+		used = k && int(*k) >= 0;
 	}
+
+	if(used)
+		bg2->alphaMod = 0.3f;
+	else
+		bg2->alphaMod = 0;
 
 	if (waitingForInput == this)
 	{
 		std::string s;
+		s.reserve(6);
 		s = "_";
-		for (int i = 0; i < int(dsq->game->getTimer(5)); i++)
+		for (int i = 0; i < int(game->getTimer(5)); i++)
 		{
 			s += "_";
 		}
@@ -614,15 +602,22 @@ void AquariaKeyConfig::onUpdate(float dt)
 	}
 	else
 	{
-		if (k)
+		if (inputSetType != INPUTSET_OTHER)
 		{
-			keyConfigFont->setText(getInputCodeToString(*k));
+			keyConfigFont->setText(getInputCodeToUserString(*k, as.joystickID));
 		}
-		else if (value)
+		else
 		{
-			std::ostringstream os;
-			os << (*value);
-			keyConfigFont->setText(os.str());
+			if(*k >= 0)
+			{
+				std::ostringstream os;
+				os << (*k);
+				keyConfigFont->setText(os.str());
+			}
+			else
+			{
+				keyConfigFont->setText(getInputCodeToUserString(0, as.joystickID));
+			}
 		}
 	}
 
@@ -632,38 +627,73 @@ void AquariaKeyConfig::onUpdate(float dt)
 		{
 		case INPUTSET_OTHER:
 		{
-			if (value)
+			if (k)
 			{
+				int ac = -1;
+				bool clear = false;
+				bool abort = false;
 				for (int i = 0; i < KEY_MAXARRAY; i++)
 				{
 					if (core->getKeyState(i))
 					{
-						if (i != KEY_ESCAPE)
+						if(i == KEY_BACKSPACE || i == KEY_DELETE)
+							clear = true;
+						else if (i == KEY_ESCAPE)
+							abort = true;
+						else
 						{
-							/*
-							if (i == KEY_DELETE || i == KEY_BACKSPACE)
-							else
+							switch(i)
 							{
-							*/
-							/*
-							if (i == KEY_0 || i == KEY_1 || i == KEY_2 || i == KEY_3 || i == KEY_4 || i == KEY_5 || i == KEY_6 || i == KEY_7
-								|| i == KEY_8 || i == KEY_9)
-							*/
-							if (i >= KEY_0 && i <= KEY_9)
-							{
-								*value = i-KEY_0;
+							#define K(k) case k: ac = i-k; break
+								K(KEY_0);
+								K(KEY_1);
+								K(KEY_2);
+								K(KEY_3);
+								K(KEY_4);
+								K(KEY_5);
+								K(KEY_6);
+								K(KEY_7);
+								K(KEY_8);
+								K(KEY_9);
+							#undef K
 							}
 						}
 
-						while (dsq->game->getKeyState(i))
+						while (game->getKeyState(i))
 						{
-							dsq->main(0.1);
+							dsq->run(0.1f, true);
 						}
+					}
+				}
 
-						toggleEnterKey(0);
-						waitingForInput = 0;
-						AquariaGuiElement::canDirMoveGlobal = true;
-						break;
+				if(ac < 0)
+				{
+					Joystick *j = core->getJoystick(as.joystickID);
+					if(j)
+						for(int i = 0; i < MAX_JOYSTICK_AXIS; ++i)
+						{
+							float ax = j->getAxisUncalibrated(i);
+							if(fabsf(ax) > JOY_AXIS_THRESHOLD)
+							{
+								ac = i;
+								while (fabsf(j->getAxisUncalibrated(i)) > JOY_AXIS_THRESHOLD)
+									dsq->run(0.1f, true);
+								break;
+							}
+						}
+				}
+
+				if(ac >= 0 || abort || clear)
+				{
+					toggleEnterKey(0);
+					waitingForInput = 0;
+					AquariaGuiElement::canDirMoveGlobal = true;
+					if(!abort)
+					{
+						if(clear || ac == *k)
+							*k = -1;
+						else
+							*k = ac;
 					}
 				}
 			}
@@ -675,7 +705,9 @@ void AquariaKeyConfig::onUpdate(float dt)
 			{
 				if (core->getKeyState(i))
 				{
-					if (i != KEY_ESCAPE)
+					if(*k == i) // clear key if pressed again
+						*k = 0;
+					else if(i != KEY_ESCAPE)
 					{
 						if (i == KEY_DELETE || i == KEY_BACKSPACE)
 							*k = 0;
@@ -683,9 +715,9 @@ void AquariaKeyConfig::onUpdate(float dt)
 							*k = i;
 					}
 
-					while (dsq->game->getKeyState(i))
+					while (game->getKeyState(i))
 					{
-						dsq->main(0.1);
+						dsq->run(0.1f, true);
 					}
 
 					toggleEnterKey(0);
@@ -697,42 +729,152 @@ void AquariaKeyConfig::onUpdate(float dt)
 		}
 		break;
 		case INPUTSET_MOUSE:
-		break;
-		case INPUTSET_JOY:
 		{
+			bool clear = false;
+			bool abort = false;
+			unsigned int ac = 0;
 			if (core->getKeyState(KEY_DELETE) || core->getKeyState(KEY_BACKSPACE))
 			{
-				*k = 0;
+				while(core->getKeyState(KEY_DELETE) || core->getKeyState(KEY_BACKSPACE))
+					dsq->run(0.1f, true);
+				clear = true;
+			}
+			else if(core->getKeyState(KEY_ESCAPE))
+			{
+				while(core->getKeyState(KEY_ESCAPE))
+					dsq->run(0.1f, true);
+				abort = true;
+			}
+			else if(dsq->mouse.rawButtonMask)
+			{
+				MouseButtons btns = dsq->mouse.buttons;
+
+				while(dsq->mouse.rawButtonMask)
+					dsq->run(0.1f, true);
+
+				if(btns.left)
+					ac = MOUSE_BUTTON_LEFT;
+				else if(btns.right)
+					ac = MOUSE_BUTTON_RIGHT;
+				else if(btns.middle)
+					ac = MOUSE_BUTTON_MIDDLE;
+				else
+				{
+					for(unsigned i = 0; i < mouseExtraButtons; ++i)
+						if(btns.extra[i])
+						{
+							ac = MOUSE_BUTTON_EXTRA_START+i;
+							break;
+						}
+				}
+			}
+
+			if(ac || clear || abort)
+			{
 				toggleEnterKey(0);
 				waitingForInput = 0;
 				AquariaGuiElement::canDirMoveGlobal = true;
-			}
-			else
-			{
-				for (int i = ActionMapper::JOY1_BUTTON_0; i <= ActionMapper::JOY1_BUTTON_16; i++)
-				{
-					if (dsq->game->getKeyState(i))
-					{
-						*k = i;
-						
-						while (dsq->game->getKeyState(i))
-						{
-							dsq->main(0.1);
-						}
 
-						toggleEnterKey(0);
-						waitingForInput = 0;
-						AquariaGuiElement::canDirMoveGlobal = true;
-						break;
-					}
+				if(!abort)
+				{
+					if(clear || *k == ac) // clear key if pressed again
+						*k = 0;
+					else
+						*k = ac;
 				}
 			}
 		}
 		break;
+		case INPUTSET_JOY:
+		{
+			size_t ac = 0;
+			bool clear = false;
+			bool abort = false;
+			if (core->getKeyState(KEY_DELETE) || core->getKeyState(KEY_BACKSPACE))
+			{
+				clear = true;
+			}
+			else if(core->getKeyState(KEY_ESCAPE))
+			{
+				abort = true;
+				while(core->getKeyState(KEY_ESCAPE))
+					dsq->run(0.1f, true);
+			}
+			else
+			{
+				Joystick *j = core->getJoystick(as.joystickID);
+				if(j)
+				{
+					for (size_t i = 0; i < MAX_JOYSTICK_BTN; i++)
+						if (j->getButton(i))
+						{
+							ac = JOY_BUTTON_0 + i;
+							while (j->getButton(i))
+								dsq->run(0.1f, true); // skip recursion check; we're already in the menu so this would always warn
+							break;
+						}
+
+					if(!ac)
+						for(size_t i = 0; i < MAX_JOYSTICK_AXIS; ++i)
+						{
+							float ax = j->getAxisUncalibrated(i);
+							if(fabsf(ax) > JOY_AXIS_THRESHOLD)
+							{
+								ac = (ax < 0.0f ? JOY_AXIS_0_NEG : JOY_AXIS_0_POS) + i;
+								while (fabsf(j->getAxisUncalibrated(i)) > JOY_AXIS_THRESHOLD)
+									dsq->run(0.1f, true);
+								break;
+							}
+						}
+
+					if(!ac)
+						for(size_t i = 0; i < MAX_JOYSTICK_HATS; ++i)
+						{
+							JoyHatDirection hd = j->getHat(i);
+							if(hd != JOY_HAT_DIR_CENTERED)
+							{
+								ac = joyHatToActionButton(i, hd);
+								while (j->getHat(i) != JOY_HAT_DIR_CENTERED)
+									dsq->run(0.1f, true);
+								break;
+							}
+						}
+				}
+				else
+					clear = true;
+			}
+
+			if(abort || ac || clear)
+			{
+				toggleEnterKey(0);
+				waitingForInput = 0;
+				AquariaGuiElement::canDirMoveGlobal = true;
+
+				if(rejectJoyAxis && (
+					(ac >= JOY_AXIS_0_POS && ac < JOY_AXIS_END_POS)
+				 || (ac >= JOY_AXIS_0_NEG && ac < JOY_AXIS_END_NEG)
+				))
+				{
+					dsq->sound->playSfx("denied");
+					abort = true;
+				}
+
+				if(!abort)
+				{
+					if(clear || *k == ac) // clear key if pressed again
+						*k = 0;
+					else
+						*k = ac;
+				}
+			}
+		}
+		break;
+		case INPUTSET_NONE:
+		break;
 		}
 	}
 
-	Vector p = getWorldPosition();
+	Vector p = bg->getWorldPosition();
 
 	if (waitingForInput == this || (!waitingForInput &&
 		(core->mouse.position.x > (p.x - bg->getWidth()*0.5f) && core->mouse.position.x < (p.x + bg->getWidth()*0.5f)
@@ -745,32 +887,25 @@ void AquariaKeyConfig::onUpdate(float dt)
 		}
 
 
-		if (!keyDown && (core->mouse.buttons.left || core->mouse.buttons.right/* || core->getKeyState(KEY_RETURN)*/))
+		if (!keyDown && (core->mouse.buttons.left || core->mouse.buttons.right))
 		{
 			keyDown = true;
 		}
-		else if (keyDown && (!core->mouse.buttons.left && !core->mouse.buttons.right /*&& !core->getKeyState(KEY_RETURN)*/))
+		else if (keyDown && (!core->mouse.buttons.left && !core->mouse.buttons.right ))
 		{
 			keyDown = false;
 
-			if (!locked)
+			if (waitingForInput == this)
 			{
-				if (waitingForInput == this)
-				{
-					waitingForInput = 0;
-					toggleEnterKey(0);
-					AquariaGuiElement::canDirMoveGlobal = true;
-				}
-				else
-				{
-					waitingForInput = this;
-					toggleEnterKey(1);
-					AquariaGuiElement::canDirMoveGlobal = false;
-				}
+				waitingForInput = 0;
+				toggleEnterKey(0);
+				AquariaGuiElement::canDirMoveGlobal = true;
 			}
 			else
 			{
-				dsq->sound->playSfx("denied");
+				waitingForInput = this;
+				toggleEnterKey(1);
+				AquariaGuiElement::canDirMoveGlobal = false;
 			}
 		}
 	}
@@ -783,44 +918,48 @@ void AquariaKeyConfig::onUpdate(float dt)
 	inLoop = false;
 }
 
+void AquariaKeyConfig::setActionSetIndex(size_t idx)
+{
+	actionSetIndex = idx;
+}
+
+void AquariaKeyConfig::setRejectJoyAxis(bool b)
+{
+	rejectJoyAxis = b;
+}
+
 AquariaMenuItem::AquariaMenuItem() : Quad(), ActionMapper(), AquariaGuiElement()
 {
 	quad = glow = 0;
-	choice = -1;
-	ability = 0;
-	xmlItem = 0;
 	int sz = 20;
 
 	shareAlpha = 0;
 
 	font = 0;
 
-	font = new BitmapText(&dsq->font);
+	font = new BitmapText(dsq->font);
 	font->setFontSize(sz);
 	font->position = Vector(0, -sz/2, 0);
 	addChild(font, PM_POINTER, RBP_ON);
 
-	glowFont = new BitmapText(&dsq->font);
+	glowFont = new BitmapText(dsq->font);
 	glowFont->setFontSize(sz);
 	glowFont->position = Vector(0, -sz/2, 0);
 	glowFont->setBlendType(BLEND_ADD);
 	glowFont->alpha = 0;
-	//glowFont->scale.interpolateTo(Vector(1.1,1.1), 0.5, -1, 1, 1);
+
 	addChild(glowFont, PM_POINTER, RBP_OFF);
 
-	//setTexture("bubble");
-	//this->shareAlphaWithChildren = true;
+
+
 	width = 0;
 	height = 0;
 	highlighted = false;
-	/*
-	width = 256;
-	height = 64;
-	*/
+
 	cull = false;
 	followCamera = 1;
-	addAction(MakeFunctionEvent(AquariaMenuItem, onClick), ActionMapper::MOUSE_BUTTON_LEFT, 0);
-	addAction(MakeFunctionEvent(AquariaMenuItem, onClick), ActionMapper::MOUSE_BUTTON_RIGHT, 0);
+	addAction(MakeFunctionEvent(AquariaMenuItem, onClick), MOUSE_BUTTON_LEFT, 0);
+	addAction(MakeFunctionEvent(AquariaMenuItem, onClick), MOUSE_BUTTON_RIGHT, 0);
 
 	renderQuad = false;
 }
@@ -877,9 +1016,9 @@ void AquariaMenuItem::useGlow(const std::string &tex, int w, int h)
 
 void AquariaMenuItem::onClick()
 {
-	if (hasInput() && highlighted && dsq->menuSelectDelay == 0)
+	if (hasInput() && highlighted && game->getInGameMenu()->menuSelectDelay == 0)
 	{
-		dsq->menuSelectDelay = MENUSELECTDELAY;
+		game->getInGameMenu()->menuSelectDelay = MENUSELECTDELAY;
 
 		if (!useSfx.empty())
 			dsq->sound->playSfx(useSfx);
@@ -887,10 +1026,6 @@ void AquariaMenuItem::onClick()
 			dsq->playMenuSelectSfx();
 
 		event.call();
-		
-		//glowFont->scale.interpolateTo(Vector(4,4), 0.5, 1, 1);
-		//glowFont->alpha.interpolateTo(0, 0.5);
-		//scale.interpolateTo(Vector(4, 4), 3);
 	}
 }
 
@@ -899,7 +1034,7 @@ void AquariaMenuItem::setLabel(const std::string &label)
 	font->setText(label);
 	glowFont->setText(label);
 }
- 
+
 void AquariaMenuItem::toggleHighlight(bool state)
 {
 	highlighted = state;
@@ -907,26 +1042,27 @@ void AquariaMenuItem::toggleHighlight(bool state)
 	{
 		if (glow)
 		{
-			glow->alpha.interpolateTo(0.3, 0.2);
+			glow->alpha.interpolateTo(0.3f, 0.2f);
 		}
 		else
 		{
-			glowFont->alpha.interpolateTo(0.3, 0.2);
+			glowFont->alpha.interpolateTo(0.3f, 0.2f);
 		}
-		//scale.interpolateTo(Vector(1.1, 1.1), 0.2);
+
 	}
 	else
 	{
 		if (glow)
-			glow->alpha.interpolateTo(0, 0.2);
+			glow->alpha.interpolateTo(0, 0.2f);
 		else
-			glowFont->alpha.interpolateTo(0, 0.2);
+			glowFont->alpha.interpolateTo(0, 0.2f);
 	}
-		//scale.interpolateTo(Vector(1,1), 0.2);
+
+	onToggleHighlight(highlighted);
 }
 
 void AquariaMenuItem::onUpdate(float dt)
-{	
+{
 	AquariaGuiElement::updateMovement(dt);
 
 	if (font)
@@ -951,16 +1087,13 @@ void AquariaMenuItem::onUpdate(float dt)
 		quad->alpha.x = alpha.x;
 	}
 
-	/*
-	font->position = this->position;
-	font->alpha = this->alpha;
-	*/
+
 	if (hasInput())
 	{
 		if (alpha.x == 1)
 		{
 			bool on = true;
-			
+
 
 			if (isCursorInMenuItem())
 			{
@@ -969,9 +1102,9 @@ void AquariaMenuItem::onUpdate(float dt)
 			}
 			else
 				on = false;
-			
+
 			if (!on && highlighted)
-				toggleHighlight(false);	
+				toggleHighlight(false);
 		}
 		else
 		{
@@ -1006,4 +1139,80 @@ bool AquariaMenuItem::isCursorInMenuItem()
 		}
 	}
 	return false;
+}
+
+
+AquariaButton::AquariaButton(const std::string texbase, TTFFont *font)
+: activeColor(1,1,1), activeAlpha(0.5f)
+, inactiveColor(0,0,0), inactiveAlpha(0.5f)
+, buttonlabel(new TTFText(font))
+, _texbase(texbase), pressed(0), lastpressed(0)
+{
+	useQuad(texbase + "-button-up");
+	addChild(buttonlabel, PM_POINTER);
+	buttonlabel->setAlign(ALIGN_CENTER);
+	buttonlabel->position = Vector(0, 3);
+}
+
+void AquariaButton::goUp()
+{
+	quad->setTexture(_texbase + "-button-up");
+	buttonlabel->position = Vector(0, 3);
+}
+
+void AquariaButton::goDown()
+{
+	quad->setTexture(_texbase + "-button-down");
+	buttonlabel->position = Vector(0, 7);
+}
+
+void AquariaButton::action(int actionID, int state, int source, InputDevice device)
+{
+	if(actionID == ACTION_PRIMARY)
+	{
+		if(state)
+			pressed |= 1;
+		else
+			pressed &= ~1;
+	}
+	else if(actionID == ACTION_SECONDARY)
+	{
+		if(state)
+			pressed |= 2;
+		else
+			pressed &= ~2;
+	}
+}
+
+void AquariaButton::onUpdate(float dt)
+{
+	AquariaMenuItem::onUpdate(dt);
+
+	/*if(pressed != lastpressed)
+	{
+		if(pressed)
+			goDown();
+		else
+			goUp();
+		lastpressed = pressed;
+	}*/
+}
+
+void AquariaButton::onToggleHighlight(bool on)
+{
+	if(on)
+	{
+		quad->color.interpolateTo(activeColor, 0.1f);
+		quad->alpha.interpolateTo(activeAlpha, 0.1f);
+	}
+	else
+	{
+		quad->color.interpolateTo(inactiveColor, 0.1f);
+		quad->alpha.interpolateTo(inactiveAlpha, 0.1f);
+	}
+}
+
+void AquariaButton::setButtonLabel(const std::string& s)
+{
+	buttonlabel->setText(s);
 }

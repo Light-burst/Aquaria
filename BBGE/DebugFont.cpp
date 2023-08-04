@@ -19,6 +19,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "DebugFont.h"
+#include "RenderBase.h"
+#include "Core.h"
 
 DebugFont::DebugFont(int initSz, const std::string &initText)
 {
@@ -48,17 +50,17 @@ void DebugFont::setFontSize(float sz)
 	fontDrawSize = sz;
 }
 
-float DebugFont::getHeight()
+float DebugFont::getHeight() const
 {
 	return fontDrawSize * lines.size() * 1.5f; // vspc in render()
 }
 
-float DebugFont::getLineHeight()
+float DebugFont::getLineHeight() const
 {
 	return fontDrawSize * 1.5f; // vspc in render()
 }
 
-float DebugFont::getStringWidth(const std::string& text)
+float DebugFont::getStringWidth(const std::string& text) const
 {
 	int maxchars = 0;
 	int c = 0;
@@ -76,7 +78,7 @@ float DebugFont::getStringWidth(const std::string& text)
 	return fontDrawSize * maxchars * (1.4f * 0.75f);
 }
 
-float DebugFont::getActualWidth()
+float DebugFont::getActualWidth() const
 {
 	return maxW * (1.4f * 0.75f); // numbers taken from onRender()
 }
@@ -90,7 +92,7 @@ void DebugFont::formatText()
 	int lastSpace = -1;
 	float currentWidth = 0;
 	maxW = 0;
-	for (int i = 0; i < text.size(); i++)
+	for (size_t i = 0; i < text.size(); i++)
 	{
 		currentWidth += fontDrawSize;
 
@@ -128,14 +130,13 @@ void DebugFont::setText(const std::string &text)
 	formatText();
 }
 
-void DebugFont::onRender()
+void DebugFont::onRender(const RenderState& rs) const
 {
 	const float vspc = 1.5;
 
-#ifdef BBGE_BUILD_OPENGL
-	for (int i = 0; i < lines.size(); i++)
+	for (size_t i = 0; i < lines.size(); i++)
 	{
-		//float width = (lines[i].size()-1) * fontDrawSize * 1.4f * 0.75f;
+
 		float width = (lines[i].size()) * fontDrawSize * 1.4f * 0.75f;
 		if (align == ALIGN_CENTER)
 		{
@@ -152,7 +153,6 @@ void DebugFont::onRender()
 			glTranslatef(width*0.5f, 0, 0);
 		}
 	}
-#endif
 }
 
 void DebugFont::setAlign(Align align)
@@ -163,8 +163,16 @@ void DebugFont::setAlign(Align align)
 
 #include "../BBGE/Quad.h"
 
-DebugButton::DebugButton(int buttonID, DebugButtonReceiver *receiver, int bgWidth, int fsize, bool quitMain)
- : RenderObject(), label(0), highlight(0), quitMain(quitMain), receiver(receiver), buttonID(buttonID)
+DebugButton::DebugButton(int buttonID, DebugButtonReceiver *receiver, int bgWidth, int fsize)
+	: RenderObject()
+	, label(0)
+	, buttonID(buttonID)
+	, activeAlpha(0.5f)
+	, activeColor(1,1,1)
+	, inactiveAlpha(0.5f)
+	, inactiveColor(0,0,0)
+	, highlight(0)
+	, receiver(receiver)
 {
 	if (bgWidth == 0)
 		bgWidth = 150;
@@ -175,7 +183,8 @@ DebugButton::DebugButton(int buttonID, DebugButtonReceiver *receiver, int bgWidt
 	highlight = new Quad();
 	highlight->setWidthHeight(szw, fsize);
 	highlight->position = Vector(szw*0.5f, 0);
-	highlight->alpha = 0.5;
+	highlight->alpha = inactiveAlpha;
+	highlight->color = inactiveColor;
 	addChild(highlight, PM_POINTER);
 
 	label = new DebugFont(float(fsize)/3.0f, "DebugButton");
@@ -199,7 +208,8 @@ void DebugButton::onUpdate(float dt)
 
 	if (highlight->isCoordinateInsideWorld(core->mouse.position) && ((!md) || (md && !core->mouse.buttons.left)))
 	{
-		highlight->color.interpolateTo(Vector(1, 1, 1), 0.1);
+		highlight->color.interpolateTo(activeColor, 0.1f);
+		highlight->alpha.interpolateTo(activeAlpha, 0.1f);
 
 		if (core->mouse.buttons.left && !md)
 			md = true;
@@ -211,8 +221,6 @@ void DebugButton::onUpdate(float dt)
 
 		if (doit)
 		{
-			if (quitMain)
-				core->quitNestedMain();
 			event.call();
 			if (receiver)
 				receiver->buttonPress(this);
@@ -224,7 +232,8 @@ void DebugButton::onUpdate(float dt)
 		{
 			md = false;
 		}
-		highlight->color.interpolateTo(Vector(0,0,0), 0.1);
+		highlight->color.interpolateTo(inactiveColor, 0.1f);
+		highlight->alpha.interpolateTo(inactiveAlpha, 0.1f);
 	}
 
 

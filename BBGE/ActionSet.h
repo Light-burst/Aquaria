@@ -27,26 +27,53 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "ActionInput.h"
 
+typedef std::vector<ActionInput> ActionInputSet;
+
 class ActionMapper;
 class Event;
+
+const int ACTIONSET_REASSIGN_JOYSTICK = -2;
+
+struct JoystickConfig
+{
+	JoystickConfig();
+	unsigned int s1ax, s1ay, s2ax, s2ay;
+	float s1dead, s2dead;
+};
 
 class ActionSet
 {
 public:
-	void importAction(ActionMapper *mapper, const std::string &name, Event *event, int state);
-	void importAction(ActionMapper *mapper, const std::string &name, int actionID);
+	ActionSet();
+
+	// import this ActionSet into ActionMapper
+	void importAction(ActionMapper *mapper, const std::string &name, Event *event, int state) const;
+	void importAction(ActionMapper *mapper, const std::string &name, int actionID, int sourceID) const;
 	void clearActions();
+	int assignJoystickByName(bool force); // -1 if no such joystick found
+	void assignJoystickIdx(int idx, bool updateValues);
+
+	// note: this only ENABLES joysticks if they are needed, but never disables any
+	void updateJoystick();
 
 	ActionInput *addActionInput(const std::string &name);
-
-	//void loadAction(const std::string &name, int inputCode, InputSetType set);
-	//void loadAction(const std::string &name, const std::vector<int> &inputCodes, InputSetType set=INPUTSET_GENERAL);
-
 	ActionInput *getActionInputByName(const std::string &name);
 
+	InputDevice inputMode;
+	size_t joystickID; // >= 0: use that, -1 = no joystick, or ACTIONSET_REASSIGN_JOYSTICK
+
+	// --- Saved in config ---
 	ActionInputSet inputSet;
-	
-	std::string insertInputIntoString(const std::string &string);
+	JoystickConfig joycfg;
+	std::string joystickName;
+	std::string joystickGUID;
+	std::string name;
+	bool enabled;
+	// -----------------------
+
+	//std::string insertInputIntoString(const std::string &string);
+private:
+	int _whichJoystickForName(); // -1 if no such joystick found
 };
 
 #endif

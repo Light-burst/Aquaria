@@ -86,6 +86,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 // #define SISS_VERIFY
 
+
+#ifdef SISS_VERIFY
+#  include <sstream>
+#endif
+
 /*************************************************************************/
 /*************************** Class definition ****************************/
 /*************************************************************************/
@@ -103,7 +108,7 @@ class SimpleIStringStream {
 		/* Take over the passed-in string buffer, which must have been
 		 * allocated with new[].  The buffer will be deleted on object
 		 * destruction. */
-		TAKE_OVER,
+		TAKE_OVER
 	};
 
 	/*-------------------------------------------------------------------*/
@@ -175,8 +180,8 @@ class SimpleIStringStream {
 	/*------------------------------*/
 
 	/**
-	 * operator bool:  Evaluate the stream as a boolean.  Returns false if
-	 * an error has occurred, true otherwise.  (This allows the stream to
+	 * operator void*:  Evaluate the stream as a boolean.  Returns NULL if
+	 * an error has occurred, this otherwise.  (This allows the stream to
 	 * be used in a while loop like "while (stream >> var)", in the same
 	 * way as ordinary std::istringstream objects.)
 	 *
@@ -185,7 +190,7 @@ class SimpleIStringStream {
 	 * [Return value]
 	 *     False if an error has occurred, else true
 	 */
-	inline operator bool() const;
+	inline operator void*() const;
 
 	/**
 	 * operator>>:  Extract a value from a stream.  String extraction skips
@@ -227,7 +232,7 @@ class SimpleIStringStream {
 	/* Is the given character a whitespace character? */
 	inline bool my_isspace(char c) const {
 		return c==' ' || c=='\t' || c=='\r' || c=='\n' || c=='\v';
-	};
+	}
 
 	/* Skip over leading whitespace.  Assumes "position" is valid. */
 	inline void skip_spaces() {
@@ -419,7 +424,7 @@ inline SimpleIStringStream &SimpleIStringStream::operator=(
 
 /*-----------------------------------------------------------------------*/
 
-inline SimpleIStringStream::operator bool() const
+inline SimpleIStringStream::operator void*() const
 {
 #ifdef SISS_VERIFY
 	if (!error != bool(std_is)) {
@@ -432,7 +437,7 @@ inline SimpleIStringStream::operator bool() const
 		         + os_offset.str() + ")");
 	}
 #endif
-	return !error;
+	return error ? NULL : (void*)this;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -467,7 +472,7 @@ inline SimpleIStringStream &SimpleIStringStream::operator>>(short &target)
 			target = 0;
 		} else {
 			skip_spaces();
-			target = (short)strtol(position, &position, 0);
+			target = static_cast<short>(strtol(position, &position, 0));
 			error = (position == old_position || *position == 0);
 		}
 		VERIFY(short, 0);
@@ -486,7 +491,7 @@ inline SimpleIStringStream &SimpleIStringStream::operator>>(unsigned short &targ
 			target = 0;
 		} else {
 			skip_spaces();
-			target = (unsigned short)strtoul(position, &position, 0);
+			target = static_cast<unsigned short>(strtoul(position, &position, 0));
 			error = (position == old_position || *position == 0);
 		}
 		VERIFY(unsigned short, 0);
@@ -507,7 +512,7 @@ inline SimpleIStringStream &SimpleIStringStream::operator>>(int &target)
 			target = 0;
 		} else {
 			skip_spaces();
-			target = (int)strtol(position, &position, 0);
+			target = static_cast<int>(strtol(position, &position, 0));
 			error = (position == old_position || *position == 0);
 		}
 		VERIFY(int, 0);
@@ -526,7 +531,7 @@ inline SimpleIStringStream &SimpleIStringStream::operator>>(unsigned int &target
 			target = 0;
 		} else {
 			skip_spaces();
-			target = (unsigned int)strtoul(position, &position, 0);
+			target = static_cast<unsigned int>(strtoul(position, &position, 0));
 			error = (position == old_position || *position == 0);
 		}
 		VERIFY(unsigned int, 0);
@@ -678,7 +683,7 @@ inline SimpleIStringStream &SimpleIStringStream::operator>>(unsigned char &targe
 		if (error) {
 			target = 0;
 		} else {
-			target = *position;
+			target = static_cast<unsigned char>(*position);
 			if (*position) {
 				position++;
 				error = (*position == 0);
@@ -714,7 +719,7 @@ inline SimpleIStringStream &SimpleIStringStream::operator>>(std::string &target)
 				while (*position && !my_isspace(*position)) {
 					position++;
 				}
-				target.assign(start, position - start);
+				target.assign(start, static_cast<size_t>(position - start));
 				error = (*position == 0);
 			}
 		}

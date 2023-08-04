@@ -25,9 +25,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "../BBGE/MathFunctions.h"
 
+typedef std::map<std::string, ShotData> ShotBank;
+static ShotBank shotBank;
+
 Shot::Shots Shot::shots;
 Shot::Shots Shot::deleteShots;
-Shot::ShotBank Shot::shotBank;
 unsigned int Shot::shotsIter = 0;
 
 std::string Shot::shotBankPath = "";
@@ -48,7 +50,7 @@ ShotData::ShotData()
 	segScale = Vector(1,1);
 	numSegs = 0;
 	segDist = 16;
-	blendType = RenderObject::BLEND_DEFAULT;
+	blendType = BLEND_DEFAULT;
 	collideRadius = 8;
 	damageType = DT_ENEMY_ENERGYBLAST;
 	lifeTime = 8;
@@ -65,6 +67,7 @@ ShotData::ShotData()
 	rotateToVel = 1;
 	waveSpeed = waveMag = 0;
 	ignoreShield = false;
+	alwaysMaxSpeed = true;
 }
 
 template <typename T> void readEquals2(T &in)
@@ -99,7 +102,7 @@ void ShotData::bankLoad(const std::string &file, const std::string &path)
 	stringToLower(this->name);
 
 	debugLog(usef);
-	char *data = readFile(core->adjustFilenameCase(usef).c_str());
+	char *data = readFile(adjustFilenameCase(usef).c_str());
 	if (!data)
 		return;
 	SimpleIStringStream inf(data, SimpleIStringStream::TAKE_OVER);
@@ -175,7 +178,7 @@ void ShotData::bankLoad(const std::string &file, const std::string &path)
 			std::string bt;
 			inf >> bt;
 			if (bt == "BLEND_ADD")
-				blendType = RenderObject::BLEND_ADD;
+				blendType = BLEND_ADD;
 		}
 		else if (token == "Damage")
 		{
@@ -244,14 +247,20 @@ void ShotData::bankLoad(const std::string &file, const std::string &path)
 			inf >> ignoreShield;
 		else if (token == "DieOnKill")
 			inf >> dieOnKill;
+		else if (token == "AlwaysMaxSpeed")
+			inf >> alwaysMaxSpeed;
 		else
 		{
 			// if having weirdness, check for these
 			errorLog(file + " : unidentified token: " + token);
 		}
-
-
 	}
+}
+
+void Shot::init()
+{
+	if(script)
+		script->call("init", this);
 }
 
 void Shot::fire(bool playSfx)
@@ -275,7 +284,7 @@ void Shot::fire(bool playSfx)
 }
 
 
-Shot::Shot() : Quad(), Segmented(0,0)
+Shot::Shot() : CollideQuad(), Segmented(0,0)
 {
 	addType(SCO_SHOT);
 	extraDamage= 0;
@@ -292,9 +301,10 @@ Shot::Shot() : Quad(), Segmented(0,0)
 	enqueuedForDelete = false;
 	shotIdx = shots.size();
 	shots.push_back(this);
+	updateScript = false;
 }
 
-void loadShotCallback(const std::string &filename, intptr_t param)
+void loadShotCallback(const std::string &filename, void *param)
 {
 	ShotData shotData;
 
@@ -304,7 +314,7 @@ void loadShotCallback(const std::string &filename, intptr_t param)
 	stringToLower(ident);
 	debugLog(ident);
 	shotData.bankLoad(ident, Shot::shotBankPath);
-	Shot::shotBank[ident] = shotData;
+	shotBank[ident] = shotData;
 }
 
 void Shot::loadShotBank(const std::string &bank1, const std::string &bank2)
@@ -312,12 +322,12 @@ void Shot::loadShotBank(const std::string &bank1, const std::string &bank2)
 	clearShotBank();
 
 	shotBankPath = bank1;
-	forEachFile(bank1, ".txt", loadShotCallback, 0);
+	forEachFile(bank1, ".txt", loadShotCallback);
 
 	if (!bank2.empty())
 	{
 		shotBankPath = bank2;
-		forEachFile(bank2, ".txt", loadShotCallback, 0);
+		forEachFile(bank2, ".txt", loadShotCallback);
 	}
 
 	shotBankPath = "";
@@ -345,63 +355,58 @@ void Shot::loadBankShot(const std::string &ident, Shot *setter)
 	{
 		std::string id = ident;
 		stringToLower(id);
-		//setter->shotData = &shotBank[id];
-		setter->applyShotData(&shotBank[id]);
+
+		ShotBank::const_iterator it = shotBank.find(id);
+		if(it != shotBank.end())
+			setter->applyShotData(it->second);
 	}
 }
 
-void Shot::applyShotData(ShotData *shotData)
+void Shot::applyShotData(const ShotData& shotData)
 {
-	if (shotData)
+	this->shotData = &shotData;
+	this->setBlendType(shotData.blendType);
+	this->homingness = shotData.homing;
+	this->maxSpeed = shotData.maxSpeed;
+	this->setTexture(shotData.texture);
+	this->scale = shotData.scale;
+	this->lifeTime = shotData.lifeTime;
+	this->collideRadius = shotData.collideRadius;
+	this->renderQuad = !shotData.invisible;
+	this->gravity = shotData.gravity;
+	this->damageType = shotData.damageType;
+	this->checkDamageTarget = shotData.checkDamageTarget;
+	this->alwaysMaxSpeed = shotData.alwaysMaxSpeed;
+	if (!shotData.trailPrt.empty())
 	{
-		this->shotData = shotData;
-		this->setBlendType(shotData->blendType);
-		this->homingness = shotData->homing;
-		this->maxSpeed = shotData->maxSpeed;
-		this->setTexture(shotData->texture);
-		this->scale = shotData->scale;
-		this->lifeTime = shotData->lifeTime;
-		this->collideRadius = shotData->collideRadius;
-		this->renderQuad = !shotData->invisible;
-		this->gravity = shotData->gravity;
-		this->damageType = shotData->damageType;
-		this->checkDamageTarget = shotData->checkDamageTarget;
-		if (!shotData->trailPrt.empty())
-		{
-			setParticleEffect(shotData->trailPrt);
-		}
-
-		if (shotData->numSegs > 0)
-		{
-			segments.resize(shotData->numSegs);
-			for (int i = segments.size()-1; i >=0 ; i--)
-			{
-				Quad *flame = new Quad;
-				flame->setTexture(shotData->segTexture);
-				flame->scale = shotData->segScale - Vector(shotData->segTaper, shotData->segTaper)*(i);
-				flame->setBlendType(this->blendType);
-				flame->alpha = 0.5;
-				dsq->game->addRenderObject(flame, LR_PARTICLES);
-				segments[i] = flame;
-				segments[i]->position = position;
-			}
-
-			maxDist = shotData->segDist;
-			minDist = 0;
-
-			initSegments(position);
-		}
+		setParticleEffect(shotData.trailPrt);
 	}
-}
 
-void Shot::suicide()
-{
-	setLife(1);
-	setDecayRate(20);
-	velocity = 0;
-	fadeAlphaWithLife = true;
-	dead = true;
-	onHitWall();
+	if (shotData.numSegs > 0)
+	{
+		segments.resize(shotData.numSegs);
+		for (int i = segments.size()-1; i >=0 ; i--)
+		{
+			Quad *flame = new Quad;
+			flame->setTexture(shotData.segTexture);
+			flame->scale = shotData.segScale - Vector(shotData.segTaper, shotData.segTaper)*(i);
+			flame->setBlendType(this->getBlendType());
+			flame->alpha = 0.5;
+			game->addRenderObject(flame, LR_PARTICLES);
+			segments[i] = flame;
+			segments[i]->position = position;
+		}
+
+		maxDist = shotData.segDist;
+		minDist = 0;
+
+		initSegments(position);
+	}
+
+	std::string scriptname = "shot_" + shotData.name;
+	std::string file = ScriptInterface::MakeScriptFileName(scriptname, "shots");
+	script = dsq->scriptInterface.openScript(file, true);
+	updateScript = !!script;
 }
 
 void Shot::setParticleEffect(const std::string &particleEffect)
@@ -417,7 +422,7 @@ void Shot::setParticleEffect(const std::string &particleEffect)
 	if(!emitter)
 	{
 		emitter = new ParticleEffect;
-		dsq->game->addRenderObject(emitter, LR_PARTICLES);
+		game->addRenderObject(emitter, LR_PARTICLES);
 	}
 	emitter->load(particleEffect);
 	emitter->start();
@@ -425,7 +430,12 @@ void Shot::setParticleEffect(const std::string &particleEffect)
 
 void Shot::onEndOfLife()
 {
-	destroySegments(0.2);
+	if(script)
+	{
+		script->call("dieNormal", this);
+		closeScript();
+	}
+	destroySegments(0.2f);
 	dead = true;
 
 	if (emitter)
@@ -443,7 +453,6 @@ void Shot::onEndOfLife()
 
 void Shot::doHitEffects()
 {
-	BBGE_PROF(Shot_doHitEffects);
 	if (shotData)
 	{
 		if (!shotData->hitPrt.empty())
@@ -453,34 +462,47 @@ void Shot::doHitEffects()
 	}
 }
 
-void Shot::onHitWall()
+void Shot::suicide()
 {
-	BBGE_PROF(Shot_onHitWall);
-	doHitEffects();
-	updateSegments(position);
-	destroySegments(0.2);
+	setLife(1);
+	setDecayRate(20);
+	velocity = 0;
+	fadeAlphaWithLife = true;
+	dead = true;
+
+	destroySegments(0.2f);
 	if (emitter)
 	{
 		emitter->killParticleEffect();
 		emitter = 0;
 	}
+}
+
+bool Shot::onHitWall(bool reflect)
+{
+	doHitEffects();
+	updateSegments(position);
 
 	if (shotData)
 	{
 		if (!shotData->spawnEntity.empty())
 		{
-			dsq->game->createEntity(shotData->spawnEntity, 0, position, 0, false, "", ET_ENEMY, true);
-				//(shotData->spawnEntity, 0, position, 0, false, "");
+			game->createEntityTemp(shotData->spawnEntity.c_str(), position, true);
+
 			if (shotData->spawnEntity == "NatureFormFlowers")
 			{
-				dsq->game->registerSporeDrop(position, 0);
+				game->registerSporeDrop(position, 0);
 			}
 			else
 			{
-				dsq->game->registerSporeDrop(position, 2);
+				game->registerSporeDrop(position, 2);
 			}
 		}
 	}
+
+	bool doDefault = true;
+	return !script
+		|| (script->call("hitSurface", this, reflect, &doDefault) && !doDefault);
 }
 
 void Shot::killAllShots()
@@ -518,9 +540,6 @@ void Shot::reflectFromEntity(Entity *e)
 	{
 		firer = e;
 		target = oldFirer;
-		//int d = (int)dt;
-		//d += DT_AVATAR;oll
-		//damageType = DamageType(d);
 	}
 }
 
@@ -529,24 +548,20 @@ void Shot::targetDied(Entity *target)
 	int c = 0;
 	for (Shots::iterator i = shots.begin(); i != shots.end(); i++)
 	{
-		if ((*i)->target == target)
+		Shot *s = *i;
+		if (s->target == target)
 		{
 			debugLog("removing target from shot");
-			(*i)->target = 0;
+			if(s->script)
+				s->script->call("targetDied", s, target);
+			s->target = 0;
 		}
-		if ((*i)->firer == target)
+		if (s->firer == target)
 		{
-			(*i)->firer = 0;
+			s->firer = 0;
 		}
 		c++;
 	}
-
-
-	/*
-	std::ostringstream os;
-	os << "# of shots in list: " << c;
-	debugLog(os.str());
-	*/
 }
 
 bool Shot::isHitEnts() const
@@ -558,6 +573,17 @@ bool Shot::isHitEnts() const
 	return false;
 }
 
+bool Shot::canHit(Entity *e, Bone *b)
+{
+	// isHitEnts() is already checked on a much higher level
+	if(!script)
+		return true; // no script? always hit
+	bool hit = true;
+	if(!script->call("canShotHit", this, e, b, &hit))
+		return true; // script failed / doesn't have the function / returned nil? hit.
+	return hit; // let script decide
+}
+
 void Shot::hitEntity(Entity *e, Bone *b)
 {
 	if (!dead)
@@ -567,6 +593,9 @@ void Shot::hitEntity(Entity *e, Bone *b)
 
 		if (e)
 		{
+			if(!canHit(e, b))
+				return;
+
 			DamageData d;
 			d.attacker = firer;
 			d.bone = b;
@@ -585,13 +614,13 @@ void Shot::hitEntity(Entity *e, Bone *b)
 
 			if (damageType == DT_AVATAR_BITE)
 			{
-				//debugLog("Shot::hitEntity bittenEntities.push_back");
-				dsq->game->avatar->bittenEntities.push_back(e);
+
+				game->avatar->bittenEntities.push_back(e);
 			}
 
 			bool damaged = e->damage(d);
 
-			// doesn't have anything to do with effectTime
+
 			if (shotData)
 			{
 				if (!damaged && checkDamageTarget && !shotData->alwaysDoHitEffects)
@@ -609,28 +638,25 @@ void Shot::hitEntity(Entity *e, Bone *b)
 			{
 				firer->shotHitEntity(e, this, b);
 			}
-
-
-			//debugLog("Shot hit enemy: " + e->name);
-		}
-		else
-		{
-			//debugLog("Shot hit 0 enemy");
 		}
 
 		if (doEffects)
 			doHitEffects();
 
+		bool willDie = (!shotData || shotData->dieOnHit) && die;
+		if(script)
+			script->call("hitEntity", this, e, b);
+
 		target = 0;
 
-		if ((!shotData || shotData->dieOnHit) && die)
+		if (willDie)
 		{
 			lifeTime = 0;
 			fadeAlphaWithLife = true;
 			velocity = 0;
 			setLife(1);
 			setDecayRate(10);
-			destroySegments(0.1);
+			destroySegments(0.1f);
 			dead = true;
 			if (emitter)
 			{
@@ -639,8 +665,6 @@ void Shot::hitEntity(Entity *e, Bone *b)
 			}
 		}
 	}
-
-	//d.bone = c.bone;
 }
 
 void Shot::noSegs()
@@ -679,11 +703,7 @@ void Shot::setAimVector(const Vector &aim)
 	{
 		velocity.setLength2D(shotData->maxSpeed);
 	}
-	/*
-	std::ostringstream os;
-	os << "setting aim vector(" << aim.x << ", " << aim.y << ") to vel(" << velocity.x << ", " << velocity.y << ")";
-	debugLog(os.str());
-	*/
+
 }
 
 void Shot::setTarget(Entity *target)
@@ -701,16 +721,16 @@ bool Shot::isObstructed(float dt) const
 	if (shotData->wallHitRadius == 0)
 	{
 		TileVector t(position + velocity * dt);
-		if (dsq->game->isObstructed(t)
-			|| dsq->game->isObstructed(TileVector(t.x+1, t.y))
-			|| dsq->game->isObstructed(TileVector(t.x-1, t.y))
-			|| dsq->game->isObstructed(TileVector(t.x, t.y+1))
-			|| dsq->game->isObstructed(TileVector(t.x, t.y-1)))
+		if (game->isObstructed(t)
+			|| game->isObstructed(TileVector(t.x+1, t.y))
+			|| game->isObstructed(TileVector(t.x-1, t.y))
+			|| game->isObstructed(TileVector(t.x, t.y+1))
+			|| game->isObstructed(TileVector(t.x, t.y-1)))
 			return true;
 	}
 	else
 	{
-		if (dsq->game->collideCircleWithGrid(position, shotData->wallHitRadius))
+		if (game->collideCircleWithGrid(position, shotData->wallHitRadius))
 		{
 			return true;
 		}
@@ -721,8 +741,8 @@ bool Shot::isObstructed(float dt) const
 
 void Shot::onUpdate(float dt)
 {
-	if (dsq->game->isPaused()) return;
-	if (dsq->game->isWorldPaused()) return;
+	if (game->isPaused()) return;
+	if (game->isWorldPaused()) return;
 	if (!shotData) return;
 
 
@@ -733,30 +753,15 @@ void Shot::onUpdate(float dt)
 		else if (target->alpha == 0)
 			target = 0;
 	}
-	if (life >= 1.0f)
+	if (alwaysMaxSpeed && life >= 1.0f)
 	{
-		if (velocity.isZero())
-		{
-			//velocity = Vector(rand()%100-50, rand()%100-50);
-		}
-		else if (velocity.isLength2DIn(maxSpeed*0.75f))
+		if (!velocity.isZero() && velocity.isLength2DIn(maxSpeed*0.75f))
 		{
 			velocity.setLength2D(maxSpeed);
 		}
 	}
 
-	/*
-	if (!gravity.isZero())
-	{
-		velocity += shotData->gravity * dt;
-	}
-	*/
 
-	/*
-	std::ostringstream os;
-	os << "shotVel(" << velocity.x << ", " << velocity.y << ")";
-	debugLog(os.str());
-	*/
 
 	homingness += shotData->homingIncr*dt;
 	if (shotData->homingMax != 0 && homingness > shotData->homingMax)
@@ -779,7 +784,7 @@ void Shot::onUpdate(float dt)
 		add.setLength2D(shotData->rotIncr);
 		velocity += add * dt;
 	}
-	//emitter.update(dt);
+
 	if (emitter)
 	{
 		emitter->position = position + offset;
@@ -799,6 +804,9 @@ void Shot::onUpdate(float dt)
 	updateSegments(position);
 	if (!dead)
 	{
+		if(script && updateScript)
+			updateScript = script->call("update", this, dt);
+
 		if (lifeTime > 0)
 		{
 			lifeTime -= dt;
@@ -807,14 +815,14 @@ void Shot::onUpdate(float dt)
 				velocity = Vector(0,0);
 
 				setDecayRate(10);
-				destroySegments(0.1);
+				destroySegments(0.1f);
 				lifeTime = 0;
 				fadeAlphaWithLife = true;
 				setLife(1);
 				return;
 			}
 		}
-		//TileVector t(position);
+
 		Vector diff;
 		if (target)
 			diff = target->getTargetPoint(targetPt) - this->position;
@@ -827,36 +835,39 @@ void Shot::onUpdate(float dt)
 				{
 				case BOUNCE_REAL:
 				{
-					// Should have been checked in last onUpdate()
-					// If it is stuck now, it must have been fired from a bad position,
-					// the obstruction map changed, or it was a bouncing beast form shot,
-					// fired from avatar head - which may be inside a wall.
-					// In any of these cases, there is nowhere to bounce, so we let the shot die. -- FG
-					if (!isObstructed(0))
+					if(onHitWall(true))
 					{
-						if (!shotData->bounceSfx.empty())
+						// Should have been checked in last onUpdate()
+						// If it is stuck now, it must have been fired from a bad position,
+						// the obstruction map changed, or it was a bouncing beast form shot,
+						// fired from avatar head - which may be inside a wall.
+						// In any of these cases, there is nowhere to bounce, so we let the shot die. -- FG
+						if (!isObstructed(0))
 						{
-							dsq->playPositionalSfx(shotData->bounceSfx, position);
-							if(!shotData->bouncePrt.empty())
-								dsq->spawnParticleEffect(shotData->bouncePrt, position);
-						}
-						float len = velocity.getLength2D();
-						Vector I = velocity/len;
-						Vector N = dsq->game->getWallNormal(position);
+							if (!shotData->bounceSfx.empty())
+							{
+								dsq->playPositionalSfx(shotData->bounceSfx, position);
+								if(!shotData->bouncePrt.empty())
+									dsq->spawnParticleEffect(shotData->bouncePrt, position);
+							}
+							float len = velocity.getLength2D();
+							Vector I = velocity/len;
+							Vector N = game->getWallNormal(position);
 
-						if (!N.isZero())
-						{
-							//2*(-I dot N)*N + I
-							velocity = 2*(-I.dot(N))*N + I;
-							velocity *= len;
+							if (!N.isZero())
+							{
+
+								velocity = 2*(-I.dot(N))*N + I;
+								velocity *= len;
+							}
+							break;
 						}
-						break;
 					}
-					// fall through
 				}
 				default:
 				{
-					suicide();
+					if(onHitWall(false))
+						suicide();
 				}
 				break;
 				}

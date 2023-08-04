@@ -41,10 +41,10 @@ void StateObject::removeState()
 {
 	clearActions();
 	clearCreatedEvents();
-	//stateManager->getState(name)->eraseRenderObjects();
+
 }
 
-void StateObject::addRenderObject(RenderObject *renderObject, int layer)
+void StateObject::addRenderObject(RenderObject *renderObject, unsigned layer)
 {
 	stateManager->getState(name)->addRenderObject(renderObject, layer);
 }
@@ -52,10 +52,6 @@ void StateObject::addRenderObject(RenderObject *renderObject, int layer)
 void StateObject::removeRenderObject(RenderObject *renderObject)
 {
 	stateManager->getState(name)->removeRenderObject(renderObject);
-}
-
-void StateObject::action(int id, int state)
-{
 }
 
 void StateObject::update(float dt)
@@ -71,24 +67,19 @@ StateData::StateData()
 
 StateData::~StateData()
 {
-	/*
-	std::ostringstream os;
-	os << "removing " << renderObjects.size() << " render Objects";
-	MessageBox(0,os.str().c_str(),"",MB_OK);
-	*/
-	for (int i = 0; i < renderObjects.size(); i++)
+
+	for (size_t i = 0; i < renderObjects.size(); i++)
 	{
 		removeRenderObject (renderObjects[i]);
 		delete renderObjects[i];
 	}
 }
 
-void StateData::addRenderObject(RenderObject *renderObject, int layer)
+void StateData::addRenderObject(RenderObject* renderObject, unsigned layer)
 {
 	core->addRenderObject(renderObject, layer);
 	renderObjects.push_back (renderObject);
 	renderObject->setStateDataObject(this);
-	renderObject->layer = layer;
 }
 
 void StateData::removeRenderObject(RenderObject *renderObject)
@@ -114,12 +105,12 @@ void StateData::removeRenderObjectFromList(RenderObject *renderObject)
 }
 
 // assume this only happens on render state end
-void StateData::eraseRenderObjects() 
+void StateData::eraseRenderObjects()
 {
 	// why clear garbage here?
 	//core->clearGarbage();
 
-	for (int i = 0; i < renderObjects.size(); i++)
+	for (size_t i = 0; i < renderObjects.size(); i++)
 	{
 		RenderObject *r = renderObjects[i];
 		if (r && !r->isDead())
@@ -219,18 +210,15 @@ void StateManager::pushState(const std::string &s)
 			s->stateObject = stateObjects[state];
 			stateObjects[state]->applyState();
 		}
-		
+
 		stateChangeFlag = true;
 	}
 }
 
 void StateManager::popAllStates()
 {
-	if (!states_empty())
-	{
+	while (!states_empty())
 		popState();
-		popAllStates();
-	}
 }
 
 void StateManager::popState()
@@ -252,31 +240,18 @@ void StateManager::popState()
 
 std::string StateManager::getNameFromDerivedClassTypeName(const std::string &typeidName)
 {
-/*
-	int loc = typeidName.find_last_of("class ");
-	if (loc != std::string::npos)
-	{
-		std::string tmp = typeidName.substr(6, typeidName.length());
-		int loc2 = tmp.find_last_of("::");
-		if (loc2 != std::string::npos)
-			return tmp.substr(loc2+1, tmp.size());
-		else
-			return tmp;
-	}
-	else
-		return typeidName;
-		*/
+
 	return "";
 }
 
 void StateManager::registerStateObject(StateObject *stateObject, const std::string &name)
 {
-	//const char *c = typeid(*stateObject).name();
+
 
 	stateObject->name = name;
 	stringToLower(stateObject->name);
 
-	//getNameFromDerivedClassTypeName(c);
+
 	if (stateObject->name.empty())
 	{
 		exit_error("StateManager::registerStateObject - Empty name.");
@@ -284,10 +259,7 @@ void StateManager::registerStateObject(StateObject *stateObject, const std::stri
 
 	if (!stateObjects[stateObject->name])
 		stateObjects[stateObject->name] = stateObject;
-		/*
-	if (c)
-		free((void*)c);
-		*/
+
 }
 
 StateObject *StateManager::addStateInstance(StateObject *s)
@@ -298,7 +270,7 @@ StateObject *StateManager::addStateInstance(StateObject *s)
 
 void StateManager::clearStateInstances()
 {
-	for (int i = 0; i < stateInstances.size(); i++)
+	for (size_t i = 0; i < stateInstances.size(); i++)
 	{
 		StateObject *obj = stateInstances[i];
 		delete obj;

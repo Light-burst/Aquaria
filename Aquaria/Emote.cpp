@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "DSQ.h"
 #include "Game.h"
+#include "ttvfs_stdio.h"
 
 Emote::Emote()
 {
@@ -44,13 +45,13 @@ void Emote::load(const std::string &file)
 	emoteTimer = 0;
 }
 
-void Emote::playSfx(int index)
+void Emote::playSfx(size_t index)
 {
-	if (index < 0 || index >= emotes.size())	return;
+	if (index >= emotes.size())	return;
 	if (emoteTimer > 0)							return;
 
 	int r = 0;
-	
+
 	if (emotes[index].variations > 1)
 	{
 		r = (rand()%emotes[index].variations)+1;
@@ -78,7 +79,7 @@ void Emote::playSfx(int index)
 
 void Emote::update(float dt)
 {
-	if (!dsq->game->isPaused())
+	if (!game->isPaused())
 	{
 		if (emoteTimer > 0)
 		{

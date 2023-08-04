@@ -20,19 +20,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "UserSettings.h"
 
-#ifndef AQUARIA_USERSETTINGS_DATAONLY
-	#include "DSQ.h"
-	#include "Game.h"
-	#include "Avatar.h"
-#else
-	#include "tinyxml2.h"
-	using namespace tinyxml2;
-#endif
+#include "DSQ.h"
+#include "Game.h"
+#include "Avatar.h"
+#include "ReadXML.h"
 
 
 void UserSettings::save()
 {
-	//initInputCodeMap();
+
 
 	XMLDocument doc;
 	{
@@ -67,18 +63,17 @@ void UserSettings::save()
 				xml_unsafe->SetAttribute("on", system.allowDangerousScriptFunctions);
 			}
 			xml_system->InsertEndChild(xml_unsafe);
+
+			XMLElement *xml_grabInp = doc.NewElement("GrabInput");
+			{
+				xml_grabInp->SetAttribute("on", system.grabInput);
+			}
+			xml_system->InsertEndChild(xml_grabInp);
 		}
 		doc.InsertEndChild(xml_system);
 
 		XMLElement *xml_audio = doc.NewElement("Audio");
 		{
-			XMLElement *xml_microphone = doc.NewElement("Mic");
-			{
-				xml_microphone->SetAttribute("on", audio.micOn);
-				xml_microphone->SetAttribute("octave", audio.octave);
-			}
-			xml_audio->InsertEndChild(xml_microphone);
-
 			XMLElement *xml_volume = doc.NewElement("Volume");
 			{
 				xml_volume->SetAttribute("sfx", double(audio.sfxvol));
@@ -122,12 +117,6 @@ void UserSettings::save()
 			}
 			xml_video->InsertEndChild(xml_fpsSmoothing);
 
-			XMLElement *xml_parallax = doc.NewElement("Parallax");
-			std::ostringstream os;
-			os << video.parallaxOn0 << " " << video.parallaxOn1 << " " << video.parallaxOn2;
-			xml_parallax->SetAttribute("on", os.str().c_str());
-			xml_video->InsertEndChild(xml_parallax);
-
 			XMLElement *xml_numParticles = doc.NewElement("NumParticles");
 			xml_numParticles->SetAttribute("v", video.numParticles);
 			xml_video->InsertEndChild(xml_numParticles);
@@ -136,13 +125,14 @@ void UserSettings::save()
 			{
 				xml_screenMode->SetAttribute("resx",				video.resx);
 				xml_screenMode->SetAttribute("resy",				video.resy);
+				xml_screenMode->SetAttribute("hz",				video.hz);
 				xml_screenMode->SetAttribute("bits",				video.bits);
 				xml_screenMode->SetAttribute("fbuffer",			video.fbuffer);
 				xml_screenMode->SetAttribute("full",				video.full);
 				xml_screenMode->SetAttribute("vsync",			video.vsync);
 				xml_screenMode->SetAttribute("darkfbuffer",		video.darkfbuffer);
 				xml_screenMode->SetAttribute("darkbuffersize",	video.darkbuffersize);
-				xml_screenMode->SetAttribute("displaylists",		video.displaylists);
+				xml_screenMode->SetAttribute("displayindex",		video.displayindex);
 			}
 			xml_video->InsertEndChild(xml_screenMode);
 
@@ -187,36 +177,47 @@ void UserSettings::save()
 			}
 			xml_control->InsertEndChild(xml_targeting);
 
-			XMLElement *xml_joyCursorSpeed = doc.NewElement("JoyCursorSpeed");
+			XMLElement *xml_flip = doc.NewElement("FlipInputButtons");
 			{
-				xml_joyCursorSpeed->SetAttribute("v", double(control.joyCursorSpeed));
+				xml_flip->SetAttribute("on", control.flipInputButtons);
 			}
-			xml_control->InsertEndChild(xml_joyCursorSpeed);
+			xml_control->InsertEndChild(xml_flip);
 
-			XMLElement *xml_joyAxes = doc.NewElement("JoyAxes");
+			XMLElement *xml_minas = doc.NewElement("MinActionSets");
 			{
-				xml_joyAxes->SetAttribute("s1ax", control.s1ax);
-				xml_joyAxes->SetAttribute("s1ay", control.s1ay);
-				xml_joyAxes->SetAttribute("s2ax", control.s2ax);
-				xml_joyAxes->SetAttribute("s2ay", control.s2ay);
-				xml_joyAxes->SetAttribute("s1dead", double(control.s1dead));
-				xml_joyAxes->SetAttribute("s2dead", double(control.s2dead));
+				xml_minas->SetAttribute("num", control.flipInputButtons);
 			}
-			xml_control->InsertEndChild(xml_joyAxes);
+			xml_control->InsertEndChild(xml_minas);
 
-			XMLElement *xml_actionSet = doc.NewElement("ActionSet");
+			for(size_t i = 0; i < control.actionSets.size(); ++i)
 			{
-				for (int i = 0; i < control.actionSet.inputSet.size(); i++)
+				const ActionSet& as = control.actionSets[i];
+				XMLElement *xml_actionSet = doc.NewElement("ActionSet");
+				xml_actionSet->SetAttribute("enabled", as.enabled);
+				xml_actionSet->SetAttribute("name", as.name.c_str());
+				xml_actionSet->SetAttribute("joystickName", as.joystickName.c_str());
+				xml_actionSet->SetAttribute("joystickGUID", as.joystickGUID.c_str());
+				XMLElement *xml_joyAxes = doc.NewElement("JoyAxes");
+				{
+					xml_joyAxes->SetAttribute("s1ax", as.joycfg.s1ax);
+					xml_joyAxes->SetAttribute("s1ay", as.joycfg.s1ay);
+					xml_joyAxes->SetAttribute("s2ax", as.joycfg.s2ax);
+					xml_joyAxes->SetAttribute("s2ay", as.joycfg.s2ay);
+					xml_joyAxes->SetAttribute("s1dead", as.joycfg.s1dead);
+					xml_joyAxes->SetAttribute("s2dead", as.joycfg.s2dead);
+				}
+				xml_actionSet->InsertEndChild(xml_joyAxes);
+				for (size_t i = 0; i < as.inputSet.size(); i++)
 				{
 					XMLElement *xml_action = doc.NewElement("Action");
-					ActionInput *actionInput = &control.actionSet.inputSet[i];
-					xml_action->SetAttribute("name", actionInput->name.c_str());
-					xml_action->SetAttribute("input", actionInput->toString().c_str());
+					const ActionInput& ai = as.inputSet[i];
+					xml_action->SetAttribute("name", ai.name.c_str());
+					xml_action->SetAttribute("input", ai.toString().c_str());
 
 					xml_actionSet->InsertEndChild(xml_action);
 				}
+				xml_control->InsertEndChild(xml_actionSet);
 			}
-			xml_control->InsertEndChild(xml_actionSet);
 		}
 		doc.InsertEndChild(xml_control);
 
@@ -244,11 +245,11 @@ void UserSettings::save()
 
 		XMLElement *xml_data = doc.NewElement("Data");
 		{
-			xml_data->SetAttribute("savePage",			data.savePage);
-			xml_data->SetAttribute("saveSlot",			data.saveSlot);
+			xml_data->SetAttribute("savePage", (unsigned int) data.savePage);
+			xml_data->SetAttribute("saveSlot", (unsigned int) data.saveSlot);
 
 			std::ostringstream ss;
-			for (std::set<std::string>::iterator it = dsq->activePatches.begin(); it != dsq->activePatches.end(); ++it)
+			for (std::vector<std::string>::iterator it = dsq->activePatches.begin(); it != dsq->activePatches.end(); ++it)
 				ss << *it << " ";
 			xml_data->SetAttribute("activePatches",	ss.str().c_str());
 		}
@@ -267,8 +268,36 @@ void UserSettings::save()
 #elif defined(BBGE_BUILD_WINDOWS)
 	doc.SaveFile(userSettingsFilename.c_str());
 #endif
+}
 
-	//clearInputCodeMap();
+static void ensureDefaultActions(ActionSet& as)
+{
+	as.clearActions();
+	as.addActionInput("PrimaryAction");
+	as.addActionInput("SecondaryAction");
+	as.addActionInput("SwimUp");
+	as.addActionInput("SwimDown");
+	as.addActionInput("SwimLeft");
+	as.addActionInput("SwimRight");
+	as.addActionInput("Roll");
+	as.addActionInput("Revert");
+	as.addActionInput("WorldMap");
+	as.addActionInput("Escape");
+	as.addActionInput("PrevPage");
+	as.addActionInput("NextPage");
+	as.addActionInput("CookFood");
+	as.addActionInput("FoodLeft");
+	as.addActionInput("FoodRight");
+	as.addActionInput("FoodDrop");
+	as.addActionInput("Look");
+	as.addActionInput("ToggleHelp");
+	as.addActionInput("Screenshot");
+	for(int i = 1; i <= 10; ++i)
+	{
+		std::ostringstream os;
+		os << "SongSlot" << i;
+		as.addActionInput(os.str());
+	}
 }
 
 static void readInt(XMLElement *xml, const char *elem, const char *att, int *toChange)
@@ -280,43 +309,40 @@ static void readInt(XMLElement *xml, const char *elem, const char *att, int *toC
 	}
 }
 
-void UserSettings::loadDefaults(bool doApply)
+bool UserSettings::loadDefaults(bool doApply)
 {
-	std::ostringstream os;
-	os << "default-" << VERSION_USERSETTINGS << ".xml";
-	if (exists(os.str()))
+	std::string fn = "default_usersettings.xml";
+	if (exists(fn))
 	{
-		load(doApply, os.str());
-		return;
+		return load(doApply, fn);
 	}
 
-	if (exists("default_usersettings.xml"))
-	{
-		load(doApply, "default_usersettings.xml");
-		return;
-	}
-
-	errorLog("No default user settings file found! Controls may be broken.");
+	return false;
 }
 
-void UserSettings::load(bool doApply, const std::string &overrideFile)
+bool UserSettings::load(bool doApply, const std::string &overrideFile)
 {
 	std::string filename;
 
-#if defined(BBGE_BUILD_UNIX)
-	filename = dsq->getPreferencesFolder() + "/" + userSettingsFilename;
-#elif defined(BBGE_BUILD_WINDOWS)
 	if (!overrideFile.empty())
 		filename = overrideFile;
 	else
+	{
+#if defined(BBGE_BUILD_UNIX)
+		filename = dsq->getPreferencesFolder() + "/" + userSettingsFilename;
+#else
 		filename = userSettingsFilename;
 #endif
+	}
+
+	if(!exists(filename))
+		return false;
 
 	XMLDocument doc;
 	if(readXML(filename, doc) != XML_SUCCESS)
 	{
-		errorLog("UserSettings: Malformed XML, continuing with defaults");
-		doc.Clear(); // just in case
+		errorLog("UserSettings [" + filename + "]: Error, malformed XML");
+		return false;
 	}
 
 	version.settingsVersion = 0;
@@ -326,30 +352,6 @@ void UserSettings::load(bool doApply, const std::string &overrideFile)
 	{
 		version.settingsVersion = xml_version->IntAttribute("settingsVersion");
 	}
-
-	control.actionSet.clearActions();
-	//initInputCodeMap();
-
-	control.actionSet.addActionInput("lmb");
-	control.actionSet.addActionInput("rmb");
-	control.actionSet.addActionInput("PrimaryAction");
-	control.actionSet.addActionInput("SecondaryAction");
-	control.actionSet.addActionInput("SwimUp");
-	control.actionSet.addActionInput("SwimDown");
-	control.actionSet.addActionInput("SwimLeft");
-	control.actionSet.addActionInput("SwimRight");
-	control.actionSet.addActionInput("Roll");
-	control.actionSet.addActionInput("Revert");
-	control.actionSet.addActionInput("WorldMap");
-	control.actionSet.addActionInput("Escape");
-	control.actionSet.addActionInput("PrevPage");
-	control.actionSet.addActionInput("NextPage");
-	control.actionSet.addActionInput("CookFood");
-	control.actionSet.addActionInput("FoodLeft");
-	control.actionSet.addActionInput("FoodRight");
-	control.actionSet.addActionInput("FoodDrop");
-	control.actionSet.addActionInput("Look");
-	control.actionSet.addActionInput("ToggleHelp");
 
 	XMLElement *xml_system = doc.FirstChildElement("System");
 	if (xml_system)
@@ -377,24 +379,23 @@ void UserSettings::load(bool doApply, const std::string &overrideFile)
 		{
 			system.allowDangerousScriptFunctions = xml_unsafe->IntAttribute("on");
 		}
+
+		XMLElement *xml_grabInp = xml_system->FirstChildElement("GrabInput");
+		if (xml_grabInp)
+		{
+			system.grabInput = xml_grabInp->IntAttribute("on");
+		}
 	}
 
 	XMLElement *xml_audio = doc.FirstChildElement("Audio");
 	if (xml_audio)
 	{
-		XMLElement *xml_microphone = xml_audio->FirstChildElement("Mic");
-		if (xml_microphone)
-		{
-			audio.micOn = xml_microphone->IntAttribute("on");
-			audio.octave = xml_microphone->IntAttribute("octave");
-		}
-
 		XMLElement *xml_volume = xml_audio->FirstChildElement("Volume");
 		if (xml_volume)
 		{
-			audio.sfxvol = xml_volume->DoubleAttribute("sfx");
-			audio.voxvol = xml_volume->DoubleAttribute("vox");
-			audio.musvol = xml_volume->DoubleAttribute("mus");
+			audio.sfxvol = xml_volume->FloatAttribute("sfx");
+			audio.voxvol = xml_volume->FloatAttribute("vox");
+			audio.musvol = xml_volume->FloatAttribute("mus");
 			audio.subtitles = xml_volume->IntAttribute("subs");
 		}
 
@@ -419,19 +420,6 @@ void UserSettings::load(bool doApply, const std::string &overrideFile)
 
 		readInt(xml_video, "FpsSmoothing", "v", &video.fpsSmoothing);
 
-		/*
-		readInt(xml_video, "Parallax", "on", &video.parallaxOn);
-		*/
-		XMLElement *xml_parallax = xml_video->FirstChildElement("Parallax");
-		if (xml_parallax)
-		{
-			if (xml_parallax->Attribute("on"))
-			{
-				std::istringstream is(xml_parallax->Attribute("on"));
-				is >> video.parallaxOn0 >> video.parallaxOn1 >> video.parallaxOn2;
-			}
-		}
-
 		readInt(xml_video, "NumParticles", "v", &video.numParticles);
 
 		XMLElement *xml_screenMode = xml_video->FirstChildElement("ScreenMode");
@@ -439,13 +427,14 @@ void UserSettings::load(bool doApply, const std::string &overrideFile)
 		{
 			xml_screenMode->QueryIntAttribute("resx",			&video.resx);
 			xml_screenMode->QueryIntAttribute("resy",			&video.resy);
+			xml_screenMode->QueryIntAttribute("hz",				&video.hz);
 			xml_screenMode->QueryIntAttribute("bits",			&video.bits);
 			xml_screenMode->QueryIntAttribute("fbuffer",		&video.fbuffer);
 			xml_screenMode->QueryIntAttribute("full",			&video.full);
 			xml_screenMode->QueryIntAttribute("vsync",			&video.vsync);
 			xml_screenMode->QueryIntAttribute("darkfbuffer",	&video.darkfbuffer);
 			xml_screenMode->QueryIntAttribute("darkbuffersize",	&video.darkbuffersize);
-			xml_screenMode->QueryIntAttribute("displaylists",	&video.displaylists);
+			xml_screenMode->QueryIntAttribute("displayindex",	&video.displayindex);
 		}
 
 		readInt(xml_video, "SaveSlotScreens", "on", &video.saveSlotScreens);
@@ -457,47 +446,55 @@ void UserSettings::load(bool doApply, const std::string &overrideFile)
 	if (xml_control)
 	{
 		readInt(xml_control, "JoystickEnabled", "on", &control.joystickEnabled);
-
 		readInt(xml_control, "AutoAim", "on", &control.autoAim);
-
 		readInt(xml_control, "Targeting", "on", &control.targeting);
+		readInt(xml_control, "FlipInputButtons", "on", &control.flipInputButtons);
+		readInt(xml_control, "ToolTipsOn", "on", &control.toolTipsOn);
 
-		XMLElement *xml_joyCursorSpeed = xml_control->FirstChildElement("JoyCursorSpeed");
-		if (xml_joyCursorSpeed)
-			xml_joyCursorSpeed->QueryFloatAttribute("v", &control.joyCursorSpeed);
+		control.actionSets.clear();
 
-		XMLElement *xml_joyAxes = xml_control->FirstChildElement("JoyAxes");
-		if (xml_joyAxes)
+		for(XMLElement *xml_actionSet = xml_control->FirstChildElement("ActionSet"); xml_actionSet; xml_actionSet = xml_actionSet->NextSiblingElement("ActionSet"))
 		{
-			control.s1ax = xml_joyAxes->IntAttribute("s1ax");
-			control.s1ay = xml_joyAxes->IntAttribute("s1ay");
-			control.s2ax = xml_joyAxes->IntAttribute("s2ax");
-			control.s2ay = xml_joyAxes->IntAttribute("s2ay");
-			control.s1dead = xml_joyAxes->DoubleAttribute("s1dead");
-			control.s2dead = xml_joyAxes->DoubleAttribute("s2dead");
-		}
+			control.actionSets.push_back(ActionSet());
+			ActionSet& as = control.actionSets.back();
+			ensureDefaultActions(as);
 
-		XMLElement *xml_actionSet = xml_control->FirstChildElement("ActionSet");
-		if (xml_actionSet)
-		{
-			XMLElement *xml_action = 0;
-			xml_action = xml_actionSet->FirstChildElement();
-			while (xml_action)
+			if(const char *s = xml_actionSet->Attribute("name"))
+				as.name = s;
+			if(const char *s = xml_actionSet->Attribute("joystickName"))
+				as.joystickName = s;
+			if(const char *s = xml_actionSet->Attribute("joystickGUID"))
+				as.joystickGUID = s;
+			as.enabled = xml_actionSet->BoolAttribute("enabled");
+
+			if(XMLElement *xml_joyAxes = xml_actionSet->FirstChildElement("JoyAxes"))
 			{
-				std::string name = xml_action->Attribute("name");
+				as.joycfg.s1ax = xml_joyAxes->IntAttribute("s1ax");
+				as.joycfg.s1ay = xml_joyAxes->IntAttribute("s1ay");
+				as.joycfg.s2ax = xml_joyAxes->IntAttribute("s2ax");
+				as.joycfg.s2ay = xml_joyAxes->IntAttribute("s2ay");
+				as.joycfg.s1dead = xml_joyAxes->FloatAttribute("s1dead");
+				as.joycfg.s2dead = xml_joyAxes->FloatAttribute("s2dead");
+			}
 
-				if (!name.empty())
+			for(XMLElement *xml_action = xml_actionSet->FirstChildElement(); xml_action; xml_action = xml_action->NextSiblingElement())
+			{
+				const char *name = xml_action->Attribute("name");
+				const char *input = xml_action->Attribute("input");
+				if (name && *name && input && *input)
 				{
-					ActionInput *ai = control.actionSet.addActionInput(name);
-
-					ai->fromString(xml_action->Attribute("input"));
+					ActionInput *ai = as.addActionInput(name);
+					ai->fromString(input);
 				}
-				xml_action = xml_action->NextSiblingElement();
 			}
 		}
-
-		readInt(xml_control, "ToolTipsOn", "on", &control.toolTipsOn);
 	}
+
+	if(control.actionSets.empty())
+		control.actionSets.resize(1);
+
+	if(control.actionSets.size() == 1)
+		control.actionSets[0].enabled = true;
 
 	XMLElement *xml_demo = doc.FirstChildElement("Demo");
 	if (xml_demo)
@@ -510,8 +507,12 @@ void UserSettings::load(bool doApply, const std::string &overrideFile)
 	XMLElement *xml_data = doc.FirstChildElement("Data");
 	if (xml_data)
 	{
-		xml_data->QueryIntAttribute("savePage", &data.savePage);
-		xml_data->QueryIntAttribute("saveSlot", &data.saveSlot);
+		// use a temporary variable so we don't get into trouble on big-endian architectures
+		unsigned int tmp;
+		xml_data->QueryUnsignedAttribute("savePage", &tmp);
+		data.savePage = tmp;
+		xml_data->QueryUnsignedAttribute("saveSlot", &tmp);
+		data.saveSlot = tmp;
 
 		if(const char *patchlist = xml_data->Attribute("activePatches"))
 		{
@@ -520,8 +521,8 @@ void UserSettings::load(bool doApply, const std::string &overrideFile)
 			while(ss)
 			{
 				ss >> tmp;
-				if(tmp.length())
-					dsq->activePatches.insert(tmp);
+				if(tmp.length() && !dsq->isPatchActive(tmp))
+					dsq->activePatches.push_back(tmp);
 			}
 		}
 	}
@@ -534,7 +535,7 @@ void UserSettings::load(bool doApply, const std::string &overrideFile)
 			network.masterServer = serv;
 	}
 
-	//clearInputCodeMap();
+
 
 	if (system.locale.empty())
 	{
@@ -552,11 +553,12 @@ void UserSettings::load(bool doApply, const std::string &overrideFile)
 
 	if (doApply)
 		apply();
+
+	return true;
 }
 
 void UserSettings::apply()
 {
-#ifndef AQUARIA_USERSETTINGS_DATAONLY
 	core->sound->setMusicVolume(audio.musvol);
 	core->sound->setSfxVolume(audio.sfxvol);
 	core->sound->setVoiceVolume(audio.voxvol);
@@ -565,30 +567,32 @@ void UserSettings::apply()
 
 	dsq->loops.updateVolume();
 
-	core->joystick.s1ax = control.s1ax;
-	core->joystick.s1ay = control.s1ay;
-	core->joystick.s2ax = control.s2ax;
-	core->joystick.s2ay = control.s2ay;
-
-	core->joystick.deadZone1 = control.s1dead;
-	core->joystick.deadZone2 = control.s2dead;
+	for(size_t i = 0; i < control.actionSets.size(); ++i)
+	{
+		ActionSet& as = control.actionSets[i];
+		Joystick *j = core->getJoystick(as.joystickID);
+		if(j)
+		{
+			j->s1ax = as.joycfg.s1ax;
+			j->s1ay = as.joycfg.s1ay;
+			j->s2ax = as.joycfg.s2ax;
+			j->s2ay = as.joycfg.s2ay;
+			j->deadZone1 = as.joycfg.s1dead;
+			j->deadZone2 = as.joycfg.s2dead;
+		}
+	}
+	dsq->initActionButtons();
+	dsq->fixupJoysticks();
 
 	core->debugLogActive = system.debugLogOn;
 
-	if (dsq->game)
+	if (game)
 	{
-		dsq->game->bindInput();
-
-		if (dsq->game->avatar)
-		{
-			dsq->game->avatar->updateHeartbeatSfx();
-		}
+		game->bindInput();
 	}
 
 	dsq->bindInput();
 
 	core->settings.prebufferSounds = audio.prebuffer;
-
-#endif
 }
 

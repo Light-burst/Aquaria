@@ -24,207 +24,69 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../BBGE/StateMachine.h"
 #include "../BBGE/SkeletalSprite.h"
 #include "../BBGE/ScriptObject.h"
+#include "SoundManager.h"
 
-#include "DSQ.h"
-#include "Path.h"
-#include "Hair.h"
 #include "TileVector.h"
-
-#include "tinyxml2.h"
-using namespace tinyxml2;
+#include "Damage.h"
+#include "GameStructs.h"
 
 class ManaBall;
 class Path;
+struct MinimapIcon;
+class Hair;
+class Entity;
+struct lua_State;
 
 struct BoneLock
 {
 	BoneLock() : entity(0), bone(0), on(false), origRot(0) {}
 	Entity *entity;
 	Bone *bone;
-	Vector localOffset;
 	bool on;
 	float origRot;
 	Vector wallNormal, circleOffset;
-	int collisionMaskIndex;
 };
 
-enum EV
+// The Lance is an ability that never made it into the released version of the game.
+// The code is functional but it was never used. Keeping it around for now
+// in case any mods use it for whatever reason.
+struct LanceData
 {
-	EV_WALLOUT				= 0,
-	EV_WALLTRANS			= 1,
-	EV_CLAMPING				= 2,
-	EV_SWITCHCLAMP			= 3,
-	EV_CLAMPTRANSF			= 4,
-	EV_MOVEMENT				= 5,
-	EV_COLLIDE				= 6,
-	EV_TOUCHDMG				= 7,
-	EV_FRICTION				= 8,
-	EV_LOOKAT				= 9,
-	EV_CRAWLING				= 10,
-	EV_ENTITYDIED			= 11,
-	EV_TYPEID				= 12,
-	EV_COLLIDELEVEL			= 13,
-	EV_BONELOCKED			= 14,
-	EV_FLIPTOPATH			= 15,
-	EV_NOINPUTNOVEL			= 16,
-	EV_VINEPUSH				= 17,
-	EV_BEASTBURST			= 18,			// if 1: will not collide with beast on touchAvatarDamage, if 0: will
-	EV_MINIMAP				= 19,			// should the entity show up on the minimap?
-	EV_SOULSCREAMRADIUS		= 20,			// 0-n: size of radius for naija's dual form scream attack, -1: always hit
-	EV_WEBSLOW				= 21,			// 100 by default, multiplied by dt and then divided into vel
-	EV_NOAVOID				= 22,			// if 1: doEntityAvoidance() will ignore this entity
-	EV_MAX					= 23
-};
+	LanceData();
+	~LanceData();
 
-enum DamageType
-{
-	DT_NONE					= -1,
-	DT_ENEMY				= 0,
-	DT_ENEMY_ENERGYBLAST	= 1,
-	DT_ENEMY_SHOCK			= 2,
-	DT_ENEMY_BITE			= 3,
-	DT_ENEMY_TRAP			= 4,
-	DT_ENEMY_WEB			= 5,
-	DT_ENEMY_BEAM			= 6,
-	DT_ENEMY_GAS			= 7,
-	DT_ENEMY_INK			= 8,
-	DT_ENEMY_POISON			= 9,
-	DT_ENEMY_ACTIVEPOISON	= 10,
-	DT_ENEMY_CREATOR		= 11,
-	DT_ENEMY_MANTISBOMB		= 12,
-	DT_ENEMY_REALMAX		,
-	DT_ENEMY_MAX			= 13,
-
-	DT_AVATAR				= 1000,
-	DT_AVATAR_ENERGYBLAST	= 1001,
-	DT_AVATAR_SHOCK			= 1002,
-	DT_AVATAR_BITE			= 1003,
-	DT_AVATAR_VOMIT			= 1004,
-	DT_AVATAR_ACID			= 1005,
-	DT_AVATAR_SPORECHILD	= 1006,
-	DT_AVATAR_LIZAP			= 1007,
-	DT_AVATAR_NATURE		= 1008,
-	DT_AVATAR_ENERGYROLL	= 1009,
-	DT_AVATAR_VINE			= 1010,
-	DT_AVATAR_EAT			= 1011,
-	DT_AVATAR_EAT_BASICSHOT	= 1011,
-	DT_AVATAR_EAT_MAX		= 1012,
-	DT_AVATAR_LANCEATTACH	= 1013,
-	DT_AVATAR_LANCE			= 1014,
-	DT_AVATAR_CREATORSHOT	= 1015,
-	DT_AVATAR_DUALFORMLI	= 1016,
-	DT_AVATAR_DUALFORMNAIJA = 1017,
-	DT_AVATAR_BUBBLE		= 1018,
-	DT_AVATAR_SEED			= 1019,
-	DT_AVATAR_PET			= 1020,
-	DT_AVATAR_PETNAUTILUS	= 1021,
-	DT_AVATAR_PETBITE		= 1022,
-	DT_AVATAR_REALMAX		,
-	DT_AVATAR_MAX			= 1030,
-	DT_TOUCH				= 1031,
-	DT_CRUSH				= 1032,
-	DT_SPIKES				= 1033,
-	DT_STEAM				= 1034,
-	DT_WALLHURT				= 1035,
-	DT_REALMAX
-};
-
-enum EatType
-{
-	EAT_NONE				= -1,
-	EAT_DEFAULT				= 0,
-	EAT_FILE				= 1,
-	EAT_MAX
-};
-
-enum ObsCheck
-{
-	OBSCHECK_RANGE	= 0,
-	OBSCHECK_4DIR	= 1,
-	OBSCHECK_DOWN	= 2,
-	OBSCHECK_8DIR	= 3
-};
-
-class Shot;
-
-struct DamageData
-{
-	DamageData()
-	{
-		damage = 0;
-		attacker = 0;
-		bone = 0;
-		damageType = DT_TOUCH;
-		form = (FormType)0;
-		shot = 0;
-		effectTime = 0;
-		useTimer = true;
-	}
-	FormType form;
-	DamageType damageType;
-	Entity *attacker;
+	PauseQuad *gfx;
+	float timer;
+	float delay;
 	Bone *bone;
-	float damage;
-	Vector hitPos;
-	Shot *shot;
-	float effectTime;
-	bool useTimer;
 };
 
-enum EntityType
-{
-	ET_NOTYPE		=-1,
-	ET_AVATAR		=0,
-	ET_ENEMY		=1,
-	ET_PET			=2,
-	ET_FLOCK		=3,
-	ET_NEUTRAL		=4,
-	ET_INGREDIENT	=5
-};
-
-enum EntityProperty
-{
-	EP_SOLID			=0,
-	EP_MOVABLE			=1,
-	EP_BATTERY			=2,
-	EP_BLOCKER			=3,
-	EP_MAX				=4
-};
-
-enum BounceType
-{
-	BOUNCE_NONE		= -1,
-	BOUNCE_SIMPLE	= 0,
-	BOUNCE_REAL		= 1
-};
-
-class Entity : public Quad, public StateMachine, public SoundHolder
+class Entity : public CollideQuad, public StateMachine, public SoundHolder
 {
 public:
 	Entity();
+	virtual ~Entity();
 	virtual void init(){}
 	virtual void postInit(){}
 
 	Vector lastPosition;
-	// postInit gets called after the entity IDs are determined
-	int entityTypeIdx;
 	enum ActivationType
 	{
 		ACT_NONE = -1,
 		ACT_CLICK = 0,
 		ACT_RANGE = 1
 	};
-	void destroy();
-	//void damage(int amount, Spell *spell=0, Entity *attacker=0);
+	void destroy() OVERRIDE;
+
 	bool isEntityDead() const {return entityDead;}
 	std::string name;
 	Vector vel;
 	InterpolatedVector vel2;
 	float activationRadius;
-	void render();
-	void update(float dt);
+	void render(const RenderState& rs) const OVERRIDE;
+	void update(float dt) OVERRIDE;
 
-	void spawnParticlesFromCollisionMask(const std::string &p, int intv=1);
+	void spawnParticlesFromCollisionMask(const char *p, unsigned intv=1, int layer = LR_PARTICLES, float rotz = 0);
 
 	float health;
 	float maxHealth;
@@ -235,15 +97,17 @@ public:
 
 	void push(const Vector &vec, float time, float maxSpeed, float dmg);
 
-	bool canSetState(int state);
-	
+	bool canSetState(int state) OVERRIDE;
+
 	virtual void message(const std::string &msg, int v) {}
 	virtual int messageVariadic(lua_State *L, int nparams) { return 0; }
+	virtual int activateVariadic(lua_State *L, int nparams) { return 0; }
 
-	bool isUnderWater(const Vector &o=Vector());
+	bool isUnderWater();
+	bool isUnderWater(const Vector& overridePos);
+	bool _isUnderWaterPos(const Vector& pos);
 
-	//virtual void onHitBySpell(Spell *spell) {}
-	//virtual void onCollide(Entity *e);
+
 
 	virtual bool damage(const DamageData &d);
 	virtual bool canShotHit(const DamageData &d) { return true; }
@@ -267,13 +131,8 @@ public:
 
 	ActivationType activationType;
 	float activationRange;
-	Entity *followEntity;
 	Entity *ridingOnEntity;
-	bool canBeTargetedByAvatar;
-	virtual void saveExtraData(XMLElement *xml){}
-	virtual void loadExtraData(XMLElement *xml){}
 	Vector startPos;
-	void getEXP(unsigned int exp);
 	void rotateToVec(Vector addVec, float time, float offsetAngle=0);
 	virtual void applyVariation(int variation){}
 
@@ -282,8 +141,6 @@ public:
 	void setStopSoundsOnDeath(bool stop) { stopSoundsOnDeath = stop; }
 
 	void freeze(float time);
-
-	virtual void onSceneFlipped() {}
 
 	bool isNearObstruction(int sz, int type=0, TileVector *hitTile=0);
 
@@ -311,9 +168,8 @@ public:
 		STATE_TITLE			=24
 	};
 	virtual void onNotify(Entity *notify){}
-	//void followPath(Path *p, int spd, int loop, bool deleteOnEnd = false);
+
 	float followPath(Path *p, float speed, int dir, bool deleteOnEnd = false);
-	Entity *attachedTo;
 	bool touchAvatarDamage(int radius, float dmg, const Vector &override=Vector(-1,-1,-1), float speed=0, float pushTime = 0, Vector collidePos = Vector(0,0,0));
 
 	void moveTowards(Vector p, float dt, int spd);
@@ -332,16 +188,14 @@ public:
 	void doEntityAvoidance(float dt, int range, float mod, Entity *ignore =0);
 	void setMaxSpeed(float ms);
 	Entity *findTarget(int dist, int type, int t=0);
-	//bool hasTarget() { return target != 0; }
+
 	bool hasTarget(int t=0);
-	bool isTargetInRange(int range, int t=0);
-	void doGlint(const Vector &position, const Vector &scale=Vector(2,2), const std::string &tex="Glint", RenderObject::BlendTypes bt=BLEND_DEFAULT);
+	bool isTargetInRange(int range, size_t t=0);
+	void doGlint(const Vector &position, const Vector &scale=Vector(2,2), const std::string &tex="Glint", BlendType bt=BLEND_DEFAULT);
 	Entity *getTargetEntity(int t=0);
 	void setTargetEntity(Entity *e, int t=0);
 
-	void attachEntity(Entity *e, Vector offset);
-	void detachEntity(Entity *e);
-	virtual void activate(){}
+	virtual void activate(Entity *by, int source){}
 
 	SkeletalSprite skeletalSprite;
 
@@ -362,13 +216,8 @@ public:
 	void doFriction(float dt);
 	void doFriction(float dt, float len);
 
-	bool isNormalLayer() const
-	{
-		return layer == LR_ENTITIES || layer == LR_ENTITIES0 || layer == LR_ENTITIES2 || layer == LR_ENTITIES_MINUS2 || layer == LR_ENTITIES_MINUS3;
-	}
-	void watchEntity(Entity *e);
+	bool isNormalLayer() const;
 	void idle();
-	int followPos;
 	void slowToStopPath(float t);
 	bool isSlowingToStopPath();
 	Vector lastMove;
@@ -382,7 +231,6 @@ public:
 	bool isAvatarAttackTarget();
 	int dropChance;
 	void fillGrid();
-	bool fillGridFromQuad;
 
 	void setID(int id);
 	int getID();
@@ -395,18 +243,16 @@ public:
 	InterpolatedVector maxSpeedLerp;
 	Hair *hair;
 
-	void assignUniqueID();
 	int entityID;
 	int getMaxSpeed();
 	std::string deathSound;
 	virtual std::string getIdleAnimName();
 
-	void clearDamageTargets();
 	void setAllDamageTargets(bool v);
 	void setDamageTarget(DamageType dt, bool v);
 	bool isDamageTarget(DamageType dt);
 
-	typedef std::set<DamageType> DisabledDamageTypes;
+	typedef std::vector<DamageType> DisabledDamageTypes;
 
 	int targetRange;
 	int getTargetRange() { return targetRange; }
@@ -417,16 +263,13 @@ public:
 	Vector ridingOnEntityOffset;
 	void moveOutOfWall();
 	bool isSittingOnInvisibleIn();
-	/*
-	void setCrawling(bool on) { crawling = on; }
-	bool isCrawling() { return crawling; }
-	*/
+
 	void flipToVel();
 	bool isInCurrent() { return inCurrent; }
 	void clearTargetPoints();
 	void addTargetPoint(const Vector &point);
 	int getNumTargetPoints();
-	Vector getTargetPoint(int i);
+	Vector getTargetPoint(size_t i);
 	int targetPriority;
 	virtual void shiftWorlds(WorldType lastWorld, WorldType worldType){}
 	void setCanLeaveWater(bool v);
@@ -448,16 +291,15 @@ public:
 	bool checkSplash(const Vector &override=Vector(0,0,0));
 	EatData eatData;
 	InterpolatedVector flipScale;
-	bool beautyFlip;
 	void attachLance();
 	void setInvincible(bool inv);
 	void clampToHit();
 	bool updateLocalWarpAreas(bool affectAvatar);
 	virtual void entityDied(Entity *e);
-	//bool registerEntityDied;
+
 	bool clampToSurface(int tcheck=0, Vector usePos=Vector(0,0), TileVector hitTile=TileVector(0,0));
 	bool checkSurface(int tcheck, int state, float statet);
-	//static Shader blurShader;
+
 	std::string naijaReaction;
 	Vector lookAtPoint;
 	Vector getLookAtPoint();
@@ -495,23 +337,25 @@ public:
 	void setHairHeadPosition(const Vector &pos);
 	void exertHairForce(const Vector &force, float dt);
 
-	bool isEntityInside();
+	bool isEntityInside() const;
 
 	void updateSoundPosition();
+	void updateBoneLock();
+	float boneLockDelay;
 
 	Vector getPushVec() const { return pushVec; }
 	float getPushDamage() const { return pushDamage; }
 
+	MinimapIcon *minimapIcon;
+	MinimapIcon *ensureMinimapIcon();
+
 protected:
-	bool calledEntityDied;
 	Path *waterBubble;
-	bool ridingFlip;
 	Vector ridingPosition;
 	float ridingRotation;
 
 	std::vector<DamageType> ignoreShotDamageTypes;
 	Timer vineDamageTimer;
-	float boneLockDelay;
 	virtual void onSetBoneLock(){}
 	virtual void onUpdateBoneLock(){}
 	BoneLock boneLock;
@@ -519,61 +363,39 @@ protected:
 	virtual void onDieEaten() {}
 	IngredientData *ingredientData;
 	int vs[EV_MAX];
-	void onEndOfLife();
+	void onEndOfLife() OVERRIDE;
 
-	bool invincible;
-	PauseQuad *lanceGfx;
-	float lanceTimer;
-	float lanceDelay;
-	int lance;
-	Bone *lanceBone;
 	void updateLance(float dt);
-	//InterpolatedVector blurShaderAnim;
 
-
-	int fhScale, fvScale;
 	void onFHScale();
-	void onFH();
-	bool deathScene;
+	void onFH() OVERRIDE;
 	float dieTimer;
 	BounceType bounceType;
 	Entity* riding;
 	EatType eatType;
-	bool stickToNaijasHead;
-
-	bool spiritFreeze;
-	bool pauseFreeze;
-	bool canLeaveWater;
-	bool wasUnderWater;
 
 	std::vector<Vector>targetPoints;
 
 	Vector getMoveVel();
 	DisabledDamageTypes disabledDamageTypes;
-	//bool crawling;
 
-	//Vector backupPos, backupVel;
+
+
 	virtual void onIdle() {}
 	virtual void onHeal(int type){}
 	virtual void onDamage(DamageData &d){}
 	virtual void onHealthChange(float change){}
-	bool inCurrent;
-	std::vector<bool> entityProperties;
+
 	float slowingToStopPathTimer, slowingToStopPath;
 
 	void movementDetails(Vector v);
-	Entity *watchingEntity;
 	virtual void onPathEnd();
-	bool swimPath;
-	bool deleteOnPathEnd;
 	InterpolatedVector multColor;
 	EntityType entityType;
-	std::vector<Entity*> attachedEntities;
-	std::vector<Vector> attachedEntitiesOffsets;
 
 	virtual void onFreeze(){}
 
-	//Entity *target;
+
 	std::vector<Entity*>targets;
 	virtual void onAlwaysUpdate(float dt){}
 	virtual void onUpdateFrozen(float dt){}
@@ -582,13 +404,11 @@ protected:
 
 	void doDeathEffects(float manaBallEnergy=0, bool die=true);
 
-	void onEnterState(int action);
-	void onExitState(int action);
-	//virtual bool onDamage(int amount, Spell *spell, Entity *attacker);
-	bool invincibleBreak;
+	void onEnterState(int action) OVERRIDE;
+	void onExitState(int action) OVERRIDE;
 
-	bool entityDead;
-	void onUpdate(float dt);
+
+	void onUpdate(float dt) OVERRIDE;
 
 	Vector pushVec;
 	float pushDamage;
@@ -597,23 +417,37 @@ protected:
 
 	Timer damageTimer;
 
-	void updateBoneLock();
-
 	float pushMaxSpeed;
 	std::string currentAnim;
-	
+	LanceData *lancedata;
 
-protected:
-	
 	Timer poisonTimer, poisonBitTimer;
 	float poison;
-private:
-
-
 	float maxSpeed;
 
-	bool stopSoundsOnDeath;
+	char entityProperties[EP_MAX];
 
+	// TODO: this should be a bitmask
+	bool invincible;
+	bool invincibleBreak;
+	bool stickToNaijasHead;
+	bool spiritFreeze;
+	bool pauseFreeze;
+	bool canLeaveWater;
+	bool wasUnderWater;
+	bool entityDead;
+	bool swimPath;
+	bool deleteOnPathEnd;
+	bool inCurrent;
+	bool deathScene;
+	bool fhScale;
+	bool calledEntityDied;
+	bool ridingFlip;
+	bool canBeTargetedByAvatar;
+	bool stopSoundsOnDeath;
+public:
+	bool fillGridFromQuad;
+	bool beautyFlip;
 };
 
 #endif

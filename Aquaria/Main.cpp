@@ -20,101 +20,37 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "DSQ.h"
+#include <SDL.h>
+#include <SDL_main.h>
 
 
-#ifdef BBGE_BUILD_WINDOWS
-	#include <shellapi.h>
-#endif
-
-
-static void MakeRan(void)
+extern "C" int main(int argc,char *argv[])
 {
-#ifdef BBGE_BUILD_WINDOWS
-    std::ofstream out("ran");
-    if(out)
-    {
-        for (int i = 0; i < 32; i++)
-            out << rand()%1000;
-        out.close();
-    }
-#endif
-}
+	std::string dsqParam = ""; // fileSystem
+	std::string extraDataDir = "";
 
-static void StartAQConfig()
-{
-#if defined(BBGE_BUILD_WINDOWS)
-    if (!exists("ran", false, true))
-    {
-        MakeRan();
-        if(exists("AQConfig.exe", false, true))
-        {
-            ShellExecute(NULL, "open", "AQConfig.exe", NULL, NULL, SW_SHOWNORMAL);
-            exit(0);
-        }
-    }
-    remove("ran");
-#endif
-}
-
-static void CheckConfig(void)
-{
-#ifdef BBGE_BUILD_WINDOWS
-    bool hasCfg = exists("usersettings.xml", false, true);
-    if(!hasCfg)
-        StartAQConfig();
-#endif
-}
-
-
-#if defined(BBGE_BUILD_WINDOWS) && !defined(BBGE_BUILD_SDL)
-	int WINAPI WinMain(	HINSTANCE	hInstance,			// Instance
-						HINSTANCE	hPrevInstance,		// Previous Instance
-						LPSTR		lpCmdLine,			// Command Line Parameters
-						int			nCmdShow)			// Window Show State
-	{
-		#ifdef _DEBUG
-			_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); 
-			_CrtSetReportMode ( _CRT_ERROR, _CRTDBG_MODE_DEBUG);
-		#endif
-
-        std::string dsqParam = GetCommandLine();
-
-#else
-
-	extern "C" int main(int argc,char *argv[])
-	{
-		std::string dsqParam = ""; // fileSystem
-		std::string extraDataDir = "";
-
-		const char *envPath = 0;
+	const char *envPath = 0;
 #ifdef BBGE_BUILD_UNIX
-		envPath = getenv("AQUARIA_DATA_PATH");
-		if (envPath)
-		{
-			dsqParam = envPath;
-		}
+	envPath = getenv("AQUARIA_DATA_PATH");
+	if (envPath)
+	{
+		dsqParam = envPath;
+	}
 #endif
 #ifdef AQUARIA_DEFAULT_DATA_DIR
-		if(!envPath)
-			dsqParam = AQUARIA_DEFAULT_DATA_DIR;
+	if(!envPath)
+		dsqParam = AQUARIA_DEFAULT_DATA_DIR;
 #endif
 #ifdef AQUARIA_EXTRA_DATA_DIR
-		extraDataDir = AQUARIA_EXTRA_DATA_DIR;
+	extraDataDir = AQUARIA_EXTRA_DATA_DIR;
 #endif
 
-#endif
-
-        CheckConfig();
-
-        {
-            DSQ dsql(dsqParam, extraDataDir);
-            dsql.init();
-            dsql.main();
-            dsql.shutdown();
-        }
-
-        MakeRan();
-
-		return (0);
+	{
+		DSQ dsql(dsqParam, extraDataDir);
+		dsql.init();
+		dsql.run();
+		dsql.shutdown();
 	}
 
+	return (0);
+}

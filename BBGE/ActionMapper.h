@@ -22,131 +22,84 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define _actionmapper_
 
 #include "Base.h"
+#include "ActionInput.h"
+
+InputDevice getDeviceForActionbutton(int k);
 
 class Event;
 class ActionMapper;
 
+#include "ActionStatus.h"
 #include "ActionSet.h"
+#include "Joystick.h"
 
 typedef std::vector<int> ButtonList;
 
 struct ActionData
 {
-	ActionData() { id=-1; state=-1; event=0; }
+	ActionData()
+		: id(-1), state(-1), source(-1)
+		, event(0)
+	{
+	}
 
-	int id, state;
+	int id, state, source;
 	Event *event;
 	ButtonList buttonList;
 };
 
-#define ACTION_EVENT		= -1
-
 class ActionMapper
 {
 public:
-	
+
 	// funcs
 	ActionMapper();
 	virtual ~ActionMapper();
-	//void addAction (const std::string &action, int k);
+
 	void addAction(Event *event, int k, int state=-1);
-	void addAction(int actionID, int k);
-	/*
-	void addMouseButtonAction (const std::string &action, int b);
-	void addJoystickButtonAction (const std::string &action, int b);
-	void addJoystickDPadAction (const std::string &action, int dir);
-	int getDPad(int dir);
-	*/
-	void removeAction(int actionID);
-	void removeAllActions();
+	void addAction(int actionID, int k, int source);
 
-	bool isActing(int actionID);
-	virtual void action(int actionID, int state){}
+	bool isActing(int actionID, int source);
+	virtual void action(int actionID, int state, int source, InputDevice device) = 0;
 
-	
+
 	void clearActions();
 
 	bool isInputEnabled() { return inputEnabled; }
-	
+
 	// vars
-	
-	typedef std::list<ActionData> ActionDataSet;
+
+	typedef std::vector<ActionData> ActionDataSet;
 	ActionDataSet actionData;
 
-	typedef std::map <int, int> KeyDownMap;
-	KeyDownMap keyDownMap;
-	
 	bool cleared;
-
-
-
-	//typedef std::map <std::string, int> StringIntMap;
-	//StringIntMap stateCheckMap;
-
-	enum {
-		MOUSE_BUTTON_LEFT	=  999,
-		MOUSE_BUTTON_RIGHT	= 1000,
-		MOUSE_BUTTON_MIDDLE	= 1001,
-
-		JOY1_BUTTON_0		= 2000,
-		JOY1_BUTTON_1		= 2001,
-		JOY1_BUTTON_2		= 2002,
-		JOY1_BUTTON_3		= 2003,
-		JOY1_BUTTON_4		= 2004,
-		JOY1_BUTTON_5		= 2005,
-		JOY1_BUTTON_6		= 2006,
-		JOY1_BUTTON_7		= 2007,
-		JOY1_BUTTON_8		= 2008,
-		JOY1_BUTTON_9		= 2009,
-		JOY1_BUTTON_10		= 2010,
-		JOY1_BUTTON_11		= 2011,
-		JOY1_BUTTON_12		= 2012,
-		JOY1_BUTTON_13		= 2013,
-		JOY1_BUTTON_14		= 2014,
-		JOY1_BUTTON_15		= 2015,
-		JOY1_BUTTON_16		= 2016,
-
-		//JOY1_BUTTON_X360_START=2011,
-		X360_BTN_START		= 3016,
-		X360_BTN_BACK		= 3017,
-
-		JOY1_DPAD_LEFT		= 4000,
-		JOY1_DPAD_RIGHT		= 4001,
-		JOY1_DPAD_DOWN		= 4002,
-		JOY1_DPAD_UP		= 4003,
-		JOY1_STICK_LEFT		= 4010,
-		JOY1_STICK_RIGHT	= 4011,
-		JOY1_STICK_DOWN		= 4012,
-		JOY1_STICK_UP		= 4013,
-	};
-
-	enum { DPAD_LEFT = 0, DPAD_RIGHT, DPAD_UP, DPAD_DOWN };
-
-	//int getKeyForAction(std::string action);
 
 	virtual void enableInput();
 	virtual void disableInput();
-	/*void loadActionSet(const std::string &fn);*/
-	//nasty hack
-	//void forceUpdate(float dt);
+
 	Event *addCreatedEvent(Event *event);
 	void clearCreatedEvents();
 
-	bool pollAction(int actionID);
+	//bool pollAction(int actionID, int source);
 	bool getKeyState(int k);
+	bool getKeyState(int k, int sourceID);
 
-	ActionData *getActionDataByID(int actionID);
+	ActionData *getActionDataByIDAndSource(int actionID, int source);
+
 protected:
 
-	std::vector<Event*>createdEvents;
+	std::vector<Event*> createdEvents;
 
 	bool inUpdate;
 	bool inputEnabled;
 	void onUpdate (float dt);
+private:
+	bool isKeyChanged(int k);
+	bool isKeyChanged(int k, int sourceID);
+	//bool _pollActionData(const ActionData& ad);
 };
 
 #endif
-
 
 
 

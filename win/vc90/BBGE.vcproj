@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="BBGE"
 	ProjectGUID="{4C2AD812-6776-4728-A4B0-ABA397224152}"
 	RootNamespace="Aquaria_vc90"
@@ -41,10 +41,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\ExternalLibs\gl&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg-1.3.0\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis-1.3.3\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\AL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;GL_GLEXT_LEGACY=1;TIXML_USE_STL=1;HAVE_PUTENV=1;FTGL_LIBRARY_STATIC;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;BBGE_BUILD_WINDOWS=1;VFS_ENABLE_C_API=1;BBGE_USE_GLM=1;AQUARIA_INTERNAL_FTGL=1"
-				MinimalRebuild="true"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng&quot;;&quot;$(SolutionDir)\..\BBGE&quot;;&quot;$(SolutionDir)\..\ExternalLibs\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\AL&quot;;&quot;$(SolutionDir)\..\ExternalLibs\tinyxml2&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;GL_GLEXT_LEGACY=1;HAVE_PUTENV=1;FTGL_LIBRARY_STATIC;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;BBGE_BUILD_WINDOWS=1;BBGE_BUILD_VFS=1;VFS_ENABLE_C_API=1;BBGE_USE_GLM=1;AQUARIA_INTERNAL_FTGL=1"
+				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
 				EnableFunctionLevelLinking="true"
@@ -63,8 +64,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="SDL2.lib SDL2main.lib OpenAL32.lib"
-				AdditionalLibraryDirectories="&quot;$(SolutionDir)\..\ExternalLibs\AL\lib\win32&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL2\lib\win32&quot;"
+				AdditionalDependencies="SDL2.lib SDL2main.lib"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\..\ExternalLibs\SDL2\lib\win32&quot;"
 				IgnoreAllDefaultLibraries="true"
 				IgnoreDefaultLibraryNames=""
 			/>
@@ -115,8 +116,8 @@
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
 				EnableFiberSafeOptimizations="true"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\ExternalLibs\gl&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg-1.3.0\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis-1.3.3\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\AL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;GL_GLEXT_LEGACY=1;TIXML_USE_STL=1;HAVE_PUTENV=1;FTGL_LIBRARY_STATIC;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;BBGE_BUILD_WINDOWS=1;_HAS_EXCEPTIONS=0;VFS_ENABLE_C_API=1;BBGE_USE_GLM=1;AQUARIA_INTERNAL_FTGL=1"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng&quot;;&quot;$(SolutionDir)\..\BBGE&quot;;&quot;$(SolutionDir)\..\ExternalLibs\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\AL&quot;;&quot;$(SolutionDir)\..\ExternalLibs\tinyxml2&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;GL_GLEXT_LEGACY=1;HAVE_PUTENV=1;FTGL_LIBRARY_STATIC;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;BBGE_BUILD_WINDOWS=1;_HAS_EXCEPTIONS=0;BBGE_BUILD_VFS=1;VFS_ENABLE_C_API=1;BBGE_USE_GLM=1;AQUARIA_INTERNAL_FTGL=1"
 				StringPooling="true"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -139,8 +140,148 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="SDL2.lib SDL2main.lib OpenAL32.lib"
-				AdditionalLibraryDirectories="&quot;$(SolutionDir)\..\ExternalLibs\AL\lib\win32&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL2\lib\win32&quot;"
+				AdditionalDependencies="SDL2.lib SDL2main.lib"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\..\ExternalLibs\SDL2\lib\win32&quot;"
+				IgnoreAllDefaultLibraries="true"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug-SDL1.2|Win32"
+			OutputDirectory="$(SolutionDir)\temp\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory="$(SolutionDir)\temp\$(ConfigurationName)\$(ProjectName)"
+			ConfigurationType="4"
+			UseOfMFC="0"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalOptions="/MP"
+				Optimization="0"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng&quot;;&quot;$(SolutionDir)\..\BBGE&quot;;&quot;$(SolutionDir)\..\ExternalLibs\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL12\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\AL&quot;;&quot;$(SolutionDir)\..\ExternalLibs\tinyxml2&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;GL_GLEXT_LEGACY=1;HAVE_PUTENV=1;FTGL_LIBRARY_STATIC;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;BBGE_BUILD_WINDOWS=1;BBGE_BUILD_VFS=1;VFS_ENABLE_C_API=1;BBGE_USE_GLM=1;AQUARIA_INTERNAL_FTGL=1"
+				MinimalRebuild="false"
+				BasicRuntimeChecks="0"
+				RuntimeLibrary="3"
+				EnableFunctionLevelLinking="true"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="4"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				AdditionalDependencies="SDL.lib SDLmain.lib OpenAL32.lib"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\..\ExternalLibs\AL\lib\win32&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL12\lib\win32&quot;"
+				IgnoreAllDefaultLibraries="true"
+				IgnoreDefaultLibraryNames=""
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release-SDL1.2|Win32"
+			OutputDirectory="$(SolutionDir)\temp\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory="$(SolutionDir)\temp\$(ConfigurationName)\$(ProjectName)"
+			ConfigurationType="4"
+			CharacterSet="2"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="3"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				OmitFramePointers="true"
+				EnableFiberSafeOptimizations="true"
+				WholeProgramOptimization="true"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng&quot;;&quot;$(SolutionDir)\..\BBGE&quot;;&quot;$(SolutionDir)\..\ExternalLibs\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL12\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\AL&quot;;&quot;$(SolutionDir)\..\ExternalLibs\tinyxml2&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa&quot;;&quot;$(SolutionDir)\..\ExternalLibs\lvpa\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;GL_GLEXT_LEGACY=1;HAVE_PUTENV=1;FTGL_LIBRARY_STATIC;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;BBGE_BUILD_WINDOWS=1;_HAS_EXCEPTIONS=0;BBGE_BUILD_VFS=1;VFS_ENABLE_C_API=1;BBGE_USE_GLM=1;AQUARIA_INTERNAL_FTGL=1"
+				StringPooling="true"
+				ExceptionHandling="0"
+				BufferSecurityCheck="false"
+				EnableEnhancedInstructionSet="0"
+				FloatingPointModel="2"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				AdditionalDependencies="SDL.lib SDLmain.lib OpenAL32.lib"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\..\ExternalLibs\AL\lib\win32&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL12\lib\win32&quot;"
 				IgnoreAllDefaultLibraries="true"
 			/>
 			<Tool
@@ -193,6 +334,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\BBGE\ActionStatus.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\ActionStatus.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\BBGE\AfterEffect.cpp"
 				>
 			</File>
@@ -222,18 +371,6 @@
 			</File>
 			<File
 				RelativePath="..\..\BBGE\BitmapFont.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\BBGE\Collision.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\BBGE\Collision.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\BBGE\CommonEvents.h"
 				>
 			</File>
 			<File
@@ -281,14 +418,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\BBGE\Flags.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\BBGE\Flags.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\BBGE\FmodOpenALBridge.cpp"
 				>
 			</File>
@@ -305,6 +434,26 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\BBGE\GameKeyNames.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\GameKeyNames.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\GameKeys.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\GLLoad.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\GLLoad.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\BBGE\Gradient.cpp"
 				>
 			</File>
@@ -313,11 +462,27 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\BBGE\Image.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\Image.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\BBGE\Joystick.cpp"
 				>
 			</File>
 			<File
+				RelativePath="..\..\BBGE\Joystick.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\BBGE\LensFlare.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\LensFlare.h"
 				>
 			</File>
 			<File
@@ -329,19 +494,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\BBGE\Math.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\..\BBGE\MathFunctions.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\BBGE\MemoryAllocatorSmallBlock.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\BBGE\MemoryAllocatorSmallBlock.h"
 				>
 			</File>
 			<File
@@ -354,6 +507,14 @@
 			</File>
 			<File
 				RelativePath="..\..\BBGE\OpenGLStubs.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\OSFunctions.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\OSFunctions.h"
 				>
 			</File>
 			<File
@@ -385,11 +546,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\BBGE\QuadTrail.cpp"
+				RelativePath="..\..\BBGE\ReadXML.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\BBGE\QuadTrail.h"
+				RelativePath="..\..\BBGE\ReadXML.h"
 				>
 			</File>
 			<File
@@ -398,6 +559,14 @@
 			</File>
 			<File
 				RelativePath="..\..\BBGE\Refcounted.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\RenderBase.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\RenderBase.h"
 				>
 			</File>
 			<File
@@ -501,7 +670,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\BBGE\Strings.cpp"
+				RelativePath="..\..\BBGE\StringBank.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\StringBank.h"
 				>
 			</File>
 			<File
@@ -526,6 +699,22 @@
 			</File>
 			<File
 				RelativePath="..\..\BBGE\Vector.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\Window.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\Window.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\Window_SDL1.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BBGE\Window_SDL2.cpp"
 				>
 			</File>
 		</Filter>

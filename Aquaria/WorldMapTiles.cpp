@@ -19,6 +19,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "DSQ.h"
+#include "ttvfs_stdio.h"
+#include <fstream>
 
 #if MAPVIS_SUBDIV % 8 != 0
 	#error MAPVIS_SUBDIV must be a multiple of 8
@@ -255,7 +257,7 @@ void WorldMap::_load(const std::string &file)
 	std::string line;
 
 	InStream in(file.c_str());
-	
+
 	while (std::getline(in, line))
 	{
 		WorldMapTile t;
@@ -280,16 +282,16 @@ void WorldMap::save()
 
 	if (out)
 	{
-		for (int i = 0; i < worldMapTiles.size(); i++)
+		for (size_t i = 0; i < worldMapTiles.size(); i++)
 		{
 			WorldMapTile *t = &worldMapTiles[i];
 			out << t->index << " " << t->stringIndex << " " << t->name << " " << t->layer << " " << t->scale << " " << t->gridPos.x << " " << t->gridPos.y << " " << t->prerevealed << " " << t->scale2 << std::endl;
 		}
-		dsq->screenMessage(dsq->continuity.stringBank.get(2019) + " " + fn);
+		dsq->screenMessage(stringbank.get(2019) + " " + fn);
 	}
 	else
 	{
-		dsq->screenMessage(dsq->continuity.stringBank.get(2020) + " " + fn);
+		dsq->screenMessage(stringbank.get(2020) + " " + fn);
 	}
 }
 
@@ -315,7 +317,7 @@ WorldMapTile *WorldMap::getWorldMapTile(const std::string &name)
 {
 	std::string n = name;
 	stringToUpper(n);
-	for (int i = 0; i < worldMapTiles.size(); i++)
+	for (size_t i = 0; i < worldMapTiles.size(); i++)
 	{
 		if (worldMapTiles[i].name == n)
 		{
@@ -327,7 +329,7 @@ WorldMapTile *WorldMap::getWorldMapTile(const std::string &name)
 
 WorldMapTile *WorldMap::getWorldMapTileByIndex(int index)
 {
-	for (int i = 0; i < worldMapTiles.size(); i++)
+	for (size_t i = 0; i < worldMapTiles.size(); i++)
 	{
 		if (worldMapTiles[i].index == index)
 		{
@@ -337,34 +339,24 @@ WorldMapTile *WorldMap::getWorldMapTileByIndex(int index)
 	return 0;
 }
 
-/*
 
-
-
-void WorldMap::revealMapIndex(int index)
-{
-	if (index < 0 || index >= worldMapTiles.size()) return;
-
-	worldMapTiles[index].revealed = true;
-}
-*/
 
 void WorldMap::hideMap()
 {
-	for (int i = 0; i < worldMapTiles.size(); i++)
+	for (size_t i = 0; i < worldMapTiles.size(); i++)
 	{
 		worldMapTiles[i].revealed = false;
 	}
 }
 
-int WorldMap::getNumWorldMapTiles()
+size_t WorldMap::getNumWorldMapTiles()
 {
 	return worldMapTiles.size();
 }
 
-WorldMapTile *WorldMap::getWorldMapTile(int index)
+WorldMapTile *WorldMap::getWorldMapTile(size_t index)
 {
-	if (index < 0 || index >= worldMapTiles.size()) return 0;
+	if (index >= worldMapTiles.size()) return 0;
 
 	return &worldMapTiles[index];
 }

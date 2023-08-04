@@ -21,18 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef BBGE_TTFFONT_H
 #define BBGE_TTFFONT_H
 
-#include "Base.h"
 #include "BaseText.h"
 
-#ifdef AQUARIA_INTERNAL_FTGL
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
-#include "FTGL.h"
-#include "FTGLTextureFont.h"
-#else
-#include <FTGL/ftgl.h>
-#endif
+class FTGLTextureFont;
 
 struct TTFFont
 {
@@ -51,24 +42,23 @@ class TTFText : public BaseText
 {
 public:
 	TTFText(TTFFont *font);
-	void setText(const std::string &txt);
-	void setAlign(Align align);
-	void setWidth(float width);
-	float getHeight();
-	float getActualWidth() { return maxW; }
-	void setFontSize(float); // dummy
-	float getStringWidth(const std::string& s);
+	void setText(const std::string &txt) OVERRIDE;
+	void setAlign(Align align) OVERRIDE;
+	void setWidth(float width) OVERRIDE;
+	float getHeight() const OVERRIDE;
+	float getActualWidth() const OVERRIDE { return maxW; }
+	void setFontSize(float) OVERRIDE; // dummy
+	float getStringWidth(const std::string& s) const OVERRIDE;
 	bool shadow;
 	int findLine(const std::string &label);
-	float getLineHeight();
-	int getNumLines();
+	float getLineHeight() const OVERRIDE;
+	size_t getNumLines() const OVERRIDE;
 protected:
 	float width;
 	float lineHeight;
 	void updateAlign();
 	Align align;
-	void onUpdate(float dt);
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 	void updateFormatting();
 
 	std::string originalText;

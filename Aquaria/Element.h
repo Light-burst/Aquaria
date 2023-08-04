@@ -43,7 +43,7 @@ enum ElementFlag
 };
 
 struct ElementEffectData
-{	
+{
 	ElementEffectData();
 
 	int elementEffectType;
@@ -61,29 +61,28 @@ class Element : public Quad
 public:
 	Element();
 	~Element();
-	void destroy();
-	void update(float dt);
-	int templateIdx;
+	void destroy() OVERRIDE;
+	void update(float dt) OVERRIDE;
+	size_t templateIdx;
 	int bgLayer;
+	int tag;
 	Element *bgLayerNext;
-	void render();
+	void render(const RenderState& rs) const OVERRIDE;
 	ElementFlag elementFlag;
 	void fillGrid();
-	bool isElementActive() { return elementActive; }
+	bool isElementActive() const { return !_hidden; }
 	int getElementEffectIndex();
 	void setElementEffectByIndex(int e);
-	void setElementActive(bool v) { elementActive = v; }
+	void setElementActive(bool v) { _hidden = !v; }
 	void doInteraction(Entity *ent, float mult, float touchWidth);
+	void setTag(int tag);
 protected:
 	void ensureEffectData();
 	void freeEffectData();
 	void setGridFromWavy();
 	ElementEffectData *eff;
 
-	void updateEffects(float dt);
-
-	bool elementActive;
-};
+	void updateEffects(float dt);};
 
 typedef std::vector<Element*> ElementContainer;
 

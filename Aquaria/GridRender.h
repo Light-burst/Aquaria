@@ -21,11 +21,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef GRIDRENDER_H
 #define GRIDRENDER_H
 
+#include "GameEnums.h"
 #include "../BBGE/Quad.h"
-
-#include "Game.h"
+#include "ActionMapper.h"
 
 class GemMover;
+struct MinimapIcon;
+struct WorldMapTile;
+struct GemData;
+class AquariaMenuItem;
+class BitmapText;
 
 class GridRender : public RenderObject
 {
@@ -33,15 +38,15 @@ public:
 	GridRender(ObsType obsType);
 protected:
 	ObsType obsType;
-	void onUpdate(float dt);
-	void onRender();
+	void onUpdate(float dt) OVERRIDE;
+	void onRender(const RenderState& rs) const OVERRIDE;
 };
 
 class MiniMapRender : public RenderObject
 {
 public:
 	MiniMapRender();
-	void destroy();
+	void destroy() OVERRIDE;
 
 	bool isCursorIn();
 	void slide(int slid);
@@ -61,10 +66,19 @@ protected:
 	bool mouseDown;
 	bool doRender;
 	float lightLevel;
-	void onUpdate(float dt);
-	void onRender();
+	void onUpdate(float dt) OVERRIDE;
+	void onRender(const RenderState& rs) const OVERRIDE;
+	void renderIcon(const MinimapIcon *ico, const Vector& pos) const;
 
 	InterpolatedVector lerp;
+
+public:
+	static bool setWaterBitTex(const std::string& name);
+	static bool setTopTex(const std::string& name);
+	static bool setBottomTex(const std::string& name);
+	static bool setAvatarTex(const std::string& name);
+	static bool setHealthBarTex(const std::string& name);
+	static bool setMaxHealthMarkerTex(const std::string& name);
 };
 
 class WorldMapRender : public RenderObject, public ActionMapper
@@ -77,7 +91,7 @@ public:
 	Vector getAvatarWorldMapPosition();
 	Vector getWorldToTile(WorldMapTile *tile, Vector position, bool fromCenter, bool tilePos);
 	void setProperTileColor(WorldMapTile *tile);
-	void action(int id, int state);
+	void action(int id, int state, int source, InputDevice device);
 	GemMover* addGem(GemData *gemData);
 	void bindInput();
 	void createGemHint(const std::string &gfx);
@@ -101,7 +115,6 @@ protected:
 	void clearVis(WorldMapTile *tile);
 	bool on;
 	void onUpdate(float dt);
-	void onRender();
 	Quad *bg;
 	unsigned char *savedTexData;
 	bool mb;
@@ -114,7 +127,7 @@ class PathRender : public RenderObject
 public:
 	PathRender();
 protected:
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 };
 
 class CurrentRender : public RenderObject
@@ -123,8 +136,7 @@ public:
 	CurrentRender();
 protected:
 	float rippleDelay;
-	void onUpdate(float dt);
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 };
 
 class SteamRender : public RenderObject
@@ -133,8 +145,7 @@ public:
 	SteamRender();
 protected:
 	float rippleDelay;
-	void onUpdate(float dt);
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 };
 
 struct SongLinePoint
@@ -150,7 +161,7 @@ public:
 	void newPoint(const Vector &pt, const Vector &color);
 	void clear();
 protected:
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 	std::vector<SongLinePoint> pts;
 };
 

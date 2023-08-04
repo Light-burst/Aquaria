@@ -37,17 +37,13 @@ AquariaSaveSlot::AquariaSaveSlot(int slot) : AquariaGuiQuad()
 	box->setWidthHeight(450, 96);
 	box->alphaMod = 0;
 	addChild(box, PM_POINTER);
-	//setTexture("dialogue-bg");
-	//setTexture("HintBox");
-	//renderQuad = false;
-	
 
-	//shareAlphaWithChildren = 1;
 
-	text1 = new BitmapText(&dsq->smallFont);
+
+	text1 = new BitmapText(dsq->smallFont);
 	text1->setFontSize(14);
 
-	glowText = new BitmapText(&dsq->smallFont);
+	glowText = new BitmapText(dsq->smallFont);
 	glowText->alpha = 0;
 	glowText->setBlendType(BLEND_ADD);
 	glowText->setFontSize(14);
@@ -65,12 +61,7 @@ AquariaSaveSlot::AquariaSaveSlot(int slot) : AquariaGuiQuad()
 	if (description.length() > 0)
 	{
 		std::ostringstream os;
-		os << dsq->continuity.stringBank.get(2002) << " ";
-		if (dsq->isDeveloperKeys())
-			os << slot;
-		else
-			os << (slot+1);
-		os << " - " << description;
+		os << stringbank.get(2002) << " " << (slot+1) << " - " << description;
 		text1->setText(os.str());
 		glowText->setText(os.str());
 
@@ -79,7 +70,7 @@ AquariaSaveSlot::AquariaSaveSlot(int slot) : AquariaGuiQuad()
 	else
 	{
 		std::ostringstream os;
-		os << dsq->continuity.stringBank.get(2002) << " " << (slot+1) << " - " << dsq->continuity.stringBank.get(2003);
+		os << stringbank.get(2002) << " " << (slot+1) << " - " << stringbank.get(2003);
 		text1->setText(os.str());
 		glowText->setText(os.str());
 		empty = true;
@@ -126,17 +117,17 @@ AquariaSaveSlot::AquariaSaveSlot(int slot) : AquariaGuiQuad()
 
 	core->resetTimer();
 	screen->upperLeftTextureCoordinates = Vector(0, 1);
-	screen->lowerRightTextureCoordinates = Vector(1, 0.25);
-	//screen->scale = Vector(0.4, 0.3);
+	screen->lowerRightTextureCoordinates = Vector(1, 0.25f);
+
 
 	if (screen->getWidth() == 0)
 		screen->color = 0;
 	screen->setWidthHeight(0.4f*256, 0.3f*256);
-	screen->scale = Vector(0.93,0.93);
-	screen->position = Vector(-250, 0) + Vector(-1.5, -1.6);
+	screen->scale = Vector(0.93f,0.93f);
+	screen->position = Vector(-250, 0) + Vector(-1.5f, -1.6f);
 	addChild(screen, PM_POINTER);
 
-	closed = false;	
+	closed = false;
 
 	selected = false;
 }
@@ -152,7 +143,7 @@ void AquariaSaveSlot::hide()
 	glowText->alpha.interpolateTo(0, 0.5);
 	box->alpha.interpolateTo(0, 0.5);
 	if (!selected)
-	{		
+	{
 		screen->alpha.interpolateTo(0, 0.5);
 	}
 }
@@ -160,12 +151,12 @@ void AquariaSaveSlot::hide()
 void AquariaSaveSlot::close(bool trans)
 {
 	done = true;
-	
+
 	if (trans)
 	{
-		screen->alpha.interpolateTo(0, 0.1);
-		text1->alpha.interpolateTo(0, 0.1);
-	
+		screen->alpha.interpolateTo(0, 0.1f);
+		text1->alpha.interpolateTo(0, 0.1f);
+
 		setLife(1);
 		setDecayRate(10);
 		fadeAlphaWithLife = 1;
@@ -176,7 +167,7 @@ void AquariaSaveSlot::close(bool trans)
 		setDecayRate(2);
 		fadeAlphaWithLife = 1;
 	}
-	//shareAlphaWithChildren = 1;
+
 }
 
 void AquariaSaveSlot::transition()
@@ -209,10 +200,10 @@ void AquariaSaveSlot::onUpdate(float dt)
 			if (core->mouse.position.x < position.x + 150 && core->mouse.position.x > position.x - 300
 				&& core->mouse.position.y < position.y+32 && core->mouse.position.y > position.y-32)
 			{
-				//setBlendType(BLEND_ADD);
-				glowText->alpha.interpolateTo(0.5, 0.2);
-				screen->color.interpolateTo(Vector(1,1,1), 0.1);
-				//screen->scale.interpolateTo(Vector(1.2, 1.2), 0.2);
+
+				glowText->alpha.interpolateTo(0.5f, 0.2f);
+				screen->color.interpolateTo(Vector(1,1,1), 0.1f);
+
 				if ((core->mouse.buttons.left || core->mouse.buttons.right) && !mbDown)
 				{
 					mbDown = true;
@@ -223,22 +214,22 @@ void AquariaSaveSlot::onUpdate(float dt)
 					if (!(empty && dsq->saveSlotMode == SSM_LOAD))
 					{
 						selected = true;
-						// pick this file
-						dsq->playMenuSelectSfx();					
+
+						dsq->playMenuSelectSfx();
 
 						closed = true;
 						if (dsq->saveSlotMode == SSM_LOAD)
 						{
-							//dsq->clearSaveSlots();
+
 							dsq->hideSaveSlots();
 							this->moveToFront();
-							//screen->enableMotionBlur(10, 5);
+
 							screen->position.interpolateTo(Vector(400-position.x, 300-position.y), 1.0, 0, 0, 1);
 							dsq->tfader->alpha.interpolateTo(1, 1);
 							dsq->toggleCursor(false);
-							core->main(1);
-							
-							//core->main(2);						
+							core->run(1);
+
+
 						}
 
 						bool didIt = dsq->onPickedSaveSlot(this);
@@ -246,10 +237,9 @@ void AquariaSaveSlot::onUpdate(float dt)
 						if (didIt)
 						{
 							done = true;
-							
-							//alpha = 0.9;
-							//setBlendType(BLEND_DEFAULT);
-							//glowText->alpha.interpolateTo(0, 0.2);
+
+
+
 							return;
 						}
 						else
@@ -262,9 +252,9 @@ void AquariaSaveSlot::onUpdate(float dt)
 			}
 			else
 			{
-				glowText->alpha.interpolateTo(0, 0.2);
-				//screen->scale.interpolateTo(Vector(1, 1), 0.2);
-				screen->color.interpolateTo(Vector(0.7, 0.7, 1), 0.3);
+				glowText->alpha.interpolateTo(0, 0.2f);
+
+				screen->color.interpolateTo(Vector(0.7f, 0.7f, 1), 0.3f);
 			}
 			if ((core->mouse.buttons.left || core->mouse.buttons.right) && !mbDown)
 			{
@@ -278,10 +268,117 @@ void AquariaSaveSlot::onUpdate(float dt)
 	}
 	else
 	{
-		glowText->alpha.interpolateTo(0, 0.2);
+		glowText->alpha.interpolateTo(0, 0.2f);
 	}
 }
 
+static std::string getPrettySceneName_internal(const XMLElement *startData)
+{
+	std::string location = startData->Attribute("scene");
+	stringToLower(location);
+	if (location.find("boilerroom")!=std::string::npos)
+	{
+		location = stringbank.get(1000);
+	}
+	else if (location.find("seahorse")!=std::string::npos)
+	{
+		location = stringbank.get(1028);
+	}
+	else if (location.find("whale")!=std::string::npos)
+	{
+		location = stringbank.get(1001);
+	}
+	else if (location.find("frozenveil")!=std::string::npos)
+	{
+		location = stringbank.get(1002);
+	}
+	else if (location.find("bubblecave")!=std::string::npos)
+	{
+		location = stringbank.get(1003);
+	}
+	else if (location.find("energytemple")!=std::string::npos)
+	{
+		location = stringbank.get(1004);
+	}
+	else if (location.find("trainingcave")!=std::string::npos)
+	{
+		location = stringbank.get(1023);
+	}
+	else if (location.find("vedhacave")!=std::string::npos)
+	{
+		location = stringbank.get(1005);
+	}
+	else if (location.find("naijacave")!=std::string::npos)
+	{
+		location = stringbank.get(1006);
+	}
+	else if (location.find("songcave")!=std::string::npos)
+	{
+		location = stringbank.get(1007);
+	}
+	else if (location.find("mainarea")!=std::string::npos)
+	{
+		location = stringbank.get(1008);
+	}
+	else if (location.find("openwater")!=std::string::npos)
+	{
+		location = stringbank.get(1009);
+	}
+	else if (location.find("forest")!=std::string::npos
+		|| location.find("tree")!=std::string::npos)
+	{
+		location = stringbank.get(1010);
+	}
+	else if (location.find("mithalas")!=std::string::npos)
+	{
+		location = stringbank.get(1011);
+	}
+	else if (location.find("cathedral")!=std::string::npos)
+	{
+		location = stringbank.get(1012);
+	}
+	else if (location.find("suntemple")!=std::string::npos || location.find("sunworm")!=std::string::npos)
+	{
+		location = stringbank.get(1013);
+	}
+	else if (location.find("veil")!=std::string::npos)
+	{
+		location = stringbank.get(1014);
+	}
+	else if (location.find("abyss")!=std::string::npos)
+	{
+		location = stringbank.get(1015);
+	}
+	else if (location.find("sunkencity")!=std::string::npos)
+	{
+		location = stringbank.get(1016);
+	}
+	else if (location.find("fishcave")!=std::string::npos)
+	{
+		location = stringbank.get(1017);
+	}
+	else if (location.find("octocave")!=std::string::npos)
+	{
+		location = stringbank.get(1018);
+	}
+	else if (location.find("icecave")!=std::string::npos)
+	{
+		location = stringbank.get(1019);
+	}
+	else if (location.find("secret")!=std::string::npos)
+	{
+		location = stringbank.get(1020);
+	}
+	else if (location.find("final")!=std::string::npos)
+	{
+		location = stringbank.get(1021);
+	}
+	else if (location.find("licave")!=std::string::npos)
+	{
+		location = stringbank.get(1029);
+	}
+	return location;
+}
 
 std::string AquariaSaveSlot::getSaveDescription(const XMLDocument &doc)
 {
@@ -292,11 +389,7 @@ std::string AquariaSaveSlot::getSaveDescription(const XMLDocument &doc)
 	int hours, minutes, seconds;
 	hours = minutes = seconds = 0;
 
-	int exp = 0, money = 0, time = 0;
-	if (startData->Attribute("exp"))
-		exp = atoi(startData->Attribute("exp"));
-	if (startData->Attribute("money"))
-		money = atoi(startData->Attribute("money"));
+	int time = 0;
 	if (startData->Attribute("seconds"))
 	{
 		std::istringstream is(startData->Attribute("seconds"));
@@ -306,115 +399,9 @@ std::string AquariaSaveSlot::getSaveDescription(const XMLDocument &doc)
 	float s = dsq->continuity.seconds;
 	dsq->continuity.seconds = time;
 	dsq->continuity.getHoursMinutesSeconds(&hours, &minutes, &seconds);
-	
-	/*
-	std::ostringstream os;
-	os << "Slot: " << slot << " - " << startData->Attribute("scene") << " - exp: " << exp << " - wealth: " << money;
-	os << " Time: " << hours << ": " << minutes << ": " << seconds << " T: " << time;
-	*/
-	std::string location = startData->Attribute("scene");
-	stringToLower(location);
-	if (location.find("boilerroom")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1000);
-	}
-	else if (location.find("seahorse")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1028);
-	}
-	else if (location.find("whale")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1001);
-	}
-	else if (location.find("frozenveil")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1002);
-	}
-	else if (location.find("bubblecave")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1003);
-	}
-	else if (location.find("energytemple")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1004);
-	}
-	else if (location.find("trainingcave")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1023);
-	}
-	else if (location.find("vedhacave")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1005);
-	}
-	else if (location.find("naijacave")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1006);
-	}
-	else if (location.find("songcave")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1007);
-	}
-	else if (location.find("mainarea")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1008);
-	}
-	else if (location.find("openwater")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1009);
-	}
-	else if (location.find("forest")!=std::string::npos
-		|| location.find("tree")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1010);
-	}
-	else if (location.find("mithalas")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1011);
-	}
-	else if (location.find("cathedral")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1012);
-	}
-	else if (location.find("suntemple")!=std::string::npos || location.find("sunworm")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1013);
-	}
-	else if (location.find("veil")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1014);
-	}
-	else if (location.find("abyss")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1015);
-	}
-	else if (location.find("sunkencity")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1016);
-	}
-	else if (location.find("fishcave")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1017);
-	}
-	else if (location.find("octocave")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1018);
-	}
-	else if (location.find("icecave")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1019);
-	}
-	else if (location.find("secret")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1020);
-	}
-	else if (location.find("final")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1021);
-	}
-	else if (location.find("licave")!=std::string::npos)
-	{
-		location = dsq->continuity.stringBank.get(1029);
-	}
+
+	const char *loccstr = startData->Attribute("sceneDisplayName");
+	std::string location = (loccstr && *loccstr) ? loccstr : getPrettySceneName_internal(startData);
 
 	std::string showLoc;
 	if (dsq->isDeveloperKeys())
@@ -424,8 +411,8 @@ std::string AquariaSaveSlot::getSaveDescription(const XMLDocument &doc)
 	std::ostringstream os;
 	os << location << std::endl;
 	os << hours << ":" << numToZeroString(minutes, 2) << showLoc;
-	// << ": " << seconds;
-	//" T: " << time;
+
+
 
 	dsq->continuity.seconds = s;
 

@@ -29,8 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../BBGE/TTFFont.h"
 #include "../BBGE/RoundedRect.h"
 
-#include "tinyxml2.h"
-using namespace tinyxml2;
+namespace tinyxml2 { class XMLDocument; }
 
 class AquariaGuiElement
 {
@@ -53,8 +52,14 @@ protected:
 	static GuiElements guiElements;
 	static float guiMoveTimer;
 	void updateMovement(float dt);
-	bool hasFocus, canDirMove;
+	bool hasFocus() const;
+	bool canDirMove;
 	AquariaGuiElement *dirMove[DIR_MAX];
+	static AquariaGuiElement *FindClosestTo(AquariaGuiElement *cur, Vector pos, Direction dir);
+	static Direction GetDirection();
+	static AquariaGuiElement *FocusClosestToMouse(Direction dir);
+public:
+	static void UpdateGlobalFocus(float dt);
 };
 
 class AquariaGuiQuad : public Quad, public AquariaGuiElement
@@ -78,13 +83,12 @@ public:
 	void setLabel(const std::string &label);
 	EventPtr event;
 	BitmapText *font, *glowFont;
-	XMLElement *ability, *xmlItem;
-	int choice;
 	Quad *glow, *quad;
 	bool useQuad(const std::string &tex);
 	void useGlow(const std::string &tex, int w, int h);
 	void useSound(const std::string &tex);
-	
+	virtual void action(int actionID, int state, int source, InputDevice device) {}
+
 	virtual bool isCursorInMenuItem();
 	Vector getGuiPosition();
 	bool isGuiVisible();
@@ -96,7 +100,8 @@ protected:
 	bool highlighted;
 	void toggleHighlight(bool v);
 	void onClick();
-	void onUpdate(float dt);
+	virtual void onUpdate(float dt);
+	virtual void onToggleHighlight(bool on) {}
 };
 
 class AquariaSaveSlot : public AquariaGuiQuad
@@ -113,14 +118,14 @@ public:
 
 	bool mbDown;
 
-	static std::string getSaveDescription(const XMLDocument &doc);
+	static std::string getSaveDescription(const tinyxml2::XMLDocument &doc);
 
 protected:
 	void onUpdate(float dt);
 	bool selected;
 	static bool closed;
 	bool done;
-	
+
 	int slotIndex;
 	bool empty;
 	Quad *gfx;
@@ -168,39 +173,39 @@ public:
 	bool isGuiVisible();
 
 	static AquariaKeyConfig *waitingForInput;
-	
-	void setLock(int lock);
-	
+
+	void setActionSetIndex(size_t idx);
+	void setRejectJoyAxis(bool b);
+
 protected:
-	int locked;
 	void toggleEnterKey(int on);
 
 	void onUpdate(float dt);
 
 	bool keyDown;
 
-	
+
 	std::string actionInputName;
 	InputSetType inputSetType;
 	int inputIdx;
-
-	//BitmapText *label;
-	//DebugFont *keyConfigFont;
 	TTFText *keyConfigFont;
-	Quad *bg;
+	Quad *bg, *bg2;
+	size_t actionSetIndex;
+	bool rejectJoyAxis;
 };
 
 class AquariaComboBox;
 
 class AquariaComboBoxItem : public Quad
 {
+	friend class AquariaComboBox;
 public:
-	AquariaComboBoxItem(const std::string &str, int idx, AquariaComboBox *combo, Vector textscale);
+	AquariaComboBoxItem(const std::string &str, size_t idx, AquariaComboBox *combo, Vector textscale);
 
 protected:
 	void onUpdate(float dt);
 
-	int index;
+	size_t index;
 	AquariaComboBox *combo;
 
 	BitmapText *label;
@@ -211,35 +216,32 @@ class AquariaComboBox : public RenderObject
 {
 public:
 	AquariaComboBox(Vector textscale = Vector(1, 1));
-
-	void destroy();
-
-	int addItem(const std::string &n);
-	void open(float t=0.1);
-	void close(float t=0.1);
-	void setSelectedItem(int index);
+	size_t addItem(const std::string &n);
+	void open(float t=0.1f);
+	void close(float t=0.1f);
+	void setSelectedItem(size_t index);
 	bool setSelectedItem(const std::string &item);
-	int getSelectedItem();
-	void enqueueSelectItem(int index);
-	void setScroll(int sc);
+	size_t getSelectedItem();
+	void enqueueSelectItem(size_t index);
+	void setScroll(size_t sc);
 	std::string getSelectedItemString();
 	void doScroll(int dir);
+	bool isOpen() const { return isopen; }
 protected:
 	void onUpdate(float dt);
 
-	int numDrops;
+	size_t numDrops;
 	bool mb, isopen;
 
-	int scroll;
-	int enqueuedSelectItem;
+	size_t scroll;
+	size_t enqueuedSelectItem;
 
 	std::vector<std::string> items;
-	std::vector<BitmapText*> itemTexts;
 
-	Quad *bar, *window, *scrollBtnUp, *scrollBtnDown, *scrollBar;
+	Quad *bar, *scrollBtnUp, *scrollBtnDown;
 
 	BitmapText *selectedItemLabel;
-	int selectedItem;
+	size_t selectedItem;
 	float scrollDelay;
 	bool firstScroll;
 	Vector textscale;
@@ -247,18 +249,32 @@ protected:
 	std::vector<AquariaComboBoxItem*> shownItems;
 };
 
-/*
-class SelectionList : public RenderObject
+class AquariaButton : public AquariaMenuItem
 {
 public:
-	SelectionList(std::string file, std::string font, int items);
-	void reload();
+	AquariaButton(const std::string texbase, TTFFont *font);
 
-	virtual void onSelect(int idx){}
+	void setButtonLabel(const std::string& s);
+	void goDown();
+	void goUp();
+
+	Vector activeColor;
+	float activeAlpha;
+	Vector inactiveColor;
+	float inactiveAlpha;
+
+	TTFText * const buttonlabel;
+
 protected:
-	void load();
-	std::vector<std::string> list;
+
+	virtual void action(int actionID, int state, int source, InputDevice device);
+	virtual void onUpdate(float dt);
+	virtual void onToggleHighlight(bool on);
+
+	std::string _texbase;
+	int pressed;
+	int lastpressed;
 };
-*/
+
 
 #endif

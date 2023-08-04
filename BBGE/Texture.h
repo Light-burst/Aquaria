@@ -18,25 +18,20 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#ifndef __texture__
-#define __texture__
+#ifndef BBGE_TEXTURE_H
+#define BBGE_TEXTURE_H
 
-#include "Base.h"
+#include <string>
+#include "Refcounted.h"
+
 
 enum TextureLoadResult
 {
-	TEX_FAILED  = 0x00,
-	TEX_SUCCESS = 0x01,
-	TEX_LOADED  = 0x02,
+	TEX_FAILED,
+	TEX_SUCCESS
 };
 
-struct ImageTGA
-{
-	int channels;			// The channels in the image (3 = RGB : 4 = RGBA)
-	int sizeX;				// The width of the image in pixels
-	int sizeY;				// The height of the image in pixels
-	unsigned char *data;	// The image pixel data
-};
+struct ImageData;
 
 class Texture : public Refcounted
 {
@@ -44,56 +39,30 @@ public:
 	Texture();
 	~Texture();
 
-	bool load(std::string file);
-	void apply(bool repeatOverride=false);
-	void unbind();
+	void apply(bool repeat = false) const;
 	void unload();
 
-	int getPixelWidth();
-	int getPixelHeight();
-	
-	void destroy();
-	
-
+	unsigned gltexid;
 	int width, height;
 
-	static ImageTGA *TGAload(const char* filename);
-	static ImageTGA *TGAloadMem(void *mem, int size);
-	
-	static bool useMipMaps;
-	bool repeat, repeating;
+	void writeRGBA(int tx, int ty, int w, int h, const unsigned char *pixels);
+	void readRGBA(unsigned char *pixels);
 
-#ifdef BBGE_BUILD_OPENGL
-	static GLint filter;
-	static GLint format;
-	GLuint textures[1];
-#endif
-#ifdef BBGE_BUILD_DIRECTX
-	LPDIRECT3DTEXTURE9 d3dTexture;
-#endif
+	unsigned char *getBufferAndSize(int *w, int *h, size_t *size); // returned memory must be free()'d
 
-	void reload();
+	std::string name, filename;
+	bool upload(const ImageData& img, bool mipmap);
 
-	void write(int tx, int ty, int w, int h, const unsigned char *pixels);
-	void read(int tx, int ty, int w, int h, unsigned char *pixels);
-
-	unsigned char *getBufferAndSize(int *w, int *h, unsigned int *size); // returned memory must be free()'d
-
-	std::string name;
+	bool success;
 
 protected:
-	std::string loadName;
-
-	// internal load functions
-	bool loadPNG(const std::string &file);
-	bool loadTGA(const std::string &file);
-	bool loadZGA(const std::string &file);
-	bool loadTGA(ImageTGA *tga);
 
 	int ow, oh;
-	
+	bool _mipmap;
+private:
+	mutable bool _repeating; // modified during rendering
 };
 
-#define UNREFTEX(x) if (x) {x = NULL;}
+#define UNREFTEX(x) {x = NULL;}
 
 #endif

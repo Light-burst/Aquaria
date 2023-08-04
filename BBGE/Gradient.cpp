@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "Gradient.h"
 #include "Core.h"
+#include "RenderBase.h"
 
 Gradient::Gradient() : RenderObject()
 {
@@ -57,49 +58,28 @@ void Gradient::makeHorizontal(Vector c1, Vector c2)
 	ulc3 = c1;
 }
 
-void Gradient::onRender()
+void Gradient::onRender(const RenderState& rs) const
 {
-#ifdef BBGE_BUILD_DIRECTX
-	core->blitD3DGradient
-		(	ulc0.getD3DColor(alpha.x),
-			ulc1.getD3DColor(alpha.x),
-			ulc2.getD3DColor(alpha.x),
-			ulc3.getD3DColor(alpha.x));
-#endif
-#ifdef BBGE_BUILD_OPENGL
-	//glNormal3f(0, 0, 1);
+
 
 	glBegin(GL_QUADS);
-		//glNormal3f(0, 0, 1);
+
 
 		glColor4f(ulc2.x*color.x, ulc2.y*color.y, ulc2.z*color.z, alpha.x);
 		glVertex3f(-0.5, 0.5,  0.0f);
 
-		// 2		
+
 		glColor4f(ulc3.x*color.x, ulc3.y*color.y, ulc3.z*color.z, alpha.x);
 		glVertex3f( 0.5, 0.5,  0.0f);
 
-		// 3
+
 		glColor4f(ulc0.x*color.x, ulc0.y*color.y, ulc0.z*color.z, alpha.x);
 		glVertex3f( 0.5,  -0.5,  0.0f);
 
-		// 4
-		glColor4f(ulc1.x*color.x, ulc1.y*color.y, ulc1.z*color.z, alpha.x);	
+
+		glColor4f(ulc1.x*color.x, ulc1.y*color.y, ulc1.z*color.z, alpha.x);
 		glVertex3f(-0.5,  -0.5,  0.0f);
-		/*
-		glColor3f(ulc0.x, ulc0.y, ulc0.z);
-		glVertex3f(-0.5, -0.5, 0);
 
-		glColor3f(ulc1.x, ulc1.y, ulc1.z);
-		glVertex3f(0.5, -0.5, 0);
-
-		glColor3f(ulc2.x, ulc2.y, ulc2.z);
-		glVertex3f(0.5, 0.5, 0);
-
-		glColor3f(ulc3.x, ulc3.y, ulc3.z);
-		glVertex3f(-0.5, 0.5, 0);
-		*/
 	glEnd();
-#endif
 }
 

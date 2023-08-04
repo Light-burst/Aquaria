@@ -23,18 +23,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "CollideEntity.h"
 #include "Segmented.h"
-#include "Hair.h"
-struct lua_State;
+#include "Particles.h"
+#include "Scriptable.h"
 
-class ScriptedEntity : public CollideEntity, public Segmented
+struct lua_State;
+class Script;
+
+class ScriptedEntity : public CollideEntity, public Segmented, public Scriptable
 {
 public:
 	ScriptedEntity(const std::string &scriptName, Vector position, EntityType et = ET_ENEMY);
+	virtual ~ScriptedEntity();
 	void init();
 	void postInit();
 	void destroy();
-	void stopTimer();
-	void resetTimer(float t);
 	void setEntityLayer(int layer);
 	void setupEntity(const std::string &tex, int layer=0);
 	void setupBasicEntity(const std::string& texture, int health, int manaBall, int exp, int money, float collideRadius, int state, int w, int h, int expType, bool hitEntity, int updateCull, int layer);
@@ -43,13 +45,15 @@ public:
 	typedef std::map<std::string, RenderObject*> PartMap;
 	PartMap partMap;
 	bool surfaceMoveDir;
-	void activate();
+	void activate(Entity *by, int source); // override
 	void warpSegments();
 	void lightFlare();
 	void entityDied(Entity *e);
 	void message(const std::string &msg, int v);
+	int callVariadic(const char *func, lua_State *L, int nparams);
 	int messageVariadic(lua_State *L, int nparams);
-	
+	int activateVariadic(lua_State *L, int nparams);
+
 	static bool runningActivation;
 
 	void sporesDropped(const Vector &pos, int type);
@@ -76,12 +80,12 @@ public:
 
 	ParticleEffect pullEmitter;
 	float manaBallAmount;
-	
-	void initEmitter(int emit, const std::string &file);
-	void startEmitter(int emit);
-	void stopEmitter(int emit);
-	ParticleEffect *getEmitter(int emit);
-	int getNumEmitters() const;
+
+	void initEmitter(size_t emit, const std::string &file);
+	void startEmitter(size_t emit);
+	void stopEmitter(size_t emit);
+	ParticleEffect *getEmitter(size_t emit);
+	size_t getNumEmitters() const;
 
 	void shiftWorlds(WorldType lastWorld, WorldType worldType);
 	void setAutoSkeletalUpdate(bool v);
@@ -100,18 +104,15 @@ protected:
 	void onAlwaysUpdate(float dt);
 	void updateStrands(float dt);
 	bool animKeyFunc;
-	//void onPathEnd();
-	
-	void onExitTimer();
-	float myTimer;
+
 	void onHitWall();
 	bool reverseSegments;
-	Script *script;
 	void onUpdate(float dt);
 	void onEnterState(int action);
 	void onExitState(int action);
 	virtual void deathNotify(RenderObject *r);
 	bool canShotHitFunc;
+	bool postInitDone;
 };
 
 #endif

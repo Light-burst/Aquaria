@@ -22,12 +22,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ACTIONINPUT_H
 
 #include <string>
-#include <vector>
-#include <sstream>
 
-#define INP_MSESIZE		1
-#define INP_KEYSIZE		2
-#define INP_JOYSIZE		1
+enum ActionInputSize
+{
+	INP_MSESIZE = 1,
+	INP_KEYSIZE = 2,
+	INP_JOYSIZE = 1,
+	INP_COMBINED_SIZE = INP_MSESIZE + INP_KEYSIZE + INP_JOYSIZE
+};
+
+std::string getInputCodeToString(int k);
+std::string getInputCodeToUserString(unsigned int k, size_t joystickID);
+int getStringToInputCode(const std::string& s);
 
 class ActionInput
 {
@@ -36,15 +42,20 @@ public:
 
 	std::string name;
 
-	int mse[INP_MSESIZE];
-	int key[INP_KEYSIZE];
-	int joy[INP_JOYSIZE];
+	union
+	{
+		struct
+		{
+			unsigned int mse[INP_MSESIZE];
+			unsigned int key[INP_KEYSIZE];
+			unsigned int joy[INP_JOYSIZE];
+		} single;
+		int all[INP_COMBINED_SIZE];
+	} data;
 
-	std::string toString();
+	std::string toString() const;
 	void fromString(const std::string &read);
 };
-
-typedef std::vector<ActionInput> ActionInputSet;
 
 enum InputSetType
 {
@@ -53,6 +64,14 @@ enum InputSetType
 	INPUTSET_JOY		= 2,
 	INPUTSET_MOUSE		= 3,
 	INPUTSET_OTHER		= 4
+};
+
+enum InputDevice
+{
+	INPUT_NODEVICE = 0,
+	INPUT_MOUSE,
+	INPUT_JOYSTICK,
+	INPUT_KEYBOARD
 };
 
 #endif

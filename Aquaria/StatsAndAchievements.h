@@ -21,8 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef STATS_ACH_H
 #define STATS_ACH_H
 
-#ifdef BBGE_BUILD_ACHIEVEMENTS_INTERNAL
-#include <queue>
+#ifndef BBGE_BUILD_STEAMWORKS
+#include <list>
 #endif
 
 enum Achievements
@@ -99,13 +99,13 @@ struct PlayStats
 	// maybe
 	int timesPlayed;			// # of times the game started
 	int timesPoisoned;			// # of times the poison applied gets called on Naija
-	
+
 	int timesUsedTurtle;		// # of times trans turtle is used (how to check?)
 	int timesRideSeahorse;		// # of times ride seahorse
 	int timesLeptOutOfWater;	// # of times Naija goes not underwater after being underwater
 	int timesBackflipped;		// # of times Naija does a backflip, check in Avatar.cpp
 	float highestDive;			// ...?
-	
+
 	int creaturesConsumed;		// # of times swallow creatures, check in Avatar.cpp
 	int sealoafsConsumed;		// # of sealoafs eaten
 	int creaturesKilled;		//
@@ -143,9 +143,9 @@ private:
 	// Store stats
 	void StoreStatsIfNecessary();
 
-#ifdef BBGE_BUILD_ACHIEVEMENTS_INTERNAL
+#ifndef BBGE_BUILD_STEAMWORKS
 	float unlockedDisplayTimestamp;
-	std::queue<std::string> unlockedToBeDisplayed;
+	std::list<std::string> unlockedToBeDisplayed;
 #endif
 
 	// Did we get the stats from Steam?
@@ -155,7 +155,7 @@ private:
 	// Should we store stats this frame?
 	bool storeStats;
 
-	PlayStats playStats;
+	// PlayStats playStats;
 
 	// Current Stat details
 	//float m_flGameFeetTraveled;

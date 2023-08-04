@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "Game.h"
 #include "Avatar.h"
+#include "ManaBall.h"
 
 const float MULT_MANABALL_EASY = 1.5;
 
@@ -41,11 +42,6 @@ ManaBall::ManaBall(Vector pos, float amount) : Quad()
 	setBlendType(BLEND_ADD);
 	used = false;
 	addChild(&healEmitter, PM_STATIC);
-
-	if (dsq->difficulty == DSQ::DIFF_EASY)
-	{
-		amount *= MULT_MANABALL_EASY;
-	}
 }
 
 void ManaBall::destroy()
@@ -64,16 +60,16 @@ void ManaBall::use(Entity *entity)
 	entity->heal(amount, 1);
 	scale.ensureData();
 	scale.data->path.addPathNode(scale, 0);
-	scale.data->path.addPathNode(Vector(1.25, 1.25), 0.5);
+	scale.data->path.addPathNode(Vector(1.25f, 1.25f), 0.5f);
 	scale.data->path.addPathNode(Vector(0,0), 1);
 	scale.startPath(1);
-	setLife(1.1);
+	setLife(1.1f);
 	used = true;
 }
 
 void ManaBall::onUpdate(float dt)
 {
-	if (dsq->game->isPaused()) return;
+	if (game->isPaused()) return;
 
 	Quad::onUpdate(dt);
 
@@ -86,25 +82,25 @@ void ManaBall::onUpdate(float dt)
 			this->scale.interpolateTo(Vector(0,0),1);
 			setLife(1);
 			setDecayRate(1);
-			//this->shareAlphaWithChildren = 1;
-			//this->fadeAlphaWithLife = 1;
+
+
 		}
 	}
 
-	if (dsq->game->avatar)
+	if (game->avatar)
 	{
 		if (!used)
 		{
-			Vector diff = (dsq->game->avatar->position - position);
+			Vector diff = (game->avatar->position - position);
 			if (diff.isLength2DIn(96))
 			{
-				use(dsq->game->avatar);
-				//position.interpolateTo(dsq->game->avatar->position, 0.5);
+				use(game->avatar);
+
 			}
 			else
 			{
 				float len = 1000;
-				if (dsq->game->avatar->isRolling() && diff.isLength2DIn(len))
+				if (game->avatar->isRolling() && diff.isLength2DIn(len))
 				{
 					float maxSpeed = 800;
 					Vector maxV = diff;
@@ -121,10 +117,10 @@ void ManaBall::onUpdate(float dt)
 		}
 		else
 		{
-			position.interpolateTo(dsq->game->avatar->position, 0.2);
-			//position = ;
+			position.interpolateTo(game->avatar->position, 0.2f);
+
 		}
 	}
-	position.z = 0.5;
+	position.z = 0.5f;
 }
 

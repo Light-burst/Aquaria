@@ -23,11 +23,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Core.h"
 
+class Shader;
 
 class Effect
 {
 public:
 	Effect();
+	virtual ~Effect(){}
 	virtual void go(){}
 	virtual void update(float dt, Vector ** drawGrid, int xDivs, int yDivs){}
 	bool done;
@@ -51,7 +53,7 @@ public:
 		this->timeMultiplier = timeMultiplier;
 	}
 	float timeMultiplier;
-	//void go();
+
 	void update(float dt, Vector ** drawGrid, int xDivs, int yDivs);
 
 	float waveLength;
@@ -86,9 +88,9 @@ public:
 
 	void resetGrid();
 
-	void render();
-	void renderGrid();
-	void renderGridPoints();
+	void render() const;
+	void renderGrid() const;
+	void renderGridPoints() const;
 
 	void loadShaders();
 	void unloadShaders(); // unloads shaders but keeps code and data intact, so that they can be reloaded.
@@ -96,9 +98,10 @@ public:
 
 	void unloadDevice();
 	void reloadDevice();
+	void updateDevice();
 
 	std::vector<Effect*> effects;
-	std::queue<int> openSpots;
+	std::vector<int> openSpots;
 
 	bool active;
 
@@ -109,7 +112,7 @@ public:
 	int screenWidth, screenHeight;
 	int textureWidth, textureHeight;
 
-	Vector ** drawGrid;
+	Vector ** drawGrid; // TODO: make this + related code use RenderGrid
 
 	// returns handle > 0 on success
 	int loadShaderFile(const char *vert, const char *frag);
@@ -120,6 +123,7 @@ public:
 	void deleteShader(int handle);
 
 protected:
+	void _updateScreenSize();
 	int _insertShader(Shader *sh);
 
 	std::vector<Shader*> shaderPipeline; // Shaders are applied in this order. Can contain the same pointer more than once.

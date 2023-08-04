@@ -19,6 +19,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "DSQ.h"
+#include "ttvfs_stdio.h"
 
 GameplayVariables *vars = 0;
 
@@ -27,7 +28,7 @@ void GameplayVariables::load()
 	InStream inFile("data/variables.txt");
 	if(!inFile)
 	{
-		exit_error(dsq->continuity.stringBank.get(2017));
+		exit_error(stringbank.get(2017));
 	}
 	std::string s;
 	inFile >> s >> maxSlowSwimSpeed;
@@ -56,11 +57,7 @@ void GameplayVariables::load()
 	inFile >> s >> zoomNaija;
 	inFile >> s >> maxOutOfWaterSpeed;
 	inFile >> s >> defaultCameraLerpDelay;
-	/*
-	inFile >> s >> initialId;
-	inFile >> s >> initialEgo;
-	inFile >> s >> initialSuperEgo;
-	*/
+
 	inFile.close();
 }
 

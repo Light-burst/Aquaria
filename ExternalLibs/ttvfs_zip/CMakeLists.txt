@@ -8,8 +8,7 @@ set(ttvfs_zip_SRC
     VFSZipArchiveLoader.h
     VFSZipArchiveRef.cpp
     VFSZipArchiveRef.h
-    miniz.c
-    miniz.h
+    ttvfs_zip.h
 )
 
 include_directories(${TTVFS_INCLUDE_DIRS})

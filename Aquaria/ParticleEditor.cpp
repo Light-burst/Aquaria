@@ -26,9 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Game.h"
 
 
-#ifdef AQUARIA_BUILD_SCENEEDITOR  // Through end of file
-
-
 ParticleEditor *pe = 0;
 
 
@@ -46,8 +43,8 @@ void ParticleEditor::applyState()
 
 	addAction(MakeFunctionEvent(ParticleEditor, load), KEY_F1, 0);
 	addAction(MakeFunctionEvent(ParticleEditor, reload), KEY_F5, 0);
-	//addAction(MakeFunctionEvent(ParticleEditor, start), KEY_F5, 0);
-	//addAction(MakeFunctionEvent(ParticleEditor, stop), KEY_F6, 0);
+
+
 	addAction(MakeFunctionEvent(ParticleEditor, start), MOUSE_BUTTON_LEFT, 0);
 	addAction(MakeFunctionEvent(ParticleEditor, stop), MOUSE_BUTTON_RIGHT, 0);
 
@@ -58,14 +55,14 @@ void ParticleEditor::applyState()
 	Gradient *grad = new Gradient;
 	grad->scale = Vector(800, 600);
 	grad->position = Vector(400,300);
-	grad->makeVertical(Vector(0.4, 0.4, 0.4), Vector(0.8, 0.8, 0.8));
+	grad->makeVertical(Vector(0.4f, 0.4f, 0.4f), Vector(0.8f, 0.8f, 0.8f));
 	addRenderObject(grad, LR_BACKDROP);
 
 	core->cameraPos = Vector(0,0);
 
 	emitter = new ParticleEffect;
-	//emitter->followCamera = 1;
-	//emitter->position = Vector(400,300);
+
+
 	addRenderObject(emitter, LR_ENTITIES);
 
 	dsq->overlay->alpha.interpolateTo(0, 0.5);
@@ -123,16 +120,16 @@ void ParticleEditor::update(float dt)
 void ParticleEditor::goToTitle()
 {
 	if (!dsq->returnToScene.empty())
-		dsq->game->transitionToScene(dsq->returnToScene);
+		game->transitionToScene(dsq->returnToScene);
 	else
-		dsq->title();
+		dsq->title(false);
 }
 
 void ParticleEditor::load()
 {
 	particleManager->loadParticleBank(dsq->particleBank1, dsq->particleBank2);
 	emitter->stop();
-	std::string pname = dsq->getUserInputString(dsq->continuity.stringBank.get(2018));
+	std::string pname = dsq->getUserInputString(stringbank.get(2018));
 	lastLoadedParticle = pname;
 	emitter->load(pname);
 	emitter->start();
@@ -156,6 +153,3 @@ void ParticleEditor::stop()
 {
 	emitter->stop();
 }
-
-
-#endif  // AQUARIA_BUILD_SCENEEDITOR

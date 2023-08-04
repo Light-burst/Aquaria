@@ -24,9 +24,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../BBGE/Base.h"
 #include "../BBGE/Particles.h"
 #include "../BBGE/ScriptObject.h"
-#include "ScriptInterface.h"
+#include "Rect.h"
+#include "Scriptable.h"
 
 #undef PATH_MAX  // May be set by a system header.
+
+struct MinimapIcon;
+class Entity;
 
 class PathNode
 {
@@ -69,7 +73,7 @@ enum PathShape
 	PATHSHAPE_CIRCLE	= 1
 };
 
-class Path : public ScriptObject
+class Path : public ScriptObject, public Scriptable
 {
 public:
 	Path();
@@ -80,19 +84,19 @@ public:
 	void song(SongType song);
 	void songNote(int note);
 	void songNoteDone(int note, float len);
-	bool hasScript();
+	bool hasScript() const;
 	std::string name; // full node string
 	std::string label; // first part only (the actual node name)
 	std::vector<PathNode>nodes;
-	void removeNode(int idx);
-	void addNode(int idx);
+	void removeNode(size_t idx);
+	void addNode(size_t idx);
 	void update(float dt);
 	void setActive(bool v);
-	bool action(int id, int state);
+	bool action(int id, int state, int source, InputDevice device);
 	void setEmitter(const std::string& name);
 
-	PathNode *getPathNode(int idx);
-	bool isCoordinateInside(const Vector &pos, int rad=0);
+	PathNode *getPathNode(size_t idx);
+	bool isCoordinateInside(const Vector &pos, float rad=0) const;
 
 	void reverseNodes();
 
@@ -105,13 +109,15 @@ public:
 	Vector getEnterPosition(int outAmount=1);
 	Vector getEnterNormal();
 
-	void activate(Entity *e=0);
+	void activate(Entity *e, int source);
 	void refreshScript();
-	Script *script;
+	MinimapIcon *ensureMinimapIcon();
+
 	bool updateFunction;
 	bool activateFunction;
 	bool cursorActivation;
 	int replayVox;
+	MinimapIcon *minimapIcon;
 
 	std::string warpMap, warpNode, vox, spawnEnemyName, content;
 	float amount, time;
@@ -130,7 +136,6 @@ public:
 
 	LocalWarpType localWarpType;
 
-	bool naijaHome;
 	bool catchActions;
 	bool songFunc, songNoteFunc, songNoteDoneFunc;
 	bool neverSpawned;
@@ -150,7 +155,9 @@ public:
 
 	void parseWarpNodeData(const std::string &dataString);
 
+	int callVariadic(const char *func, lua_State *L, int nparams);
 	int messageVariadic(lua_State *L, int nparams);
+	int activateVariadic(lua_State *L, int nparams);
 	void luaDebugMsg(const std::string &func, const std::string &msg);
 };
 

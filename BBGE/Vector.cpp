@@ -22,6 +22,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "MathFunctions.h"
 #include "Base.h"
 #include <float.h>
+#include <algorithm>
+
+#ifdef BBGE_USE_GLM
+#include "glm/glm.hpp"
+#include "glm/gtx/transform.hpp"
+#endif
 
 /*************************************************************************/
 
@@ -37,9 +43,15 @@ void Vector::rotate2DRad(float rad)
 	y = sinf(rad)*ox + cosf(rad)*oy;
 }
 
+#include "RenderBase.h"
+
 Vector getRotatedVector(const Vector &vec, float rot)
 {
-#ifdef BBGE_BUILD_OPENGL
+#ifdef BBGE_USE_GLM
+	glm::mat4 m = glm::rotate(glm::mat4(1), rot, glm::vec3(0, 0, 1));
+	glm::vec4 v = m * glm::vec4(vec.x, vec.y, vec.z, 1.0f);
+	return Vector(v.x, v.y, v.z);
+#else
 	glPushMatrix();
 	glLoadIdentity();
 
@@ -59,8 +71,6 @@ Vector getRotatedVector(const Vector &vec, float rot)
 
 	glPopMatrix();
 	return Vector(x,y,z);
-#elif defined(BBGE_BUILD_DIRECTX)
-	return vec;
 #endif
 }
 
@@ -97,7 +107,7 @@ float Bias( float x, float biasAmt )
 	static float lastExponent = 0;
 	if( lastAmt != biasAmt )
 	{
-		lastExponent = logf( biasAmt ) * -1.4427f; // (-1.4427 = 1 / log(0.5))
+		lastExponent = logf( biasAmt ) * -1.4427f;
 	}
 	return powf( x, lastExponent );
 }
@@ -169,7 +179,7 @@ void VectorPath::realPercentageCalc()
 {
 	float totalLen = getLength();
 	float len = 0;
-	for (int i = 1; i < pathNodes.size(); i++)
+	for (size_t i = 1; i < pathNodes.size(); i++)
 	{
 		Vector diff = pathNodes[i].value - pathNodes[i-1].value;
 		len += diff.getLength2D();
@@ -192,7 +202,7 @@ float VectorPath::getSubSectionLength(int startIncl, int endIncl)
 float VectorPath::getLength()
 {
 	float len = 0;
-	for (int i = 1; i < pathNodes.size(); i++)
+	for (size_t i = 1; i < pathNodes.size(); i++)
 	{
 		Vector diff = pathNodes[i].value - pathNodes[i-1].value;
 		len += diff.getLength2D();
@@ -209,7 +219,7 @@ void VectorPath::splice(const VectorPath &path, int sz)
 {
 	std::vector<VectorPathNode> copy = pathNodes;
 	pathNodes.clear();
-	int i = 0;
+	size_t i = 0;
 	for (i = 0; i < path.pathNodes.size(); i++)
 		pathNodes.push_back(path.pathNodes[i]);
 	for (i = sz+1; i < copy.size(); i++)
@@ -230,7 +240,7 @@ void VectorPath::prepend(const VectorPath &path)
 {
 	std::vector<VectorPathNode> copy = pathNodes;
 	pathNodes.clear();
-	int i = 0;
+	size_t i = 0;
 	for (i = 0; i < path.pathNodes.size(); i++)
 		pathNodes.push_back(path.pathNodes[i]);
 	for (i = 0; i < copy.size(); i++)
@@ -239,7 +249,7 @@ void VectorPath::prepend(const VectorPath &path)
 
 void VectorPath::calculatePercentages()
 {
-	for (int i = 0; i < pathNodes.size(); i++)
+	for (size_t i = 0; i < pathNodes.size(); i++)
 	{
 		pathNodes[i].percent = i/float(pathNodes.size());
 	}
@@ -249,7 +259,7 @@ void VectorPath::append(const VectorPath &path)
 {
 	std::vector<VectorPathNode> copy = pathNodes;
 	pathNodes.clear();
-	int i = 0;
+	size_t i = 0;
 	for (i = 0; i < copy.size(); i++)
 		pathNodes.push_back(copy[i]);
 	for (i = 0; i < path.pathNodes.size(); i++)
@@ -260,7 +270,7 @@ void VectorPath::cut(int n)
 {
 	std::vector<VectorPathNode> copy = pathNodes;
 	pathNodes.clear();
-	for (int i = 0; i < copy.size(); i+=n)
+	for (size_t i = 0; i < copy.size(); i+=n)
 	{
 		pathNodes.push_back(copy[i]);
 	}
@@ -282,7 +292,7 @@ Vector VectorPath::getValue(float usePercent)
 
 	VectorPathNode *target = 0;
 	VectorPathNode *from = &pathNodes[0];
-	for (int i = 0; i < pathNodes.size(); ++i)
+	for (size_t i = 0; i < pathNodes.size(); ++i)
 	{
 		if (pathNodes[i].percent >= usePercent)
 		{
@@ -304,7 +314,6 @@ Vector VectorPath::getValue(float usePercent)
 	else if (from && !target)
 	{
 		// Should only happen at end
-//		msg ("returning just a value");
 		return from->value;
 	}
 	else if (from && target && from==target)
@@ -313,90 +322,29 @@ Vector VectorPath::getValue(float usePercent)
 	}
 	else if (from && target)
 	{
-		//bool smoothing = false;
+
 		Vector v;
 		float perc=0;
 		perc = ((usePercent - from->percent)/(target->percent-from->percent));
-		//perc = Gain(perc, 0.8);
+
 		Vector targetValue = target->value;
 		Vector fromValue = from->value;
-	
-		/*
-		int nexti = i + 1;
-		int previ = i - 1;
-		if (perc > 0.5f && nexti < pathNodes.size())
-		{
-			float scale = ((perc-0.5f)/0.5f) * 0.1f;
-			targetValue = targetValue * (1.0f-scale) + pathNodes[nexti].value * scale;
-		}
-		else if (perc < 0.5f && previ > 0)
-		{
-			float scale = (1.0f-(perc/0.5f)) * 0.1f;
-			targetValue = targetValue * (1.0f-scale) + pathNodes[previ].value * scale;
-		}
-		*/
-		
+
+
+
 		v = (targetValue - fromValue) * (perc);
 		v += fromValue;
 		return v;
-		/*
-		int nexti = i + 1;
-		int previ = i - 1;
-		if (smoothing && perc >= 0.5f && nexti < pathNodes.size() && nexti >= 0)
-		{
-			VectorPathNode *next = &pathNodes[nexti];
-			float nextPerc = perc - 0.5f;
-			v = (target->value - from->value) * (perc-nextPerc);
-			Vector v2 = (next->value - from->value) * nextPerc;
-			v = v+v2;
-			v += from->value;
-		}
-		else if (smoothing && perc <= 0.5f && previ < pathNodes.size() && previ >= 0)
-		{
-			VectorPathNode *prev = &pathNodes[previ];
-			float prevPerc = perc + 0.5f;
-			v = (target->value - from->value) * (perc-prevPerc);
-			Vector v2 = (from->value - prev->value) * prevPerc;
-			//v = (v + v2)/2.0f;
-			v = v+v2;
-			v += from->value;
-		}
-		else
-		{			
-			v = (target->value - from->value) * (perc);
-			v += from->value;
-		}
-		*/
-		/*
-		int nexti = i + 1;
-		Vector perp;
-		if (smoothing && nexti < pathNodes.size() && nexti >= 0)
-		{			
-			VectorPathNode *next = &pathNodes[nexti];
-			Vector perp = (next->value - from->value);			
-			perp = perp.getPerpendicularLeft();
-			Vector p = getNearestPointOnLine(from->value, next->value, target->value);
-			float dist = (target->value - p).getLength2D();
-			if (dist > 0)
-			{
-				float bulge = sinf(perc * PI);
-				perp |= dist;
-				perp *= bulge;
-			}
-		}
-		*/
-
-		
 
 
-		
+
 	}
 	return Vector(0,0,0);
 }
 
 /*************************************************************************/
 
-float InterpolatedVector::interpolateTo(Vector vec, float timePeriod, int loopType, bool pingPong, bool ease, InterpolateToFlag flag)
+float InterpolatedVector::interpolateTo(Vector vec, float timePeriod, int loopType, bool pingPong, bool ease)
 {
 	if (timePeriod == 0)
 	{
@@ -410,21 +358,17 @@ float InterpolatedVector::interpolateTo(Vector vec, float timePeriod, int loopTy
 
 	data->ease = ease;
 	data->timePassed = 0;
-	//data->fakeTimePassed = 0;
+
 	if (timePeriod < 0)
 	{
 		timePeriod = -timePeriod;
 		timePeriod = (vec-Vector(x,y,z)).getLength3D() / timePeriod;
-		/*
-		std::ostringstream os;
-		os << "calced: " << timePeriod;
-		debugLog(os.str());
-		*/
+
 	}
 	data->timePeriod = timePeriod;
 	data->from = Vector (this->x, this->y, this->z);
 	data->target = vec;
-	
+
 	data->loopType = loopType;
 	data->pingPong = pingPong;
 
@@ -521,20 +465,6 @@ void InterpolatedVector::doInterpolate(float dt)
 {
 	InterpolatedVectorData *data = ensureData();
 
-	//errorLog ("gothere");
-	/*
-	// old method
-	if (data->ease)
-	{
-		float diff = data->timePassed / data->timePeriod;
-		if (diff > 0.5f)
-			diff = 1.0f - diff;
-		diff /= 0.5f;
-		diff *= 2;
-		//diff += 0.5f;
-		data->fakeTimePassed += dt*diff;
-	}
-	*/
 	data->timePassed += dt;
 	if (data->timePassed >= data->timePeriod)
 	{
@@ -550,44 +480,23 @@ void InterpolatedVector::doInterpolate(float dt)
 
 			if (data->pingPong)
 			{
-				interpolateTo (data->from, data->timePeriod, data->loopType, data->pingPong, data->ease, IS_LOOPING);
+				interpolateTo (data->from, data->timePeriod, data->loopType, data->pingPong, data->ease);
 			}
 			else
 			{
 				this->x = data->from.x;
 				this->y = data->from.y;
 				this->z = data->from.z;
-				interpolateTo (data->target, data->timePeriod, data->loopType, data->pingPong, data->ease, IS_LOOPING);
+				interpolateTo (data->target, data->timePeriod, data->loopType, data->pingPong, data->ease);
 			}
 		}
 
 	}
 	else
 	{
-		Vector v;
-
-		/*
-		// old method
-		if (data->ease)
-		{
-			v = lerp(data->from, data->target, (data->timePassed / data->timePeriod), data->ease);
-			//v = (data->target - data->from) * 
-			//v = (data->target - data->from) * (data->fakeTimePassed / data->timePeriod);
-		}
-		else
-		{
-			float perc = data->timePassed / data->timePeriod;
-			v = (data->target - data->from) * perc;
-		}
-
-		v += data->from;
-		*/
-
-		v = lerp(data->from, data->target, (data->timePassed / data->timePeriod), data->ease ? LERP_EASE : LERP_LINEAR);
-
+		Vector v = lerp(data->from, data->target, (data->timePassed / data->timePeriod), data->ease ? LERP_EASE : LERP_LINEAR);
 		this->x = v.x;
 		this->y = v.y;
 		this->z = v.z;
-		//*updatee += data->from;
 	}
 }

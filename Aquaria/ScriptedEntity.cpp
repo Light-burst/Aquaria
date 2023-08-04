@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Game.h"
 #include "Avatar.h"
 #include "Shot.h"
+#include "ScriptInterface.h"
 
 bool ScriptedEntity::runningActivation = false;
 
@@ -30,7 +31,6 @@ ScriptedEntity::ScriptedEntity(const std::string &scriptName, Vector position, E
 {
 	addType(SCO_SCRIPTED_ENTITY);
 	crushDelay = 0;
-	script = 0;
 	songNoteFunction = songNoteDoneFunction = true;
 	addChild(&pullEmitter, PM_STATIC);
 
@@ -39,10 +39,10 @@ ScriptedEntity::ScriptedEntity(const std::string &scriptName, Vector position, E
 	strandSpacing = 10;
 	animKeyFunc = true;
 	canShotHitFunc = true;
-	//runningActivation = false;
+	postInitDone = false;
+
 
 	setEntityType(et);
-	myTimer = 0;
 	layer = LR_ENTITIES;
 	surfaceMoveDir = 1;
 	this->position = position;
@@ -50,34 +50,19 @@ ScriptedEntity::ScriptedEntity(const std::string &scriptName, Vector position, E
 	reverseSegments = false;
 	manaBallAmount = 1;
 	this->name = scriptName;
+	if(scriptName.length() && scriptName[0] == '@')
+		this->name = this->name.substr(1, this->name.size());
 
-	std::string file;
-	if (!scriptName.empty())
-	{
-		if (scriptName[0]=='@' && dsq->mod.isActive())
-		{
-			file = dsq->mod.getPath() + "scripts/" + scriptName.substr(1, scriptName.size()) + ".lua";
-			this->name = scriptName.substr(1, scriptName.size());
-		}
-		else if (dsq->mod.isActive())
-		{
-			file = dsq->mod.getPath() + "scripts/" + scriptName + ".lua";
-
-			if (!exists(file))
-			{
-				file = "scripts/entities/" + scriptName + ".lua";
-			}
-		}
-		else
-		{
-			file = "scripts/entities/" + scriptName + ".lua";
-		}
-	}
+	std::string file = ScriptInterface::MakeScriptFileName(scriptName, "entities");
 	script = dsq->scriptInterface.openScript(file);
 	if (!script)
 	{
 		debugLog("Could not load script [" + file + "]");
 	}
+}
+
+ScriptedEntity::~ScriptedEntity()
+{
 }
 
 void ScriptedEntity::setAutoSkeletalUpdate(bool v)
@@ -95,17 +80,27 @@ void ScriptedEntity::message(const std::string &msg, int v)
 	Entity::message(msg, v);
 }
 
-int ScriptedEntity::messageVariadic(lua_State *L, int nparams)
+int ScriptedEntity::callVariadic(const char* func, lua_State* L, int nparams)
 {
 	if (script)
 	{
-		int res = script->callVariadic("msg", L, nparams, this);
+		int res = script->callVariadic(func, L, nparams, this);
 		if (res < 0)
-			luaDebugMsg("msg", script->getLastError());
+			luaDebugMsg(func, script->getLastError());
 		else
 			return res;
 	}
-	return Entity::messageVariadic(L, nparams);
+	return 0;
+}
+
+int ScriptedEntity::messageVariadic(lua_State *L, int nparams)
+{
+	return callVariadic("msg", L, nparams);
+}
+
+int ScriptedEntity::activateVariadic(lua_State* L, int nparams)
+{
+	return callVariadic("activate", L, nparams);
 }
 
 void ScriptedEntity::warpSegments()
@@ -114,7 +109,7 @@ void ScriptedEntity::warpSegments()
 }
 
 void ScriptedEntity::init()
-{	
+{
 	if (script)
 	{
 		if (!script->call("init", this))
@@ -125,7 +120,10 @@ void ScriptedEntity::init()
 }
 
 void ScriptedEntity::postInit()
-{	
+{
+	if(postInitDone)
+		return;
+	postInitDone = true;
 	if (script)
 	{
 		if (!script->call("postInit", this))
@@ -135,7 +133,7 @@ void ScriptedEntity::postInit()
 	Entity::postInit();
 }
 
-void ScriptedEntity::initEmitter(int emit, const std::string &file)
+void ScriptedEntity::initEmitter(size_t emit, const std::string &file)
 {
 	if (emitters.size() <= emit)
 	{
@@ -151,7 +149,7 @@ void ScriptedEntity::initEmitter(int emit, const std::string &file)
 	emitters[emit]->load(file);
 }
 
-void ScriptedEntity::startEmitter(int emit)
+void ScriptedEntity::startEmitter(size_t emit)
 {
 	if(emit >= emitters.size())
 		return;
@@ -162,7 +160,7 @@ void ScriptedEntity::startEmitter(int emit)
 	}
 }
 
-void ScriptedEntity::stopEmitter(int emit)
+void ScriptedEntity::stopEmitter(size_t emit)
 {
 	if(emit >= emitters.size())
 		return;
@@ -173,12 +171,12 @@ void ScriptedEntity::stopEmitter(int emit)
 	}
 }
 
-ParticleEffect *ScriptedEntity::getEmitter(int emit)
+ParticleEffect *ScriptedEntity::getEmitter(size_t emit)
 {
 	return (size_t(emit) < emitters.size()) ? emitters[emit] : NULL;
 }
 
-int ScriptedEntity::getNumEmitters() const
+size_t ScriptedEntity::getNumEmitters() const
 {
 	return emitters.size();
 }
@@ -195,7 +193,7 @@ void ScriptedEntity::initSegments(int numSegments, int minDist, int maxDist, std
 	this->minDist = minDist;
 	this->maxDist = maxDist;
 	segments.resize(numSegments);
-	for (int i = segments.size()-1; i >= 0 ; i--)
+	for (size_t i = segments.size(); i-- > 0 ; )
 	{
 		Quad *q = new Quad;
 		if (i == segments.size()-1)
@@ -203,10 +201,10 @@ void ScriptedEntity::initSegments(int numSegments, int minDist, int maxDist, std
 		else
 			q->setTexture(bodyTex);
 		q->setWidthHeight(w, h);
-		
+
 		if (i > 0 && i < segments.size()-1 && taper !=0)
 			q->scale = Vector(1.0f-(i*taper), 1-(i*taper));
-		dsq->game->addRenderObject(q, LR_ENTITIES);
+		game->addRenderObject(q, LR_ENTITIES);
 		segments[i] = q;
 	}
 	Segmented::initSegments(position);
@@ -227,7 +225,7 @@ void ScriptedEntity::setupEntity(const std::string &tex, int lcode)
 
 void ScriptedEntity::setupBasicEntity(const std::string& texture, int health, int manaBall, int exp, int money, float collideRadius, int state, int w, int h, int expType, bool hitEntity, int updateCull, int layer)
 {
-	//this->updateCull = updateCull;
+
 	updateCull = -1;
 
 	if (texture.empty())
@@ -253,11 +251,11 @@ void ScriptedEntity::initStrands(int num, int segs, int dist, int strandSpacing,
 {
 	this->strandSpacing = strandSpacing;
 	strands.resize(num);
-	for (int i = 0; i < strands.size(); i++)
+	for (size_t i = 0; i < strands.size(); i++)
 	{
 		strands[i] = new Strand(position, segs, dist);
 		strands[i]->color = color;
-		dsq->game->addRenderObject(strands[i], this->layer);
+		game->addRenderObject(strands[i], this->layer);
 	}
 	updateStrands(0);
 }
@@ -285,9 +283,9 @@ void ScriptedEntity::onAlwaysUpdate(float dt)
 			}
 
 			if (skeletalSprite.isLoaded())
-				dsq->game->handleShotCollisionsSkeletal(this);
+				game->handleShotCollisionsSkeletal(this);
 			else
-				dsq->game->handleShotCollisions(this);
+				game->handleShotCollisions(this);
 		}
 
 		if (isPullable() && !fillGridFromQuad)
@@ -296,7 +294,7 @@ void ScriptedEntity::onAlwaysUpdate(float dt)
 			crushDelay -= dt;
 			if (crushDelay < 0)
 			{
-				crushDelay = 0.2;
+				crushDelay = 0.2f;
 				doCrush = true;
 			}
 			FOR_ENTITIES(i)
@@ -322,7 +320,7 @@ void ScriptedEntity::onAlwaysUpdate(float dt)
 										e->sound("RockHit");
 										dsq->spawnParticleEffect("rockhit", e->position, 0, 0);
 									}
-									//e->push(vel, 0.2, 500, 0);
+
 									Vector add = vel;
 									add.setLength2D(5000*dt);
 									e->vel += add;
@@ -339,9 +337,9 @@ void ScriptedEntity::onAlwaysUpdate(float dt)
 		}
 
 		if (isPullable())
-		{		
-			Entity *followEntity = dsq->game->avatar;
-			if (followEntity && dsq->game->avatar->pullTarget == this)
+		{
+			Entity *followEntity = game->avatar;
+			if (followEntity && game->avatar->pullTarget == this)
 			{
 				Vector dist = followEntity->position - this->position;
 				if (dist.isLength2DIn(followEntity->collideRadius + collideRadius + 16))
@@ -350,19 +348,19 @@ void ScriptedEntity::onAlwaysUpdate(float dt)
 				}
 				else if (!dist.isLength2DIn(800))
 				{
-					// break;
+
 					vel.setZero();
-					dsq->game->avatar->pullTarget->stopPull();
-					dsq->game->avatar->pullTarget = 0;
+					game->avatar->pullTarget->stopPull();
+					game->avatar->pullTarget = 0;
 				}
 				else if (!dist.isLength2DIn(128))
-				{				
+				{
 					Vector v = dist;
 					int moveSpeed = 1000;
 					moveSpeed = 4000;
 					v.setLength2D(moveSpeed);
 					vel += v*dt;
-					setMaxSpeed(dsq->game->avatar->getMaxSpeed());
+					setMaxSpeed(game->avatar->getMaxSpeed());
 				}
 				else
 				{
@@ -386,9 +384,9 @@ void ScriptedEntity::updateStrands(float dt)
 	if (strands.empty()) return;
 	float angle = rotation.z;
 	angle = (PI*(360-(angle-90)))/180.0;
-	//angle = (180*angle)/PI;
+
 	float sz = (strands.size()/2);
-	for (int i = 0; i < strands.size(); i++)
+	for (size_t i = 0; i < strands.size(); i++)
 	{
 		float diff = (i-sz)*strandSpacing;
 		if (diff < 0)
@@ -404,11 +402,7 @@ void ScriptedEntity::destroy()
 {
 	CollideEntity::destroy();
 
-	if (script)
-	{
-		dsq->scriptInterface.closeScript(script);
-		script = 0;
-	}
+	closeScript();
 }
 
 void ScriptedEntity::song(SongType songType)
@@ -430,7 +424,7 @@ void ScriptedEntity::shiftWorlds(WorldType lastWorld, WorldType worldType)
 }
 
 void ScriptedEntity::startPull()
-{	
+{
 	Entity::startPull();
 	beforePullMaxSpeed = getMaxSpeed();
 	becomeSolidDelay = false;
@@ -438,7 +432,7 @@ void ScriptedEntity::startPull()
 	if (isEntityProperty(EP_BLOCKER))
 	{
 		fillGridFromQuad = false;
-		dsq->game->reconstructEntityGrid();
+		game->reconstructEntityGrid();
 	}
 	pullEmitter.load("Pulled");
 	pullEmitter.start();
@@ -481,8 +475,6 @@ void ScriptedEntity::stopPull()
 
 void ScriptedEntity::onUpdate(float dt)
 {
-	BBGE_PROF(ScriptedEntity_onUpdate);
-
 	CollideEntity::onUpdate(dt);
 
 	if (becomeSolidDelay)
@@ -500,17 +492,6 @@ void ScriptedEntity::onUpdate(float dt)
 
 	if (life != 1 || isEntityDead()) return;
 
-
-	if (myTimer > 0)
-	{
-		myTimer -= dt;
-		if (myTimer <= 0)
-		{
-			myTimer = 0;
-			onExitTimer();
-		}
-	}
-
 	if (this->isEntityDead() || this->getState() == STATE_DEATHSCENE || this->getState() == STATE_DEAD)
 	{
 		return;
@@ -525,25 +506,6 @@ void ScriptedEntity::onUpdate(float dt)
 	{
 		updateSegments(position, reverseSegments);
 		updateAlpha(alpha.x);
-	}
-}
-
-void ScriptedEntity::resetTimer(float t)
-{
-	myTimer = t;
-}
-
-void ScriptedEntity::stopTimer()
-{
-	myTimer = 0;
-}
-
-void ScriptedEntity::onExitTimer()
-{
-	if (script)
-	{
-		if (!script->call("exitTimer", this))
-			debugLog(this->name + " : " + script->getLastError() + " exitTimer");
 	}
 }
 
@@ -638,10 +600,10 @@ void ScriptedEntity::songNoteDone(int note, float len)
 
 void ScriptedEntity::becomeSolid()
 {
-	//vel = 0;
+
 	float oldRot = 0;
 	bool doRot=false;
-	Vector n = dsq->game->getWallNormal(position);
+	Vector n = game->getWallNormal(position);
 	if (!n.isZero())
 	{
 		oldRot = rotation.z;
@@ -649,7 +611,7 @@ void ScriptedEntity::becomeSolid()
 		doRot = true;
 	}
 	fillGridFromQuad = true;
-	dsq->game->reconstructEntityGrid();
+	game->reconstructEntityGrid();
 
 	FOR_ENTITIES(i)
 	{
@@ -659,7 +621,7 @@ void ScriptedEntity::becomeSolid()
 			e->ridingOnEntity = 0;
 			e->moveOutOfWall();
 			// if can't get the rider out of the wall, kill it
-			if (dsq->game->isObstructed(TileVector(e->position)))
+			if (game->isObstructed(TileVector(e->position)))
 			{
 				e->setState(STATE_DEAD);
 			}
@@ -669,23 +631,23 @@ void ScriptedEntity::becomeSolid()
 	if (doRot)
 	{
 		rotation.z = oldRot;
-		rotateToVec(n, 0.01);
+		rotateToVec(n, 0.01f);
 	}
 }
 
 void ScriptedEntity::onHitWall()
 {
-	if (isEntityProperty(EP_BLOCKER) && !fillGridFromQuad && dsq->game->avatar->pullTarget != this)
+	if (isEntityProperty(EP_BLOCKER) && !fillGridFromQuad && game->avatar->pullTarget != this)
 	{
 		becomeSolidDelay = true;
 	}
-	
+
 	if (isEntityProperty(EP_BLOCKER) && !fillGridFromQuad)
 	{
-		Vector n = dsq->game->getWallNormal(position);
+		Vector n = game->getWallNormal(position);
 		if (!n.isZero())
 		{
-			rotateToVec(n, 0.2);
+			rotateToVec(n, 0.2f);
 		}
 	}
 
@@ -698,15 +660,15 @@ void ScriptedEntity::onHitWall()
 	}
 }
 
-void ScriptedEntity::activate()
-{	
+void ScriptedEntity::activate(Entity *by, int source)
+{
 	if (runningActivation) return;
-	Entity::activate();
-	
+	Entity::activate(by, source);
+
 	runningActivation = true;
 	if (script)
 	{
-		if (!script->call("activate", this))
+		if (!script->call("activate", this, by, source))
 			luaDebugMsg("activate", script->getLastError());
 	}
 	runningActivation = false;
@@ -758,7 +720,7 @@ void ScriptedEntity::onDieEaten()
 void ScriptedEntity::onEnterState(int action)
 {
 	CollideEntity::onEnterState(action);
-	
+
 	if (script)
 	{
 		if (!script->call("enterState", this))
@@ -768,7 +730,7 @@ void ScriptedEntity::onEnterState(int action)
 	{
 	case STATE_DEAD:
 		if (!isGoingToBeEaten())
-		{			
+		{
 			doDeathEffects(manaBallAmount);
 			dsq->spawnParticleEffect(deathParticleEffect, position);
 			onDieNormal();
@@ -782,7 +744,7 @@ void ScriptedEntity::onEnterState(int action)
 		destroySegments(1);
 
 
-		for (int i = 0; i < strands.size(); i++)
+		for (size_t i = 0; i < strands.size(); i++)
 		{
 			strands[i]->safeKill();
 		}
@@ -795,7 +757,7 @@ void ScriptedEntity::onEnterState(int action)
 
 void ScriptedEntity::onExitState(int action)
 {
-	
+
 	if (script)
 	{
 		if (!script->call("exitState", this))
@@ -814,4 +776,3 @@ void ScriptedEntity::deathNotify(RenderObject *r)
 	}
 	CollideEntity::deathNotify(r);
 }
-

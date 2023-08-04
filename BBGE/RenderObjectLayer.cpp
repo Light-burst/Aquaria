@@ -19,138 +19,33 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "Core.h"
+#include "RenderBase.h"
 
-#ifdef RLT_FIXED
 	#define BASE_ARRAY_SIZE 100  // Size of an object array in a new layer
-#endif
 
 RenderObjectLayer::RenderObjectLayer()
-#ifdef RLT_FIXED
 	: renderObjects(BASE_ARRAY_SIZE)
-#endif
-{	
-	followCamera = NO_FOLLOW_CAMERA;
+{
+	followCamera = 0;
 	visible = true;
 	startPass = endPass = 0;
 	followCameraLock = FCL_NONE;
-	cull = true;
 	update = true;
-	optimizeStatic = false;
 
-	mode = Core::MODE_2D;
-
-	color = Vector(1,1,1);
-
-	displayListValid = false;
-	
-#ifdef RLT_FIXED
 	const int size = renderObjects.size();
 	for (int i = 0; i < size; i++)
 		renderObjects[i] = 0;
 	objectCount = 0;
 	firstFreeIdx = 0;
-#endif
 }
 
 RenderObjectLayer::~RenderObjectLayer()
 {
-	clearDisplayList();
-}
-
-void RenderObjectLayer::setCull(bool cull)
-{
-	this->cull = cull;
-}
-
-void RenderObjectLayer::setOptimizeStatic(bool opt)
-{
-	this->optimizeStatic = opt;
-	clearDisplayList();
-}
-
-#ifdef RLT_DYNAMIC
-bool sortRenderObjectsByDepth(RenderObject *r1, RenderObject *r2)
-{
-	return r1->getSortDepth() < r2->getSortDepth();
-}
-#endif
-
-void RenderObjectLayer::sort()
-{
-	if (optimizeStatic && displayListValid)
-		return;  // Assume the order hasn't changed
-
-#ifdef RLT_FIXED
-	// Compress the list before sorting to boost speed.
-	const int size = renderObjects.size();
-	int from, to;
-	for (to = 0; to < size; to++) {
-		if (!renderObjects[to])
-			break;
-	}
-	for (from = to+1; from < size; from++) {
-		if (renderObjects[from])
-		{
-			renderObjects[to] = renderObjects[from];
-			renderObjects[to]->setIdx(to);
-			to++;
-		}
-	}
-	if (to < size)
-		renderObjects[to] = 0;
-	if (to != objectCount)
-	{
-		std::ostringstream os;
-		os << "Objects lost in sort! (" << to << " != " << objectCount << ")";
-		errorLog(os.str());
-		objectCount = to;
-	}
-	const int count = objectCount;
-
-	// Save a copy of all objects' depths so we don't have to call
-	// getSortDepth() in a greater-order loop.
-	std::vector<float> sortDepths(count);
-	for (int i = 0; i < count; i++)
-	{
-		sortDepths[i] = renderObjects[i]->getSortDepth();
-	}
-
-	// FIXME: Just a simple selection sort for now.  Is this fast enough?
-	// Might need to use quicksort instead.
-	for (int i = 0; i < count-1; i++)
-	{
-		int best = i;
-		float bestDepth = sortDepths[i];
-		for (int j = i+1; j < count; j++)
-		{
-			if (sortDepths[j] < bestDepth)
-			{
-				best = j;
-				bestDepth = sortDepths[j];
-			}
-		}
-		if (best != i)
-		{
-			RenderObject *r = renderObjects[i];
-			renderObjects[i] = renderObjects[best];
-			renderObjects[i]->setIdx(i);
-			renderObjects[best] = r;
-			renderObjects[best]->setIdx(best);
-			float d = sortDepths[i];
-			sortDepths[i] = sortDepths[best];
-			sortDepths[best] = d;
-		}
-	}
-#endif
-#ifdef RLT_DYNAMIC
-	renderObjectList.sort(sortRenderObjectsByDepth);
-#endif
 }
 
 void RenderObjectLayer::add(RenderObject* r)
 {
-#ifdef RLT_FIXED
-	int size = renderObjects.size();
+	size_t size = renderObjects.size();
 	if (firstFreeIdx >= size)
 	{
 		size += size/2;  // Increase size by 50% each time we fill up.
@@ -166,22 +61,12 @@ void RenderObjectLayer::add(RenderObject* r)
 		if (!renderObjects[firstFreeIdx])
 			break;
 	}
-#endif
-#ifdef RLT_DYNAMIC
-	renderObjectList.push_back(r);
-#endif
-#ifdef RLT_MAP
-	renderObjectMap[intptr_t(r)] = r;
-#endif
-
-	clearDisplayList();
 }
 
 void RenderObjectLayer::remove(RenderObject* r)
 {
-#ifdef RLT_FIXED
-	const int idx = r->getIdx();
-	if (idx < 0 || idx >= renderObjects.size())
+	const size_t idx = r->getIdx();
+	if (idx >= renderObjects.size())
 	{
 		errorLog("Trying to remove RenderObject with invalid index");
 		return;
@@ -196,23 +81,13 @@ void RenderObjectLayer::remove(RenderObject* r)
 	if (idx < firstFreeIdx)
 		firstFreeIdx = idx;
 	r->setIdx(-1);
-#endif
-#ifdef RLT_DYNAMIC
-	renderObjectList.remove(r);
-#endif
-#ifdef RLT_MAP
-	renderObjectMap[intptr_t(r)] = 0;
-#endif
-
-	clearDisplayList();
 }
 
 void RenderObjectLayer::moveToFront(RenderObject *r)
 {
-#ifdef RLT_FIXED
-	const int size = renderObjects.size();
-	const int curIdx = r->getIdx();
-	int lastUsed;
+	const size_t size = renderObjects.size();
+	const size_t curIdx = r->getIdx();
+	size_t lastUsed;
 	for (lastUsed = size-1; lastUsed > curIdx; lastUsed--)
 	{
 		if (renderObjects[lastUsed])
@@ -225,7 +100,7 @@ void RenderObjectLayer::moveToFront(RenderObject *r)
 	}
 	else if (lastUsed < size-1)
 	{
-		const int newIdx = lastUsed + 1;
+		const size_t newIdx = lastUsed + 1;
 		renderObjects[curIdx] = 0;
 		renderObjects[newIdx] = r;
 		r->setIdx(newIdx);
@@ -235,12 +110,12 @@ void RenderObjectLayer::moveToFront(RenderObject *r)
 	else if (objectCount == size)
 	{
 		// Expand the array so future calls have a bit of breathing room.
-		const int newSize = size + 10;
+		const size_t newSize = size + 10;
 		renderObjects.resize(newSize);
 		renderObjects[curIdx] = 0;
 		renderObjects[size] = r;
 		r->setIdx(size);
-		for (int i = size+1; i < newSize; i++)
+		for (size_t i = size+1; i < newSize; i++)
 			renderObjects[i] = 0;
 		if (firstFreeIdx > curIdx)
 			firstFreeIdx = curIdx;
@@ -249,13 +124,13 @@ void RenderObjectLayer::moveToFront(RenderObject *r)
 	{
 		// Need to shift elements downward to make room for the new one.
 		renderObjects[curIdx] = 0;
-		int lastFree;
+		size_t lastFree;
 		for (lastFree = lastUsed-1; lastFree > curIdx; lastFree--)
 		{
 			if (!renderObjects[lastFree])
 				break;
 		}
-		for (int i = lastFree + 1; i <= lastUsed; i++)
+		for (size_t i = lastFree + 1; i <= lastUsed; i++)
 		{
 			renderObjects[i-1] = renderObjects[i];
 			renderObjects[i-1]->setIdx(i-1);  // Known to be non-NULL.
@@ -267,21 +142,13 @@ void RenderObjectLayer::moveToFront(RenderObject *r)
 		while (renderObjects[firstFreeIdx])
 			firstFreeIdx++;
 	}
-#endif  // RLT_FIXED
-#ifdef RLT_DYNAMIC
-	renderObjectList.remove(r);
-	renderObjectList.push_back(r);
-#endif
-
-	clearDisplayList();
 }
 
 void RenderObjectLayer::moveToBack(RenderObject *r)
 {
-#ifdef RLT_FIXED
-	const int size = renderObjects.size();
-	const int curIdx = r->getIdx();
-	int firstUsed;
+	const size_t size = renderObjects.size();
+	const size_t curIdx = r->getIdx();
+	size_t firstUsed;
 	for (firstUsed = 0; firstUsed < curIdx; firstUsed++)
 	{
 		if (renderObjects[firstUsed])
@@ -305,19 +172,19 @@ void RenderObjectLayer::moveToBack(RenderObject *r)
 	}
 	else if (objectCount == size)
 	{
-		const int newSize = size + 10;
-		const int sizeDiff = newSize - size;
-		const int newIdx = sizeDiff - 1;
+		const size_t newSize = size + 10;
+		const size_t sizeDiff = newSize - size;
+		const size_t newIdx = sizeDiff - 1;
 
 		renderObjects.resize(newSize);
 		renderObjects[curIdx] = 0;
-		for (int i = newSize - 1; i >= sizeDiff; i--)
+		for (size_t i = newSize - 1; i >= sizeDiff; i--)
 		{
 			renderObjects[i] = renderObjects[i - sizeDiff];
 			if(renderObjects[i])
 				renderObjects[i]->setIdx(i);
 		}
-		for (int i = 0; i < newIdx; i++)
+		for (size_t i = 0; i < newIdx; i++)
 			renderObjects[i] = 0;
 		renderObjects[newIdx] = r;
 		r->setIdx(newIdx);
@@ -341,163 +208,65 @@ void RenderObjectLayer::moveToBack(RenderObject *r)
 				break;
 		}
 	}
-#endif  // RLT_FIXED
-#ifdef RLT_DYNAMIC
-        renderObjectList.remove(r);
-	renderObjectList.push_front(r);
-#endif
-
-	clearDisplayList();
-}
-
-void RenderObjectLayer::renderPass(int pass)
-{
-	core->currentLayerPass = pass;
-
-	if (optimizeStatic && (followCamera == 0 || followCamera == NO_FOLLOW_CAMERA))
-	{
-		if (!displayListValid)
-			generateDisplayList();
-
-		const int size = displayList.size();
-		for (int i = 0; i < size; i++)
-		{
-			if (displayList[i].isList)
-			{
-#ifdef BBGE_BUILD_OPENGL
-				glCallList(displayList[i].u.listID);
-#endif
-				RenderObject::lastTextureApplied = 0;
-			}
-			else
-				renderOneObject(displayList[i].u.robj);
-		}
-	}
-	else
-	{
-		for (RenderObject *robj = getFirst(); robj; robj = getNext())
-		{
-			renderOneObject(robj);
-		}
-	}
 }
 
 void RenderObjectLayer::reloadDevice()
 {
-	if (displayListValid)
-		clearDisplayList();
 }
 
-void RenderObjectLayer::clearDisplayList()
+void RenderObjectLayer::prepareRender()
 {
-	if (!displayListValid)
+	toRender.clear();
+
+	size_t n = 0;
+	for (const RenderObject *robj = getFirst(); robj; robj = getNext())
+	{
+		++n;
+		if(robj->shouldTryToRender())
+			toRender.push_back(robj);
+	}
+	core->renderObjectCount += toRender.size();
+	toRender.push_back(NULL); // terminate
+	core->totalRenderObjectCount += n;
+
+	switch(followCameraLock)
+	{
+		default:
+		case FCL_NONE: followCameraMult = Vector(1, 1); break; // both H and V affected
+		case FCL_HORZ: followCameraMult = Vector(1, 0); break; // only H affected
+		case FCL_VERT: followCameraMult = Vector(0, 1); break; // only V affected
+	}
+}
+
+void RenderObjectLayer::render() const
+{
+	if(toRender.size() <= 1)
 		return;
 
-	const int size = displayList.size();
-	for (int i = 0; i < size; i++)
+	size_t proc = 0;
+	CombinedRenderAndGPUState rs;
+
+	if (startPass == endPass)
 	{
-		if (displayList[i].isList)
-			glDeleteLists(displayList[i].u.listID, 1);
+		rs.pass = RenderObject::RENDER_ALL;
+		const RenderObject * const * rlist = &toRender[0]; // known to have at least one element
+		while(const RenderObject *ro = *rlist++)
+			ro->render(rs);
+		proc += toRender.size() - 1;
 	}
-
-	displayList.resize(0);
-	displayListValid = false;
-}
-
-void RenderObjectLayer::generateDisplayList()
-{
-	// Temporarily disable culling so all static objects are entered into
-	// the display list.
-	bool savedCull = this->cull;
-	this->cull = false;
-
-	int listSize = 0, listLength = 0;
-	bool lastWasStatic = false;
-
-	for (RenderObject *robj = getFirst(); robj; robj = getNext())
+	else
 	{
-		if (listLength >= listSize)
+		for (int pass = startPass; pass <= endPass; pass++)
 		{
-			listSize += 100;
-			displayList.resize(listSize);
-		}
-		bool addEntry = true;  // Add an entry for this robj?
-		if (robj->isStatic() && robj->followCamera == 0)
-		{
-			if (lastWasStatic)
-			{
-				addEntry = false;
-			}
-			else
-			{
-#ifdef BBGE_BUILD_OPENGL
-				int listID = glGenLists(1);
-				if (listID != 0)
+			rs.pass = pass;
+			const RenderObject * const * rlist = &toRender[0]; // known to have at least one element
+			while(const RenderObject *ro = *rlist++)
+				if(ro->isVisibleInPass(pass))
 				{
-					(void) glGetError();  // Clear error state
-					glNewList(listID, GL_COMPILE);
-					if (glGetError() == GL_NO_ERROR)
-					{
-						displayList[listLength].isList = true;
-						displayList[listLength].u.listID = listID;
-						listLength++;
-						lastWasStatic = true;
-						addEntry = false;
-						RenderObject::lastTextureApplied = 0;
-					}
-					else
-						debugLog("glNewList failed");
+					ro->render(rs);
+					++proc;
 				}
-				else
-					debugLog("glGenLists failed");
-#endif
-			}
-		}
-		else
-		{
-			if (lastWasStatic)
-			{
-#ifdef BBGE_BUILD_OPENGL
-				glEndList();
-#endif
-				lastWasStatic = false;
-			}
-		}
-		if (addEntry)
-		{
-			displayList[listLength].isList = false;
-			displayList[listLength].u.robj = robj;
-			listLength++;
-		}
-		else
-		{
-			renderOneObject(robj);
 		}
 	}
-
-	if (lastWasStatic)
-	{
-#ifdef BBGE_BUILD_OPENGL
-		glEndList();
-#endif
-	}
-
-	displayList.resize(listLength);
-	displayListValid = true;
-
-	this->cull = savedCull;
-}
-
-inline void RenderObjectLayer::renderOneObject(RenderObject *robj)
-{
-	core->totalRenderObjectCount++;
-	if (robj->getParent() || robj->alpha.x == 0)
-		return;
-
-	if (!this->cull || !robj->cull || robj->isOnScreen())
-	{
-		robj->render();
-		core->renderObjectCount++;
-	}
-	core->processedRenderObjectCount++;
+	core->processedRenderObjectCount += proc;
 }

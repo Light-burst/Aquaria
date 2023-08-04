@@ -25,50 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 const std::string userSettingsFilename = "usersettings.xml";
 
-#ifndef AQUARIA_USERSETTINGS_DATAONLY
+#include "Base.h"
+#include "ActionMapper.h"
 
-	#include "Base.h"
-	#include "ActionMapper.h"
-
-#else
-
-	#include <string>
-	#include <vector>
-	#include <sstream>
-
-	class ActionInput
-	{
-	public:
-		std::string toString()
-		{
-			return input;
-		}
-		void fromString(const std::string &str)
-		{
-			input = str;
-		}
-
-		std::string name, input;
-	};
-
-	class ActionSet
-	{
-	public:
-		void clearActions()
-		{
-			inputSet.clear();
-		}
-		ActionInput* addActionInput(const std::string &name)
-		{
-			ActionInput newActionInput;
-			newActionInput.name = name;
-			inputSet.push_back(newActionInput);
-			return &inputSet[inputSet.size()-1];
-		}
-		std::vector<ActionInput> inputSet;
-	};
-
-#endif
 
 // MAKE SURE to update this when changing the user settings
 const int VERSION_USERSETTINGS	= 1;
@@ -78,18 +37,17 @@ class UserSettings
 public:
 	struct System
 	{
-		System() { debugLogOn = 0; devModeOn = 0; allowDangerousScriptFunctions = 0; }
+		System() { debugLogOn = 0; devModeOn = 0; allowDangerousScriptFunctions = 0; grabInput=1; }
 		int debugLogOn;
 		std::string locale;
 		int devModeOn;
 		int allowDangerousScriptFunctions;
+		int grabInput;
 	} system;
 
 	struct Audio
 	{
-		Audio() { micOn = 0; octave=0; musvol=voxvol=sfxvol=1.0; subtitles=false; prebuffer=false;}
-		int micOn;
-		int octave;
+		Audio() { musvol=voxvol=sfxvol=1.0; subtitles=false; prebuffer=false;}
 		float voxvol, sfxvol, musvol;
 		int subtitles;
 		std::string deviceName;
@@ -100,30 +58,28 @@ public:
 	{
 		Video() {
 			numParticles = 2048;
-			parallaxOn0 = parallaxOn1 = parallaxOn2 = 1;
 			saveSlotScreens = 1;
 			blur = 1;
 			noteEffects = 0;
 			fpsSmoothing = 30;
 			resx = 800;
 			resy = 600;
+			hz = 60;
+			displayindex = 0;
 			full = 1;
 			fbuffer = 1;
 			darkfbuffer = 1;
 			bits = 32;
 			vsync = 1;
 			darkbuffersize = 256;
-			displaylists = 0;
 			worldMapRevealMethod = 0;
 		}
 		int blur;
 		int noteEffects;
 		int fpsSmoothing;
-		int resx, resy, full, fbuffer, bits, vsync, darkfbuffer, darkbuffersize;
+		int resx, resy, full, fbuffer, bits, vsync, darkfbuffer, darkbuffersize, hz, displayindex;
 		int saveSlotScreens;
-		int parallaxOn0, parallaxOn1, parallaxOn2;
 		int numParticles;
-		int displaylists;
 		int worldMapRevealMethod;
 	} video;
 
@@ -133,24 +89,14 @@ public:
 			toolTipsOn = 1;
 			autoAim = 1;
 			targeting = 1;
-			joyCursorSpeed = 4.0;
 			flipInputButtons = 0;
-			s1ax = 0;
-			s1ay = 0;
-			s2ax = 0;
-			s2ay = 0;
-			s1dead = 0.3;
-			s2dead = 0.3;
 			joystickEnabled = 0;
 		}
 		int joystickEnabled;
 		int autoAim;
 		int targeting;
-		float joyCursorSpeed;
 		int flipInputButtons;
-		ActionSet actionSet;
-		int s1ax, s1ay, s2ax, s2ay;
-		float s1dead, s2dead;
+		std::vector<ActionSet> actionSets;
 		int toolTipsOn;
 	} control;
 
@@ -165,8 +111,8 @@ public:
 	struct Data
 	{
 		Data() { savePage=0; saveSlot=0; }
-		int savePage;
-		int saveSlot;
+		size_t savePage;
+		size_t saveSlot;
 	} data;
 
 	struct Version
@@ -180,8 +126,8 @@ public:
 		std::string masterServer;
 	} network;
 
-	void loadDefaults(bool doApply=true);
-	void load(bool doApply=true, const std::string &overrideFile="");
+	bool loadDefaults(bool doApply=true);
+	bool load(bool doApply=true, const std::string &overrideFile="");
 	void save();
 	void apply();
 };

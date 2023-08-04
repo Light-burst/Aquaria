@@ -19,7 +19,7 @@ using namespace std;
 #include <windows.h>
 #undef GetCharWidth
 #endif
-#include "gl.h"
+#include <GL/gl.h>
 
 //glFont header
 #include "glfont2.h"
@@ -53,7 +53,7 @@ bool GLFont::Create (const char *file_name, int tex, bool loadTexture)
 	//Destroy the old font if there was one, just to be safe
 	Destroy();
 
-	
+
 	VFILE *fh = vfopen(file_name, "rb");
 	if (!fh)
 		return false;
@@ -105,8 +105,7 @@ bool GLFont::Create (const char *file_name, int tex, bool loadTexture)
 
 	if (loadTexture)
 	{
-#ifdef BBGE_BUILD_OPENGL
-		glBindTexture(GL_TEXTURE_2D, tex);  
+		glBindTexture(GL_TEXTURE_2D, tex);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -120,7 +119,7 @@ bool GLFont::Create (const char *file_name, int tex, bool loadTexture)
 		//Build2DMipmaps(3, header.tex_width, header.tex_height, GL_LUMINANCE_ALPHA, tex_bytes, 1);
 		//Create OpenGL texture
 		/*
-		glBindTexture(GL_TEXTURE_2D, tex);  
+		glBindTexture(GL_TEXTURE_2D, tex);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -128,7 +127,6 @@ bool GLFont::Create (const char *file_name, int tex, bool loadTexture)
 		//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 		*/
-#endif
 	}
 
 	//Free texture pixels memory
@@ -153,45 +151,45 @@ void GLFont::Destroy (void)
 	}
 }
 //*******************************************************************
-void GLFont::GetTexSize (std::pair<int, int> *size)
+void GLFont::GetTexSize (std::pair<int, int> *size) const
 {
 	//Retrieve texture size
 	size->first = header.tex_width;
 	size->second = header.tex_height;
 }
 //*******************************************************************
-int GLFont::GetTexWidth (void)
+int GLFont::GetTexWidth (void) const
 {
 	//Return texture width
 	return header.tex_width;
 }
 //*******************************************************************
-int GLFont::GetTexHeight (void)
+int GLFont::GetTexHeight (void) const
 {
 	//Return texture height
 	return header.tex_height;
 }
 //*******************************************************************
-void GLFont::GetCharInterval (std::pair<int, int> *interval)
+void GLFont::GetCharInterval (std::pair<int, int> *interval) const
 {
 	//Retrieve character interval
 	interval->first = header.start_char;
 	interval->second = header.end_char;
 }
 //*******************************************************************
-int GLFont::GetStartChar (void)
+int GLFont::GetStartChar (void) const
 {
 	//Return start character
 	return header.start_char;
 }
 //*******************************************************************
-int GLFont::GetEndChar (void)
+int GLFont::GetEndChar (void) const
 {
 	//Return end character
 	return header.end_char;
 }
 //*******************************************************************
-void GLFont::GetCharSize (unsigned char c, std::pair<int, int> *size)
+void GLFont::GetCharSize (unsigned char c, std::pair<int, int> *size) const
 {
 	//Make sure character is in range
 	if (c < header.start_char || c > header.end_char)
@@ -212,7 +210,7 @@ void GLFont::GetCharSize (unsigned char c, std::pair<int, int> *size)
 	}
 }
 //*******************************************************************
-int GLFont::GetCharWidth (unsigned char c)
+int GLFont::GetCharWidth (unsigned char c) const
 {
 	//Make sure in range
 	if (c < header.start_char || c > header.end_char)
@@ -220,7 +218,7 @@ int GLFont::GetCharWidth (unsigned char c)
 	else
 	{
 		GLFontChar *glfont_char;
-		
+
 		//Retrieve character width
 		glfont_char = &header.chars[c - header.start_char];
 
@@ -236,7 +234,7 @@ int GLFont::GetCharWidth (unsigned char c)
 	}
 }
 //*******************************************************************
-int GLFont::GetCharHeight (unsigned char c)
+int GLFont::GetCharHeight (unsigned char c) const
 {
 	//Make sure in range
 	if (c < header.start_char || c > header.end_char)
@@ -251,21 +249,19 @@ int GLFont::GetCharHeight (unsigned char c)
 	}
 }
 //*******************************************************************
-void GLFont::Begin (void)
+void GLFont::Begin (void) const
 {
-#ifdef BBGE_BUILD_OPENGL
 	//Bind to font texture
 	glBindTexture(GL_TEXTURE_2D, header.tex);
-#endif
 }
 //*******************************************************************
-void GLFont::GetStringSize (const std::string &text, std::pair<int, int> *size)
+void GLFont::GetStringSize (const std::string &text, std::pair<int, int> *size) const
 {
 	unsigned int i;
 	unsigned int c;
 	GLFontChar *glfont_char;
 	float width;
-	
+
 	//debugLog("size->second");
 	//Height is the same for now...might change in future
 	size->second = (int)(header.chars[header.start_char].dy *
@@ -277,7 +273,7 @@ void GLFont::GetStringSize (const std::string &text, std::pair<int, int> *size)
 	{
 		//Make sure character is in range
 		c = (unsigned char)text[i];
-		
+
 		if (c < header.start_char || c > header.end_char)
 			continue;
 
@@ -285,13 +281,13 @@ void GLFont::GetStringSize (const std::string &text, std::pair<int, int> *size)
 		glfont_char = &header.chars[c - header.start_char];
 
 		//Get width and height
-		width += glfont_char->dx * header.tex_width;		
+		width += glfont_char->dx * header.tex_width;
 	}
 
 	//Save width
 	//debugLog("size first");
 	size->first = (int)width;
-	
+
 	//debugLog("done");
 }
 

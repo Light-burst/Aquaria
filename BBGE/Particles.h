@@ -41,7 +41,6 @@ struct SpawnParticleData
 	int flipH, flipV;
 	SpawnArea spawnArea;
 
-	float avatarVelocity;
 	float updateMultiplier;
 
 	InterpolatedVector velocityMagnitude;
@@ -57,8 +56,6 @@ struct SpawnParticleData
 	bool didOne;
 	int justOne;
 
-	int alphaModTimesVel;
-
 	int copyParentRotation, copyParentFlip;
 	bool useSpawnRate;
 	bool calculateVelocityToCenter;
@@ -68,7 +65,7 @@ struct SpawnParticleData
 	float life;
 	InterpolatedVector spawnRate;
 	std::string texture;
-	RenderObject::BlendTypes blendType;
+	BlendType blendType;
 	float counter;
 	float spawnTimeOffset;
 	bool spawnLocal;
@@ -76,7 +73,6 @@ struct SpawnParticleData
 	bool inheritAlpha;
 
 	float lastDTDifference;
-	int groupRender;
 	int influenced;
 	std::string deathPrt;
 
@@ -123,13 +119,11 @@ class Emitter : public Quad
 {
 public:
 	Emitter(ParticleEffect *pe);
-	void destroy();
+	void destroy() OVERRIDE;
 	void addParticle(Particle *p);
 	void removeParticle(Particle *p);
 
 	SpawnParticleData data;
-
-	void render();
 
 	void start();
 	void stop();
@@ -142,9 +136,9 @@ public:
 	bool hasRot;
 protected:
 	Vector currentSpawn, lastSpawn;
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 	void spawnParticle(float perc=1);
-	void onUpdate(float dt);
+	void onUpdate(float dt) OVERRIDE;
 
 	ParticleEffect *pe;
 
@@ -174,7 +168,6 @@ protected:
 	bool waitForParticles;
 
 	void onUpdate(float dt);
-	void onRender();
 
 	float effectLife, effectLifeCounter;
 	bool running;
@@ -185,7 +178,7 @@ protected:
 struct ParticleInfluence
 {
 	ParticleInfluence(Vector pos, float spd, float size, bool pull)
-		: pos(pos), spd(spd), size(size), pull(pull)
+		: pos(pos), size(size), spd(spd), pull(pull)
 	{}
 	ParticleInfluence() : size(0), spd(0), pull(false) {}
 	Vector pos;
@@ -198,7 +191,7 @@ class ParticleManager
 {
 public:
 	ParticleManager(int size);
-	void setSize(int size);
+	void setSize(size_t size);
 	void loadParticleBank(const std::string &bank1, const std::string &bank2);
 	void clearParticleBank();
 
@@ -217,35 +210,34 @@ public:
 
 	void endParticle(Particle *p);
 
-	void setFree(int free);
+	void setFree(size_t free);
 
-	int getFree() { return free; }
-	int getNumActive() { return numActive; }
+	size_t getFree() { return free; }
+	size_t getNumActive() { return numActive; }
 
-	void setNumSuckPositions(int num);
-	void setSuckPosition(int idx, const Vector &pos);
+	void setNumSuckPositions(size_t num);
+	void setSuckPosition(size_t idx, const Vector &pos);
 
-	Vector *getSuckPosition(int idx);
+	Vector *getSuckPosition(size_t idx);
 
 	static std::string particleBankPath;
 
 protected:
 
-	
+
 
 	std::vector<Vector> suckPositions;
-	int numActive;
+	size_t numActive;
 	Particle* stomp();
 
-	void nextFree(int f=1);
-	void prevFree(int f=1);
+	void nextFree(size_t f=1);
 
-	int oldFree;
+	size_t oldFree;
 
 	typedef std::vector<ParticleInfluence> Influences;
 	Influences influences;
 
-	int size, used, free, halfSize;
+	size_t size, used, free, halfSize;
 	Particles particles;
 
 

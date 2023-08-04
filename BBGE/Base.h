@@ -21,94 +21,46 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef BBGE_BASE_H
 #define BBGE_BASE_H
 
+#include <stddef.h>
+
 #ifdef BBGE_BUILD_WINDOWS
-
-	#define WIN32_LEAN_AND_MEAN
-	#define WIN32_NOMINMAX
-	#include <windows.h>
-	#undef min
-	#undef max
-
-    #ifdef _MSC_VER
+    #define WIN32_NOMINMAX
+    #if defined(_MSC_VER) && _MSC_VER <= 1600
         #define strtof (float)strtod
         #define snprintf _snprintf
     #endif
 #endif
 
-#include "BBGECompileConfig.h"
-
-#ifdef BBGE_BUILD_WINDOWS
-
-	//#include "iprof/prof.h"
-	//#define BBGE_PROF(x) Prof(x)
-
-	#define BBGE_PROF(x)
-
-/*
-	//#ifdef BBGE_BUILD_DIRECTX
-	#define DIRECTINPUT_VERSION 0x0800
-	#include <dinput.h>
-	//#endif
-*/
-
-#else
-	#define BBGE_PROF(x)
-
-#endif
-
-#ifdef BBGE_BUILD_GLFW
-	#include <glfw.h>
-	#include "glext.h"
-	//#include "glext.h"
-#elif BBGE_BUILD_DIRECTX
-
-	#if defined(BBGE_BUILD_X360) && !defined(BBGE_BUILD_WINDOWS)
-
-		#include <xtl.h>
-		#include <ppcintrinsics.h>
-
-	#endif // _XBOX
-
-	#if defined(BBGE_BUILD_X360) && defined(BBGE_BUILD_WINDOWS)
-		// Using the win32\ path prefix on the D3D include files makes sure that the Xbox 360 
-		// version of D3D is used, not the DirectX SDK version.
-		#include <win32\vs2005\d3d9.h>
-		#include <win32\vs2005\d3dx9.h>
-		#pragma warning(disable:4100)
-
-		#include "XTLOnPC.h"
-
-	#endif // _PC
-
-	#if defined(BBGE_BUILD_X360)
-		#include <xgraphics.h>
-		#include <xboxmath.h>
-		#include <stdio.h>
-		#include <stdarg.h>
-		#include <assert.h>
-	#endif
-#endif
-
-#ifdef BBGE_BUILD_SDL
-
-	#include "SDL.h"
-
-#endif
-
-#if defined(BBGE_BUILD_OPENGL)
-	#define GL_GLEXT_LEGACY 1
-	#include "gl.h"
-	#include "glext.h"
-#endif
-
 #define compile_assert(pred) switch(0){case 0:case (pred):;}
 
-#ifdef _MSC_VER
-#pragma warning(disable:4786)
-#pragma warning(disable:4005)
-#pragma warning(disable:4305)
+// C++11's override specifier is too useful not to use it if we have it
+#if (__cplusplus >= 201103L) || (defined(_MSC_VER) && (_MSC_VER+0 >= 1900))
+#define OVERRIDE override
+#endif
 
-#pragma warning(disable:4018) // signed/unsigned mismatch
+#ifndef OVERRIDE
+#define OVERRIDE
+#endif
+
+namespace internal
+{
+	template <typename T, size_t N>
+	char (&_ArraySizeHelper( T (&a)[N]))[N];
+
+	template<size_t n>
+	struct NotZero { static const size_t value = n; };
+	template<>
+	struct NotZero<0> {};
+}
+#define Countof(a) (internal::NotZero<(sizeof(internal::_ArraySizeHelper(a)))>::value)
+
+
+#ifdef _MSC_VER
+//#pragma warning(disable:4786)
+//#pragma warning(disable:4005)
+//#pragma warning(disable:4305)
+
+//#pragma warning(disable:4018) // signed/unsigned mismatch
 #pragma warning(disable:4244) // conversion from types with possible loss of data
 #pragma warning(disable:4800) // forcing value to bool 'true' or 'false (performance warning)
 
@@ -117,43 +69,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma warning(disable:4505) // unreferenced local function has been removed
 #pragma warning(disable:4702) // unreachable code
 #pragma warning(disable:4127) // conditional expression is constant
-#pragma warning(disable:4706) // assignment within conditional expression
+#pragma warning(disable:26812) // unscoped enum
+//#pragma warning(disable:4706) // assignment within conditional expression
 
-#pragma warning(disable:4389) // signed/unsigned mismatch
+//#pragma warning(disable:4389) // signed/unsigned mismatch
 
-#pragma warning(disable:4189) // UqqqqSEFUL: local variable is initialized but not referenced
+//#pragma warning(disable:4189) // UqqqqSEFUL: local variable is initialized but not referenced
 #endif
 
-#undef GetCharWidth
-
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include <string>
-#include <sstream>
-#include <fstream>
-#include <vector>
-#include <list>
-#include <queue>
-#include <map>
-#include <stack>
-//#include <typeinfo.h>
-
-#include "Rect.h"
-
 #include "math.h"
-#include "ttvfs_stdio.h"
 
-#include "tinyxml2.h"
-#include "Refcounted.h"
+#include "Vector.h"
+#include "OSFunctions.h"
 
-#ifdef BBGE_BUILD_LINUX
-#  include <sys/types.h>
-#  include <stdint.h>
-#endif
-
-// dumb win32 includes/defines cleanup
-#undef GetCharWidth
-
+// --- Defined in RenderBase.cpp -- Declared here to avoid pulling in gl.h via RenderBase.h --
+void drawCircle(float radius, int stepSize);
+unsigned generateEmptyTexture(int res);
+void sizePowerOf2Texture(int &v);
+// ----------------------
 
 enum Align { ALIGN_CENTER=0, ALIGN_LEFT };
 
@@ -171,48 +108,35 @@ enum Direction
 	DIR_MAX			= 8
 };
 
-#include "Event.h"
-
-#include "Vector.h"
-
-
-const float SQRT2		= 1.41421356;
-
-const float PI			= 3.14159265;
-const float PI_HALF		= 1.57079633;
+const float PI			= 3.14159265f;
+const float PI_HALF		= 1.57079633f;
 
 #ifndef HUGE_VALF
 	#define HUGE_VALF	((float)1e38)
 #endif
 
-struct IntPair
-{
-	IntPair(unsigned short int x, unsigned short int y) : x(x), y(y) {}
-	unsigned short int x, y;
-};
+typedef int CharTranslationTable[256]; // -1 entries are skipped
+
 
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 
-std::string numToZeroString(int num, int zeroes);
+std::string numToZeroString(int num, size_t zeroes);
 bool chance(int perc);
-bool chancef(float p);
-void initCharTranslationTables(const std::map<unsigned char, unsigned char>& tab);
+void initCharTranslationTables(const CharTranslationTable *ptab);
 void stringToUpper(std::string &s);
 void stringToLower(std::string &s);
 void stringToLowerUserData(std::string &s);
-void glColor3_256(int r, int g, int b);
 float sqr(float x);
 bool exists(const std::string &f, bool makeFatal = false, bool skipVFS = false);
 void errorLog(const std::string &s);
 void debugLog(const std::string &s);
-char *readFile(const std::string& path, unsigned long *size_ret = 0);
-tinyxml2::XMLDocument *readXML(const std::string& fn, tinyxml2::XMLError *perr = 0, bool keepEmpty = false);
-tinyxml2::XMLError readXML(const std::string& fn, tinyxml2::XMLDocument& doc);
-char *readCompressedFile(std::string path, unsigned long *size_ret = 0);
-void forEachFile(std::string path, std::string type, void callback(const std::string &filename, intptr_t param), intptr_t param);
+
+// free returned mem with delete[]
+char *readFile(const char *path, size_t *size_ret = 0);
+char *readCompressedFile(const char *path, size_t *size_ret = 0);
+
 std::string stripEndlineForUnix(const std::string &in);
-std::vector<std::string> getFileList(std::string path, std::string type, int param);
 #ifdef HAVE_STRCASECMP
 static inline int nocasecmp(const std::string &s1, const std::string &s2)
 	{ return strcasecmp(s1.c_str(), s2.c_str()); }
@@ -225,39 +149,12 @@ static inline int nocasecmp(const char *s1, const char *s2)
 #else
 int nocasecmp(const std::string &s1, const std::string &s2);
 #endif
-Vector getNearestPointOnLine(Vector start, Vector end, Vector point);
 bool isTouchingLine(Vector lineStart, Vector lineEnd, Vector point, int radius=1, Vector* closest=0);
-void sizePowerOf2Texture(int &v);
-Vector getDirVector(Direction dir);
-Direction getOppositeDir(Direction dir);
-Direction getNextDirClockwise(Direction dir);
-Vector colorRGB(int r, int g, int b);
 
-#ifdef BBGE_BUILD_DIRECTX
-	typedef unsigned int GLuint;
-#endif
-GLuint generateEmptyTexture(int res);
-
-//void pForEachFile(std::string path, std::string type, void callback(const std::string &filename, int param), int param);
-
-/*
-void pfread(void *buffer, PHYSFS_uint32 size, PHYSFS_uint32 objs, PHYSFS_file *handle);
-void pfseek(PHYSFS_file *handle,PHYSFS_uint64 byte,int origin);
-void pfclose(PHYSFS_file *handle);
-
-
-PHYSFS_file *openRead(const std::string &f);
-std::string pLoadStream(const std::string &filename);
-void pSaveStream(const std::string &filename, std::ostringstream &os);
-*/
 
 void drawCircle(float radius, int steps=1);
-bool isVectorInRect(const Vector &vec, const Vector &coord1, const Vector &coord2);
 
-std::string parseCommand(const std::string &line, const std::string &command);
-
-void messageBox(const std::string &title, const std::string& msg);
-
+std::string getPathInfoStr();
 void exit_error(const std::string &message);
 
 unsigned hash(const std::string &string);
@@ -285,10 +182,9 @@ enum LerpType
 #define DOUBLE_CLICK_DELAY	0.5f
 
 
-float lerp(const float &v1, const float &v2, float dt, int lerpType);
+float lerp(float v1, float v2, float dt, int lerpType);
 
-//int packFile(const std::string &sourcef, const std::string &destf, int level);
-//int unpackFile(const std::string &sourcef, const std::string &destf);
+
 
 void openURL(const std::string &url);
 

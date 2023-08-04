@@ -21,26 +21,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef DEBUGFONT_H
 #define DEBUGFONT_H
 
-#include "Core.h"
 #include "BaseText.h"
+#include "Event.h"
 
 class DebugFont : public BaseText
 {
 public:
 	DebugFont(int initFontSize=0, const std::string &initText="");
-	void setText(const std::string &text);
-	void setWidth(float width);
-	void setFontSize(float sz);
-	int getNumLines() { return lines.size(); }
-	virtual void setAlign(Align align);
-	virtual float getHeight();
-	virtual float getLineHeight();
-	virtual float getStringWidth(const std::string& text);
-	virtual float getActualWidth();
+	void setText(const std::string &text) OVERRIDE;
+	void setWidth(float width) OVERRIDE;
+	void setFontSize(float sz) OVERRIDE;
+	size_t getNumLines() const OVERRIDE { return lines.size(); }
+	virtual void setAlign(Align align) OVERRIDE;
+	virtual float getHeight() const OVERRIDE;
+	virtual float getLineHeight() const OVERRIDE;
+	virtual float getStringWidth(const std::string& text) const OVERRIDE;
+	virtual float getActualWidth() const OVERRIDE;
 protected:
 	float fontDrawSize, textWidth;
 	void formatText();
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 	std::string text;
 	std::vector<std::string> lines;
 	Align align;
@@ -53,12 +53,15 @@ class DebugButtonReceiver;
 class DebugButton : public RenderObject
 {
 public:
-	DebugButton(int buttonID=-1, DebugButtonReceiver *receiver=0, int bgWidth=0, int fsize=0, bool quitMain=false);
+	DebugButton(int buttonID=-1, DebugButtonReceiver *receiver=0, int bgWidth=0, int fsize=0);
 	DebugFont *label;
 	EventPtr event;
-	bool quitMain;
 	int buttonID;
-	
+	float activeAlpha;
+	Vector activeColor;
+	float inactiveAlpha;
+	Vector inactiveColor;
+
 protected:
 	void onUpdate(float dt);
 	Quad *highlight;

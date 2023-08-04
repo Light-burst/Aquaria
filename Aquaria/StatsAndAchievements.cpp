@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Game.h"
 #include "Avatar.h"
 #include "StatsAndAchievements.h"
+#include "ttvfs_stdio.h"
 
 #ifndef ARRAYSIZE
 #define ARRAYSIZE(x) (sizeof (x) / sizeof ((x)[0]))
@@ -92,7 +93,7 @@ const int FLAG_SPIRIT_DRASK					= 126;
 const int FLAG_SPIRIT_DRUNIAD				= 127;
 
 const int FLAG_TRANSTURTLE_VEIL01			= 130;
-const int FLAG_TRANSTURTLE_OPENWATER06		= 131;
+//const int FLAG_TRANSTURTLE_OPENWATER06		= 131;
 const int FLAG_TRANSTURTLE_FOREST04			= 132;
 const int FLAG_TRANSTURTLE_OPENWATER03		= 133;
 const int FLAG_TRANSTURTLE_FOREST05			= 134;
@@ -104,15 +105,15 @@ const int FLAG_TRANSTURTLE_FINALBOSS		= 139;
 
 const int FLAG_SEAHORSEBESTTIME				= 247;
 
-const int FLAG_MINIBOSS_START				= 700;
-const int FLAG_MINIBOSS_NAUTILUSPRIME		= 700;
+//const int FLAG_MINIBOSS_START				= 700;
+//const int FLAG_MINIBOSS_NAUTILUSPRIME		= 700;
 const int FLAG_MINIBOSS_KINGJELLY			= 701;
 const int FLAG_MINIBOSS_MERGOG				= 702;
 const int FLAG_MINIBOSS_CRAB				= 703;
 const int FLAG_MINIBOSS_OCTOMUN				= 704;
 const int FLAG_MINIBOSS_MANTISSHRIMP		= 705;
-const int FLAG_MINIBOSS_PRIESTS				= 706;
-const int FLAG_MINIBOSS_END					= 720;
+//const int FLAG_MINIBOSS_PRIESTS				= 706;
+//const int FLAG_MINIBOSS_END					= 720;
 
 
 //-----------------------------------------------------------------------------
@@ -122,17 +123,13 @@ const int FLAG_MINIBOSS_END					= 720;
 #pragma warning( push )
 //  warning C4355: 'this' : used in base member initializer list
 //  This is OK because it's warning on setting up the Steam callbacks, they won't use this until after construction is done
-#pragma warning( disable : 4355 ) 
+#pragma warning( disable : 4355 )
 #endif
 StatsAndAchievements::StatsAndAchievements()
 {
-	/*
-	std::ostringstream os;
-	os << "app_id: " << SteamUtils()->GetAppID();
-	debugLog(os.str());
-	*/
 
-#ifdef BBGE_BUILD_ACHIEVEMENTS_INTERNAL
+
+#ifndef BBGE_BUILD_STEAMWORKS
 	unlockedDisplayTimestamp = -1.0f;
 #endif
 
@@ -140,21 +137,7 @@ StatsAndAchievements::StatsAndAchievements()
 	statsValid = false;
 	storeStats = false;
 
-	/*
-	m_flGameFeetTraveled = 0;
 
-	m_nTotalGamesPlayed = 0;
-	m_nTotalNumWins = 0;
-	m_nTotalNumLosses = 0;
-	m_flTotalFeetTraveled = 0;
-	m_flMaxFeetTraveled = 0;
-
-	m_flAverageSpeed = 0;
-
-	m_hDisplayFont = pGameEngine->HCreateFont( ACHDISP_FONT_HEIGHT, FW_MEDIUM, false, "Arial" );
-	if ( !m_hDisplayFont )
-		OutputDebugString( "Stats font was not created properly, text won't draw\n" );
-	*/
 }
 #ifdef _MSC_VER
 #pragma warning( pop )
@@ -165,7 +148,7 @@ StatsAndAchievements::StatsAndAchievements()
 //-----------------------------------------------------------------------------
 void StatsAndAchievements::RunFrame()
 {
-#ifdef BBGE_BUILD_ACHIEVEMENTS_INTERNAL
+#ifndef BBGE_BUILD_STEAMWORKS
 	if ( !requestedStats )
 	{
 		requestedStats = true;
@@ -246,7 +229,7 @@ void StatsAndAchievements::RunFrame()
 	// but only if we're not in a mod
 	if (!dsq->mod.isActive())
 	{
-		for ( int iAch = 0; iAch < ARRAYSIZE( g_rgAchievements ); ++iAch )
+		for (size_t iAch = 0; iAch < ARRAYSIZE( g_rgAchievements ); ++iAch )
 		{
 			EvaluateAchievement( g_rgAchievements[iAch] );
 		}
@@ -269,7 +252,7 @@ void StatsAndAchievements::appendStringData(std::string &data)
 
 	count = 0;
 	data += "Unlocked:\n\n";
-	for ( int iAch = 0; iAch < ARRAYSIZE( g_rgAchievements ); ++iAch )
+	for (size_t iAch = 0; iAch < ARRAYSIZE( g_rgAchievements ); ++iAch )
 	{
 		const Achievement &ach = g_rgAchievements[iAch];
 		if (!ach.achieved)
@@ -288,7 +271,7 @@ void StatsAndAchievements::appendStringData(std::string &data)
 
 	count = 0;
 	data += "Locked:\n\n";
-	for ( int iAch = 0; iAch < ARRAYSIZE( g_rgAchievements ); ++iAch )
+	for (size_t iAch = 0; iAch < ARRAYSIZE( g_rgAchievements ); ++iAch )
 	{
 		const Achievement &ach = g_rgAchievements[iAch];
 		if (ach.achieved)
@@ -343,7 +326,7 @@ void StatsAndAchievements::OnGameStateChange( EClientGameState eNewState )
 		m_ulTickCountGameStart = m_pGameEngine->GetGameTickCount();
 		break;
 	case k_EClientFindInternetServers:
-		break;	
+		break;
 	case k_EClientGameWinner:
 		if ( SpaceWarClient()->BLocalPlayerWonLastGame() )
 			m_nTotalNumWins++;
@@ -379,11 +362,11 @@ void StatsAndAchievements::OnGameStateChange( EClientGameState eNewState )
 //-----------------------------------------------------------------------------
 void StatsAndAchievements::EvaluateAchievement( Achievement &achievement )
 {
-	//debugLog("Eval...");
+
 
 	// Already have it?
 	if ( achievement.achieved ) {
-		//debugLog(std::string(achievement.chAchievementID) + " was already achieved");
+
 		return;
 	}
 
@@ -401,7 +384,7 @@ void StatsAndAchievements::EvaluateAchievement( Achievement &achievement )
 			bool didPoisonLoaf = false;
 			bool didVeggieSoup = false;
 
-			for (int i = 0; i < dsq->continuity.recipes.size(); i++ )
+			for (size_t i = 0; i < dsq->continuity.recipes.size(); i++ )
 			{
 				if (dsq->continuity.recipes[i].isKnown())
 				{
@@ -414,7 +397,7 @@ void StatsAndAchievements::EvaluateAchievement( Achievement &achievement )
 					}
 				}
 			}
-			for (int i = 0; i < dsq->continuity.recipes.size(); i++ )
+			for (size_t i = 0; i < dsq->continuity.recipes.size(); i++ )
 			{
 				if (!dsq->continuity.recipes[i].isKnown())
 				{
@@ -423,11 +406,7 @@ void StatsAndAchievements::EvaluateAchievement( Achievement &achievement )
 						|| (dsq->continuity.recipes[i].result == "VeggieSoup" && didVeggieSoup))
 					{}
 					else {
-						/*
-						std::ostringstream os;
-						os << "doesn't know recipe: " << dsq->continuity.recipes[i].result;
-						debugLog(os.str());
-						*/
+
 						knowAll = false;
 					}
 				}
@@ -442,20 +421,7 @@ void StatsAndAchievements::EvaluateAchievement( Achievement &achievement )
 
 	case ACH_MASS_TRANSIT:
 		{
-			/*
-			debugLog("eval ACH_MASS_TRANSIT");
-			std::ostringstream os;
-			os << "FLAG_TRANSTURTLE_VEIL01: " << dsq->continuity.getFlag(FLAG_TRANSTURTLE_VEIL01) << "\n";
-			os << "FLAG_TRANSTURTLE_VEIL02: " << dsq->continuity.getFlag(FLAG_TRANSTURTLE_VEIL02) << "\n";
-			os << "FLAG_TRANSTURTLE_OPENWATER03: " << dsq->continuity.getFlag(FLAG_TRANSTURTLE_OPENWATER03) << "\n";
-			os << "FLAG_TRANSTURTLE_FOREST04: " << dsq->continuity.getFlag(FLAG_TRANSTURTLE_FOREST04) << "\n";
-			os << "FLAG_TRANSTURTLE_FOREST05: " << dsq->continuity.getFlag(FLAG_TRANSTURTLE_FOREST05) << "\n";
-			os << "FLAG_TRANSTURTLE_MAINAREA: " << dsq->continuity.getFlag(FLAG_TRANSTURTLE_MAINAREA) << "\n";
-			os << "FLAG_TRANSTURTLE_SEAHORSE: " << dsq->continuity.getFlag(FLAG_TRANSTURTLE_SEAHORSE) << "\n";
-			os << "FLAG_TRANSTURTLE_ABYSS03: " << dsq->continuity.getFlag(FLAG_TRANSTURTLE_ABYSS03) << "\n";
-			os << "FLAG_TRANSTURTLE_FINALBOSS: " << dsq->continuity.getFlag(FLAG_TRANSTURTLE_FINALBOSS) << "\n";
-			debugLog(os.str());
-			*/
+
 
 			if (dsq->continuity.getFlag(FLAG_TRANSTURTLE_VEIL01) > 0
 				&& dsq->continuity.getFlag(FLAG_TRANSTURTLE_VEIL02) > 0
@@ -477,15 +443,11 @@ void StatsAndAchievements::EvaluateAchievement( Achievement &achievement )
 		{
 			// check world map data somehow
 			bool hasAllMap = true;
-			for (int i = 0; i < dsq->continuity.worldMap.getNumWorldMapTiles(); i++)
+			for (size_t i = 0; i < dsq->continuity.worldMap.getNumWorldMapTiles(); i++)
 			{
 				WorldMapTile *tile = dsq->continuity.worldMap.getWorldMapTile(i);
 				if (!tile->revealed && (nocasecmp(tile->name, "thirteenlair") != 0)) {
-					/*
-					std::ostringstream os;
-					os << "does not have: " << tile->name;
-					debugLog(os.str());
-					*/
+
 					hasAllMap = false;
 					break;
 				}
@@ -506,7 +468,7 @@ void StatsAndAchievements::EvaluateAchievement( Achievement &achievement )
 		break;
 
 	case ACH_AQUIRE_ALL_SONGS:
-		//debugLog("eval ACH_AQUIRE_ALL_SONGS");
+
 		if (dsq->continuity.hasSong(SONG_BIND)
 			&& dsq->continuity.hasSong(SONG_SHIELDAURA)
 			&& dsq->continuity.hasSong(SONG_LI)
@@ -518,14 +480,14 @@ void StatsAndAchievements::EvaluateAchievement( Achievement &achievement )
 			&& dsq->continuity.hasSong(SONG_FISHFORM)
 			&& dsq->continuity.hasSong(SONG_SPIRITFORM))
 		{
-			//errorLog("ACH_AQUIRE_ALL_SONGS!");
+
 			UnlockAchievement(achievement);
 		}
 		break;
 
 	// gameplay
 	case ACH_DEFEAT_PRIESTS:
-		//if (dsq->continuity.getFlag(FLAG_MINIBOSS_PRIESTS) > 0)
+
 		if (dsq->continuity.hasSong(SONG_SPIRITFORM))
 		{
 			UnlockAchievement(achievement);
@@ -568,14 +530,14 @@ void StatsAndAchievements::EvaluateAchievement( Achievement &achievement )
 		break;
 
 	case ACH_REACHED_OPEN_WATERS:
-		if (dsq->game->sceneName == "openwater02")
+		if (game->sceneName == "openwater02")
 		{
 			UnlockAchievement(achievement);
 		}
 		break;
 
 	case ACH_REACHED_SPRITE_CAVE:
-		if (dsq->game->sceneName == "forestspritecave")
+		if (game->sceneName == "forestspritecave")
 		{
 			UnlockAchievement(achievement);
 		}
@@ -597,29 +559,29 @@ void StatsAndAchievements::EvaluateAchievement( Achievement &achievement )
 		break;
 
 	case ACH_BELLY_OF_THE_WHALE:
-		if (dsq->game->sceneName == "whale")
+		if (game->sceneName == "whale")
 		{
 			UnlockAchievement(achievement);
 		}
 		break;
 
 	case ACH_ALEK_AND_DAREC:
-		if (dsq->game->sceneName == "weirdcave")
+		if (game->sceneName == "weirdcave")
 		{
 			UnlockAchievement(achievement);
 		}
 		break;
-	
+
 	case ACH_THE_FROZEN_VEIL:
-		if (dsq->game->sceneName == "frozenveil")
+		if (game->sceneName == "frozenveil")
 		{
 			UnlockAchievement(achievement);
 		}
 		break;
 
 	case ACH_MOMMY_AND_DADDY:
-		//if (dsq->continuity.getFlag(SUNKENCITY_BOSSDONE) > 0)
-		//setFlag(FLAG_SUNKENCITY_PUZZLE, SUNKENCITY_BOSSDONE)
+
+
 		if (dsq->continuity.getFlag(FLAG_SUNKENCITY_PUZZLE) >= SUNKENCITY_BOSSDONE)
 		{
 			UnlockAchievement(achievement);
@@ -723,40 +685,28 @@ void StatsAndAchievements::entityDied(Entity *eDead)
 		biteDeathComboCounter = 0;
 	}
 
-	/*
-	eDead->getState() == 
-	if (eDead->name == "monkey") {
-		// we killed a monkey, but how?
-		if (eDead->lastDamage.damageType == DT_AVATAR_VINE) {
-			// with a nature form vine
-			flungMonkey = true;
-		}
-	}
-	*/
+
+
 }
 
 void StatsAndAchievements::update(float dt)
 {
 	//debugLog("update stats and achievements");
 	Avatar *avatar = 0;
-	if (dsq->game && dsq->game->avatar) {
-		avatar = dsq->game->avatar;
+	if (game && game->avatar) {
+		avatar = game->avatar;
 	}
 
 	if (avatar) {
 		BoneLock *b = avatar->getBoneLock();
 
 		if (!rodeEkkritToTheStars) {
-			if (!dsq->game->isPaused() && b->on) {
-				//debugLog("boneLock->entity->name: " + b->entity->name);
+			if (!game->isPaused() && b->on) {
+
 				if (b->entity->name == "ekkrit") {
 					ridingEkkritTime += dt;
 
-					/*
-					std::ostringstream os;
-					os << "ridingEkkritTime: " << ridingEkkritTime;
-					debugLog(os.str());
-					*/
+
 
 					if (ridingEkkritTime >= ridingEkkritTimeMax) {
 						rodeEkkritToTheStars = true;
@@ -766,7 +716,7 @@ void StatsAndAchievements::update(float dt)
 		}
 
 		// TODO: verify sceneName is correct
-		if (dsq->game->sceneName == "veil02") {
+		if (game->sceneName == "veil02") {
 			if (avatar->position.x > 18056 && avatar->position.x < 21238 && avatar->position.y < 4185) {
 				debugLog("highDiveIsHigh!");
 				highDiveIsHigh = true;
@@ -781,7 +731,7 @@ void StatsAndAchievements::update(float dt)
 		}
 	}
 
-#ifdef BBGE_BUILD_ACHIEVEMENTS_INTERNAL
+#ifndef BBGE_BUILD_STEAMWORKS
 	// change no state if we're still fading in/out.
 	if (!dsq->achievement_box->alpha.isInterpolating())
 	{
@@ -794,7 +744,7 @@ void StatsAndAchievements::update(float dt)
 			{
 				unlockedDisplayTimestamp = -1.0f;
 				dsq->achievement_text->alpha.interpolateTo(0, 1);
-				dsq->achievement_box->alpha.interpolateTo(0, 1.2);
+				dsq->achievement_box->alpha.interpolateTo(0, 1.2f);
 			}
 		}
 
@@ -805,10 +755,10 @@ void StatsAndAchievements::update(float dt)
 			unlockedDisplayTimestamp = maxUnlockDisplayTime;
 			std::string text("Achievement Unlocked:\n");
 			text += name;
-			unlockedToBeDisplayed.pop();
+			unlockedToBeDisplayed.pop_front();
 			dsq->achievement_text->setText(text);
 			dsq->achievement_text->alpha.interpolateTo(1, 1);
-			dsq->achievement_box->alpha.interpolateTo(1, 0.1);
+			dsq->achievement_box->alpha.interpolateTo(1, 0.1f);
 		}
 	}
 #endif
@@ -827,8 +777,8 @@ void StatsAndAchievements::UnlockAchievement( Achievement &achievement )
 	// the icon may change once it's unlocked
 	achievement.iconImage = 0;
 
-#ifdef BBGE_BUILD_ACHIEVEMENTS_INTERNAL
-    unlockedToBeDisplayed.push( std::string(achievement.name) );
+#ifndef BBGE_BUILD_STEAMWORKS
+	unlockedToBeDisplayed.push_back(achievement.name);
 #endif
 
 	// Store stats end of frame
@@ -844,7 +794,7 @@ void StatsAndAchievements::StoreStatsIfNecessary()
 	{
 		// already set any achievements in UnlockAchievement
 
-#ifdef BBGE_BUILD_ACHIEVEMENTS_INTERNAL
+#ifndef BBGE_BUILD_STEAMWORKS
 		storeStats = false;  // only ever try once.
 
 		// FIXME: We should use a temporary file to ensure that data
@@ -864,7 +814,7 @@ void StatsAndAchievements::StoreStatsIfNecessary()
 
 		const size_t max_achievements = ARRAYSIZE(g_rgAchievements);
 		unsigned char *buf = new unsigned char[max_achievements];
-        
+
 		for (size_t i = 0; i < max_achievements; i++)
 		{
 			int val = g_rgAchievements[i].achieved ? 1 : 0;
@@ -886,4 +836,6 @@ void StatsAndAchievements::StoreStatsIfNecessary()
 	}
 }
 
-
+#ifdef BBGE_BUILD_STEAMWORKS
+#error Someone with access to the Steamworks SDK actually has to implement this!
+#endif

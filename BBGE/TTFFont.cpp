@@ -18,8 +18,22 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
+
 #include "TTFFont.h"
 
+#ifdef AQUARIA_INTERNAL_FTGL
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#include "FTGL.h"
+#include "FTGLTextureFont.h"
+#else
+#include <FTGL/ftgl.h>
+#endif
+
+#undef min
+#undef max
+#undef GetCharWidth
 
 TTFFont::TTFFont()
 {
@@ -96,17 +110,17 @@ void TTFText::updateAlign()
 	}
 }
 
-int TTFText::getNumLines()
+size_t TTFText::getNumLines() const
 {
 	return (int)text.size();
 }
 
-float TTFText::getHeight()
+float TTFText::getHeight() const
 {
 	return text.size()*lineHeight;
 }
 
-float TTFText::getStringWidth(const std::string& s)
+float TTFText::getStringWidth(const std::string& s) const
 {
 	float w = 0;
 	std::string cp = s;
@@ -209,19 +223,14 @@ void TTFText::updateFormatting()
 	lineHeight = font->font->LineHeight();
 }
 
-void TTFText::onUpdate(float dt)
-{
-	RenderObject::onUpdate(dt);
-}
-
-float TTFText::getLineHeight()
+float TTFText::getLineHeight() const
 {
 	return lineHeight;
 }
 
 int TTFText::findLine(const std::string &label)
 {
-	for (int i = 0; i < text.size(); i++)
+	for (size_t i = 0; i < text.size(); i++)
 	{
 		if (text[i].find(label) != std::string::npos)
 		{
@@ -231,19 +240,11 @@ int TTFText::findLine(const std::string &label)
 	return 0;
 }
 
-void TTFText::onRender()
+void TTFText::onRender(const RenderState& rs) const
 {
-	/*
-	glColor4f(0,0,0,0.5);
-	glBegin(GL_QUADS);
-	glVertex2f(-hw, h/2);
-	glVertex2f(hw, h/2);
-	glVertex2f(hw, -h/2);
-	glVertex2f(-hw, -h/2);
-	glEnd();
-	*/
 
-	for (int i = 0; i < text.size(); i++)
+
+	for (size_t i = 0; i < text.size(); i++)
 	{
 		if (shadow)
 		{
@@ -268,12 +269,5 @@ void TTFText::onRender()
 	RenderObject::lastTextureApplied = 0;
 
 
-	/*
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glLineWidth(2);
-	glBegin(GL_LINES);
-	glVertex2f(-hw, 5);
-	glVertex2f(hw, 5);
-	glEnd();
-	*/
+
 }

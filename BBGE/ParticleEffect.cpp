@@ -39,7 +39,6 @@ void ParticleEffect::setDie(bool v)
 
 void ParticleEffect::load(const std::string &name)
 {
-	BBGE_PROF(ParticleEffect_load);
 	particleManager->loadParticleEffectFromBank(name, this);
 }
 
@@ -54,18 +53,7 @@ void ParticleEffect::transfer(ParticleEffect *pe)
 		Emitter *e = pe->addNewEmitter();
 		e->data = (*i)->data;
 		e->setTexture(e->data.texture);
-		/*
-		if (e->data.flipH)
-		{
-			if (!e->isfh())
-				e->flipHorizontal();
-		}
-		else
-		{
-			if (e->isfh())
-				e->flipHorizontal();
-		}
-		*/
+
 	}
 }
 
@@ -97,9 +85,9 @@ void ParticleEffect::bankLoad(const std::string &file, const std::string &path)
 
 	clearEmitters();
 
-	usef = core->adjustFilenameCase(usef);
+	usef = adjustFilenameCase(usef);
 	debugLog(usef);
-	char *buffer = readFile(usef);
+	char *buffer = readFile(usef.c_str());
 	if (!buffer)
 	{
 		debugLog("Can't read " + usef);
@@ -112,7 +100,7 @@ void ParticleEffect::bankLoad(const std::string &file, const std::string &path)
 	Emitter *currentEmitter = 0;
 	while (inf >> token)
 	{
-		//debugLog("Token: " + token);
+
 		if (token == "[Emitter]")
 		{
 			state = 1;
@@ -156,11 +144,7 @@ void ParticleEffect::bankLoad(const std::string &file, const std::string &path)
 			currentEmitter->data.color.data->path.addPathNode(Vector(x,y,z), t);
 			currentEmitter->data.color.startPath(currentEmitter->data.life);
 
-			/*
-			std::ostringstream os;
-			os << "colorNode: " << t << ", " << x << ", " << y << ", " << z;
-			debugLog(os.str());
-			*/
+
 		}
 		if (state == 3 && currentEmitter)
 		{
@@ -172,11 +156,7 @@ void ParticleEffect::bankLoad(const std::string &file, const std::string &path)
 			currentEmitter->data.number.data->path.addPathNode(num, t);
 			currentEmitter->data.number.startPath(currentEmitter->data.life);
 
-			/*
-			std::ostringstream os;
-			os << "numberNode: " << t << ", " << num;
-			debugLog(os.str());
-			*/
+
 		}
 		if (state == 4 && currentEmitter)
 		{
@@ -188,11 +168,7 @@ void ParticleEffect::bankLoad(const std::string &file, const std::string &path)
 			currentEmitter->data.alpha.data->path.addPathNode(num, t);
 			currentEmitter->data.alpha.startPath(currentEmitter->data.life);
 
-			/*
-			std::ostringstream os;
-			os << "alphaNode: " << t << ", " << num;
-			debugLog(os.str());
-			*/
+
 		}
 		if (state == 5 && currentEmitter)
 		{
@@ -204,11 +180,7 @@ void ParticleEffect::bankLoad(const std::string &file, const std::string &path)
 			currentEmitter->data.rotation.data->path.addPathNode(Vector(0,0,num), t);
 			currentEmitter->data.rotation.startPath(currentEmitter->data.life);
 
-			/*
-			std::ostringstream os;
-			os << "rotationNode: " << t << ", " << num;
-			debugLog(os.str());
-			*/
+
 		}
 		if (state == 6 && currentEmitter)
 		{
@@ -220,11 +192,7 @@ void ParticleEffect::bankLoad(const std::string &file, const std::string &path)
 			currentEmitter->data.scale.data->path.addPathNode(Vector(sx, sy), t);
 			currentEmitter->data.scale.startPath(currentEmitter->data.life);
 
-			/*
-			std::ostringstream os;
-			os << "scaleNode: " << t << ", " << sx << ", " << sy;
-			debugLog(os.str());
-			*/
+
 		}
 
 
@@ -262,16 +230,6 @@ void ParticleEffect::bankLoad(const std::string &file, const std::string &path)
 			{
 				inf >> tmp;
 				inf >> currentEmitter->data.texture;
-			}
-			else if (token == "AvatarVelocity")
-			{
-				inf >> tmp;
-				inf >> currentEmitter->data.avatarVelocity;
-			}
-			else if (token == "AlphaModTimesVel")
-			{
-				inf >> tmp;
-				inf >> currentEmitter->data.alphaModTimesVel;
 			}
 			else if (token == "RandomScale")
 			{
@@ -372,7 +330,7 @@ void ParticleEffect::bankLoad(const std::string &file, const std::string &path)
 				if (blendType == "Add")
 					currentEmitter->data.blendType = BLEND_ADD;
 				else if (blendType == "Sub")
-					currentEmitter->data.blendType = RenderObject::BLEND_SUB;
+					currentEmitter->data.blendType = BLEND_SUB;
 			}
 			else if (token == "Width")
 			{
@@ -388,16 +346,6 @@ void ParticleEffect::bankLoad(const std::string &file, const std::string &path)
 			{
 				inf >> tmp;
 				inf >> currentEmitter->data.life;
-			}
-			else if (token == "GroupRender")
-			{
-				inf >> tmp;
-				inf >> currentEmitter->data.groupRender;
-			}
-			else if (token == "Shape")
-			{
-				inf >> tmp;
-				inf >> tmp;
 			}
 			else if (token == "Suck")
 			{
@@ -422,12 +370,7 @@ void ParticleEffect::onUpdate(float dt)
 {
 	RenderObject::onUpdate(dt);
 
-	/*
-	for (Emitters::iterator i = emitters.begin(); i != emitters.end(); i++)
-	{
-		(*i)->update(dt);
-	}
-	*/
+
 
 	if (effectLifeCounter == 0)
 	{
@@ -471,7 +414,7 @@ void ParticleEffect::onUpdate(float dt)
 // stop the particle effect, let the particles all die off before we delete ourselves
 void ParticleEffect::killParticleEffect()
 {
-	effectLifeCounter = 0.0001;
+	effectLifeCounter = 0.0001f;
 	die = true;
 	//stop();
 }
@@ -496,11 +439,3 @@ void ParticleEffect::stop()
 		(*i)->stop();
 	}
 }
-
-void ParticleEffect::onRender()
-{
-	BBGE_PROF(ParticleEffect_onRender);
-
-	RenderObject::onRender();
-}
-

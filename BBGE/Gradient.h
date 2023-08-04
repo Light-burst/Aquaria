@@ -31,11 +31,11 @@ public:
 	void makeVertical(Vector c1, Vector c2);
 	void makeHorizontal(Vector c1, Vector c2);
 
-	void onUpdate(float dt);
+	void onUpdate(float dt) OVERRIDE;
 
 	int autoWidth, autoHeight;
 protected:
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 	Vector ulc0, ulc1, ulc2, ulc3;
 };
 

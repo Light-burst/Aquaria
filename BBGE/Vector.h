@@ -21,14 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef BBGE_VECTOR_H
 #define BBGE_VECTOR_H
 
+#include <stddef.h>
 #include <cmath>
 #include <float.h>
-#include <vector> 
-#include "Event.h"
+#include <vector>
 
-#ifdef BBGE_BUILD_DIRECTX
-	#include <d3dx9.h>
-#endif
 typedef float scalar_t;
 
 class Vector
@@ -53,7 +50,7 @@ public:
 		 v[0] = x; v[1] = y; v[2] = z; v[3] = param;
 		 return v;
 	 }
-		 
+
 	 // vector assignment
      const Vector &operator=(const Vector &vec)
      {
@@ -84,7 +81,7 @@ public:
 
      // vector add (opposite of negation)
      const Vector operator+() const
-     {    
+     {
           return Vector(*this);
      }
 
@@ -98,13 +95,13 @@ public:
 
      // vector subtraction
      const Vector operator-(const Vector& vec) const
-     {    
+     {
           return Vector(x - vec.x, y - vec.y, z - vec.z);
      }
-     
+
      // vector negation
      const Vector operator-() const
-     {    
+     {
           return Vector(-x, -y, -z);
      }
 
@@ -124,7 +121,7 @@ public:
           x *= s;
           y *= s;
           z *= s;
-          
+
           return *this;
      }
 
@@ -178,11 +175,6 @@ public:
           return vec*s;
      }
 
-/*   friend inline const Vector operator*(const Vector &vec, const scalar_t &s)
-     {
-          return Vector(vec.x*s, vec.y*s, vec.z*s);
-     }
-*/
    // divecide by scalar
      const Vector operator/(scalar_t s) const
      {
@@ -235,11 +227,11 @@ public:
      // length of vector
      inline scalar_t getLength3D() const
      {
-          return (scalar_t)sqrtf(x*x + y*y + z*z);
+          return static_cast<scalar_t>(sqrtf(x*x + y*y + z*z));
      }
      inline scalar_t getLength2D() const
      {
-          return (scalar_t)sqrtf(x*x + y*y);
+          return static_cast<scalar_t>(sqrtf(x*x + y*y));
      }
 
      // return the unit vector
@@ -253,7 +245,7 @@ public:
 	 {
 		if (x == 0 && y == 0 && z == 0)
 		{
-			//debugLog("Normalizing 0 vector");
+
 			x = y = z = 0;
 		}
 		else
@@ -265,7 +257,7 @@ public:
 	 {
 		if (x == 0 && y == 0)
 		{
-			//debugLog("Normalizing 0 vector");
+
 			x = y = z= 0;
 		}
 		else
@@ -279,27 +271,14 @@ public:
           return sqrtf(x*x + y*y + z*z);
      }
 
-	 /*
-     // return vector with specified length
-     const Vector operator | (const scalar_t length) const
-     {
-          return *this * (length / !(*this));
-     }
 
-     // set length of vector equal to length
-     const Vector& operator |= (const float length)
-     {
-          (*this).setLength2D(length);
-		  return *this;
-     }
-	 */
 
 	 inline void setLength3D(const float l)
 	 {
 		// IGNORE !!
 		if (l == 0)
 		{
-			//debugLog("setLength3D divide by 0");
+
 		}
 		else
 		{
@@ -314,14 +293,14 @@ public:
 		float len = getLength2D();
 		if (len == 0)
 		{
-			//debugLog("divide by zero!");
+
 		}
 		else
 		{
 			this->x *= (l/len);
 			this->y *= (l/len);
 		}
-		//this->z = 0;
+
 	 }
 
      // return angle between two vectors
@@ -330,31 +309,14 @@ public:
           return acosf(*this % normal);
      }
 
-	 /*
-	 inline scalar_t cheatLen() const
-	 {
-			return (x*x + y*y + z*z);
-	 }
-	 inline scalar_t cheatLen2D() const
-	 {
-		 return (x*x + y*y);
-	 }
-	 inline scalar_t getCheatLength3D() const;
-	 */
+
 
 	 inline bool isLength2DIn(float radius) const
 	 {
 		return (x*x + y*y) <= (radius*radius);
 	 }
 
-     // reflect this vector off surface with normal vector
-	 /*
-     const Vector inline Reflection(const Vector& normal) const
-     {    
-          const Vector vec(*this | 1);     // normalize this vector
-          return (vec - normal * 2.0f * (vec % normal)) * !*this;
-     }
-	 */
+
 
 	 inline void setZero()
 	 {
@@ -392,12 +354,6 @@ public:
 			z += 360;
 	 }
 
-#ifdef BBGE_BUILD_DIRECTX
-	 const D3DCOLOR getD3DColor(float alpha)
-	 {
-		 return D3DCOLOR_RGBA(int(x*255), int(y*255), int(z*255), int(alpha*255));
-	 }
-#endif
 	 void rotate2DRad(float rad);
 	 void rotate2D360(float angle);
 };
@@ -419,9 +375,11 @@ public:
 	void clear();
 	void addPathNode(Vector v, float p);
 	Vector getValue(float percent);
-	int getNumPathNodes() { return pathNodes.size(); }
-	void resizePathNodes(int sz) { pathNodes.resize(sz); }
-	VectorPathNode *getPathNode(int i) { if (i<getNumPathNodes() && i >= 0) return &pathNodes[i]; return 0; }
+	inline size_t getNumPathNodes() { return pathNodes.size(); }
+	void resizePathNodes(size_t sz) { pathNodes.resize(sz); }
+	VectorPathNode *getPathNode(size_t i) { if (i<getNumPathNodes()) return &pathNodes[i]; return 0; }
+	inline VectorPathNode& operator[](size_t i) { return pathNodes[i]; }
+	inline const VectorPathNode& operator[](size_t i) const { return pathNodes[i]; }
 	void cut(int n);
 	void splice(const VectorPath &path, int sz);
 	void prepend(const VectorPath &path);
@@ -436,8 +394,9 @@ protected:
 	std::vector <VectorPathNode> pathNodes;
 };
 
-
-class InterpolatedVector;
+// This struct is used to keep all of the interpolation-specific data out
+// of the global InterpolatedVector class, so that we don't waste memory on
+// non-interpolated vectors.
 struct InterpolatedVectorData
 {
 	InterpolatedVectorData()
@@ -451,7 +410,7 @@ struct InterpolatedVectorData
 		pathTimeMultiplier = 1;
 		timePassed = 0;
 		timePeriod = 0;
-		//fakeTimePassed = 0;
+
 		ease = false;
 		followingPath = false;
 	}
@@ -474,10 +433,6 @@ struct InterpolatedVectorData
 	bool followingPath;
 };
 
-
-// This struct is used to keep all of the interpolation-specific data out
-// of the global InterpolatedVector class, so that we don't waste memory on
-// non-interpolated vectors.
 class InterpolatedVector : public Vector
 {
 public:
@@ -515,8 +470,7 @@ public:
 		return *this;
 	}
 
-	enum InterpolateToFlag { NONE=0, IS_LOOPING };
-	float interpolateTo (Vector vec, float timePeriod, int loopType = 0, bool pingPong = false, bool ease = false, InterpolateToFlag flag = NONE);
+	float interpolateTo (Vector vec, float timePeriod, int loopType = 0, bool pingPong = false, bool ease = false);
 	void inline update(float dt)
 	{
 		if (!data)
@@ -554,13 +508,6 @@ public:
 	{
 		return data && data->followingPath;
 	}
-
-	// for faking a single value
-	inline float getValue() const
-	{
-		return x;
-	}
-
 
 	// We never allocate this if the vector isn't used for
 	// interpolation, which saves a _lot_ of memory.

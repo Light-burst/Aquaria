@@ -23,14 +23,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "../BBGE/Particles.h"
 
-#include "DSQ.h"
-#include "Hair.h"
 #include "Entity.h"
-
-#include "Web.h"
 
 class TileVector;
 class SongIcon;
+class Web;
+class Hair;
 
 struct Target
 {
@@ -76,7 +74,7 @@ enum SeeMapMode
 class SongIconParticle : public Quad
 {
 public:
-	SongIconParticle(Vector color, Vector pos, int note);
+	SongIconParticle(Vector color, Vector pos, size_t note);
 	int note;
 	SongIcon *toIcon;
 protected:
@@ -86,9 +84,9 @@ protected:
 class SongIcon : public Quad
 {
 public:
-	SongIcon(int note);
+	SongIcon(size_t note);
 	void destroy();
-	int note;
+	size_t note;
 	void openNote();
 	void closeNote();
 	void openInterface();
@@ -118,7 +116,7 @@ public:
 	bool blind;
 	bool wasUnderWater;
 	float shotDelay;
-	//Timer shockTimer;
+
 	Timer useItemDelay;
 	Timer lockToWallDelay;
 	float spellCharge;
@@ -138,24 +136,22 @@ class Avatar : public Entity, public ActionMapper
 {
 public:
 	Avatar();
-	void postInit();
 	virtual ~Avatar();
-	void destroy();
-	void action(int actionID, int state);
+	void destroy() OVERRIDE;
+	void action(int actionID, int state, int source, InputDevice device) OVERRIDE;
 	AvatarState state;
 	float burst, burstTimer;
 	float burstDelay;
 	bool bursting;
 	BurstType lastBurstType;
-	//void damage(int amount);
+
 	bool isCharging();
 	void setBlind(float time);
 
 	void revive();
 
 	bool canWarp;
-	void entityDied(Entity *e);
-	void onCollide(Entity *e);
+	void entityDied(Entity *e) OVERRIDE;
 	bool zoomOverriden;
 	void clampPosition();
 
@@ -169,29 +165,20 @@ public:
 
 	void toggleMovement(bool on);
 
-	Vector getFacing();
-
 	void refreshModel(std::string file, const std::string &skin, bool forceIdle=false);
 	void refreshDualFormModel();
 	void switchDualFormMode();
 
-	void enableInput();
-	void disableInput();
+	void enableInput() OVERRIDE;
+	void disableInput() OVERRIDE;
 	void clearTargets();
 	bool singing;
 
-	void doBounce();
-	Vector getKeyDir();
+	bool isActionAndGetDir(Vector& dir);
 
 	void startBurstCommon();
-	void updateJoystick(float dt);
 
-	int getNotesOpen();
-	int getLastNote();
-
-	int lastNote;
-
-	void openSingingInterface();
+	void openSingingInterface(InputDevice device);
 	void closeSingingInterface();
 	void updateSingingInterface(float dt);
 
@@ -207,10 +194,10 @@ public:
 
 	void setNearestPullTarget();
 
-	void formAbility(int ability);
+	void formAbility();
 	bool isMouseInputEnabled();
 
-	void startCharge(int ability);
+	void startCharge();
 	int currentMaxSpeed;
 	Vector getFakeCursorPosition();
 	Vector getVectorToCursor(bool trueMouse=false);
@@ -223,14 +210,13 @@ public:
 	float biteDelay, urchinDelay, jellyDelay;
 	bool movingOn;
 
-	void render();
+	void render(const RenderState& rs) const OVERRIDE;
 	void activateAura(AuraType aura);
 	void stopAura();
 	void setHeadTexture(const std::string &name, float t=0);
 	float headTextureTimer;
 	void updateDamageVisualEffects();
 	int chargeLevelAttained;
-	void chargeVisualEffect(const std::string &tex);
 	void updateFormVisualEffects(float dt);
 	bool isSinging();
 	bool isLockable();
@@ -239,7 +225,7 @@ public:
 	int getBurstDistance();
 	int getStopDistance();
 	int looking;
-	std::string getIdleAnimName();
+	std::string getIdleAnimName() OVERRIDE;
 	bool isRolling() { return rolling; }
 	int rollDir;
 	std::string getBurstAnimName();
@@ -253,8 +239,6 @@ public:
 	void fallOffWall();
 
 	float fireDelay;
-	int getSingingInterfaceRadius();
-	int getOpenSingingInterfaceRadius();
 	AuraType activeAura;
 	float auraTimer;
 	bool fireAtNearestValidEntity(const std::string &shot);
@@ -268,7 +252,7 @@ public:
 	Vector headPosition;
 	void updatePosition();
 	float quickSongCastDelay;
-	void onAnimationKeyPassed(int key);
+	void onAnimationKeyPassed(int key) OVERRIDE;
 
 	bool isSwimming();
 
@@ -276,11 +260,10 @@ public:
 
 	float songInterfaceTimer;
 	void removeEatData(int idx);
-	//std::list<Entity*>bittenEntities;
+
 	typedef std::list<Entity*> BittenEntities;
 	BittenEntities bittenEntities;
-	void updateHeartbeatSfx(float t = 0);
-	Target getNearestTarget(const Vector &checkPos, const Vector &distPos, Entity *source, DamageType dt, bool override=false, std::vector<Target> *ignore=0, EntityList *entityList=0);
+	Target getNearestTarget(const Vector &checkPos, const Vector &distPos, Entity *source, DamageType dt, bool override=false, std::vector<Target> *ignore=0);
 
 	void toggleCape(bool on);
 	void updateLookAt(float dt);
@@ -303,7 +286,7 @@ public:
 
 	Vector getHeadPosition();
 
-	Bone *boneRightFoot, *boneLeftFoot, *boneRightArm, *boneLeftArm, *boneFish2, *bone_head;
+	Bone *boneLeftArm, *boneFish2, *bone_head, *bone_dualFormGlow;
 	Bone *boneLeftHand, *boneRightHand;
 
 	void startFlourish();
@@ -317,10 +300,8 @@ public:
 	Web *web;
 	float rollDelay;
 
-	void loseTargets();
+	bool canSetBoneLock() OVERRIDE;
 
-	bool canSetBoneLock();
-	
 	void revert();
 	void doBindSong();
 	void doShieldSong();
@@ -347,17 +328,20 @@ public:
 	float elementEffectMult;
 
 	bool blockBackFlip;
-	
+
+	int getLastActionSourceID() const { return _lastActionSourceID; }
+	InputDevice getLastActionInputDevice() const { return _lastActionInputDevice; }
+
 protected:
 	void setSongIconPositions();
 
 	Timer webBitTimer;
 	int curWebPoint;
 	void checkUpgradeForShot(Shot *s);
-	int getNumShots();
+	size_t getNumShots();
 	void lockToWallCommon();
-	void onSetBoneLock();
-	void onUpdateBoneLock();
+	void onSetBoneLock() OVERRIDE;
+	void onUpdateBoneLock() OVERRIDE;
 
 	void adjustHeadRot();
 	std::string lastHeadTexture;
@@ -374,6 +358,9 @@ protected:
 	Vector bodyOffset;
 	bool flourish;
 	bool blockSinging;
+	bool _isUnderWater;
+	Path *lastWaterBubble;
+	bool lastJumpOutFromWaterBubble;
 	int spiritEnergyAbsorbed;
 	float formAbilityDelay;
 	Vector bodyPosition;
@@ -387,8 +374,8 @@ protected:
 	Vector fallGravity;
 	int lastOutOfWaterMaxSpeed;
 
-	void onIdle();
-	void onHeal(int type);
+	void onIdle() OVERRIDE;
+	void onHeal(int type) OVERRIDE;
 	ParticleEffect biteLeftEmitter, biteRightEmitter, swimEmitter, auraHitEmitter;
 	ParticleEffect auraEmitter, auraLowEmitter, wakeEmitter, healEmitter, hitEmitter, rollLeftEmitter, rollRightEmitter, spiritBeaconEmitter, plungeEmitter;
 	ParticleEffect speedEmitter, defenseEmitter, invincibleEmitter, regenEmitter;
@@ -397,13 +384,13 @@ protected:
 	void updateCursor(float dt);
 	bool rolling;
 	int rollDidOne;
-	
+
 	void startRoll(int dir);
 	void stopRoll();
 	int getQuadrantDirection(int lastQuad, int quad);
 	void updateRoll(float dt);
 	int lastQuad, lastQuadDir;
-	void onDamage(DamageData &d);
+	void onDamage(DamageData &d) OVERRIDE;
 	void updateHair(float dt);
 
 	void lostTarget(int i, Entity *e);
@@ -412,7 +399,7 @@ protected:
 	void updateAura(float dt);
 
 
-	void onHealthChange(float change);
+	void onHealthChange(float change) OVERRIDE;
 	void startWallBurst(bool useCursor=true);
 	void startBurst();
 
@@ -422,42 +409,38 @@ protected:
 
 	void clampVelocity();
 
-	bool canCharge(int ability);
+	bool canCharge();
 	void formAbilityUpdate(float dt);
 	float revertTimer;
 
 	void endCharge();
-	Entity *activateEntity;
 	bool canMove;
 
-	void onEnterState(int action);
-	void onExitState(int action);
+	void onEnterState(int action) OVERRIDE;
+	void onExitState(int action) OVERRIDE;
 	std::vector<ParticleEffect*>targetQuads;
 	Quad *blinder, *fader, *tripper;
 	void applyBlindEffects();
 	void removeBlindEffects();
 
 	float zoomVel;
-	// implement "bobbing" in a lower class
-	int getBeamWidth();
 	Vector getWallNormal(TileVector t);
 	bool checkWarpAreas();
 
 	float splashDelay;
-	//Hair *hair;
 
-	//Item *currentItem;
-	void onUpdate(float dt);
-	void onRender();
+
+
+	void onUpdate(float dt) OVERRIDE;
 
 	Quad *glow;
 	bool swimming;
 
-	void lmbd();
-	void lmbu();
+	void lmbd(int source, InputDevice device);
+	void lmbu(int source, InputDevice device);
 
-	void rmbd();
-	void rmbu();
+	void rmbd(int source, InputDevice device);
+	void rmbu(int source, InputDevice device);
 
 	bool charging;
 
@@ -480,6 +463,9 @@ protected:
 
 	int _collisionAvoidRange;
 	float _collisionAvoidMod;
+
+	int _lastActionSourceID;
+	InputDevice _lastActionInputDevice;
 
 };
 

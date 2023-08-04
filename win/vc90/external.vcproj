@@ -40,10 +40,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\ExternalLibs\gl&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg-1.3.0\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis-1.3.3\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAVE_FCNTL_H;FT_CONFIG_OPTION_SYSTEM_ZLIB;FTGL_LIBRARY_STATIC;FT2_BUILD_LIBRARY;GL_GLEXT_LEGACY=1;TIXML_USE_STL=1;HAVE_PUTENV=1;VFS_ENABLE_C_API=1"
-				MinimalRebuild="true"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\BBGE&quot;;&quot;$(SolutionDir)\..\ExternalLibs\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng&quot;;&quot;$(SolutionDir)\..\ExternalLibs\&quot;;&quot;$(SolutionDir)\..\ExternalLibs\AL&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAVE_FCNTL_H;FT_CONFIG_OPTION_SYSTEM_ZLIB;FTGL_LIBRARY_STATIC;FT2_BUILD_LIBRARY;GL_GLEXT_LEGACY=1;HAVE_PUTENV=1;VFS_ENABLE_C_API=1"
+				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
 				EnableFunctionLevelLinking="true"
@@ -115,7 +116,7 @@
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
 				EnableFiberSafeOptimizations="true"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\ExternalLibs\gl&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg-1.3.0\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis-1.3.3\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\BBGE&quot;;&quot;$(SolutionDir)\..\ExternalLibs\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng&quot;;&quot;$(SolutionDir)\..\ExternalLibs\AL&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAVE_FCNTL_H;FT_CONFIG_OPTION_SYSTEM_ZLIB;FTGL_LIBRARY_STATIC;FT2_BUILD_LIBRARY;GL_GLEXT_LEGACY=1;TIXML_USE_STL=1;HAVE_PUTENV=1;_HAS_EXCEPTIONS=0;VFS_ENABLE_C_API=1"
 				StringPooling="true"
 				ExceptionHandling="0"
@@ -129,6 +130,145 @@
 				WarningLevel="3"
 				DebugInformationFormat="3"
 				DisableSpecificWarnings="4244;4996;4305;4800"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				AdditionalDependencies="ws2_32.lib"
+				IgnoreAllDefaultLibraries="true"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug-SDL1.2|Win32"
+			OutputDirectory="$(SolutionDir)\temp\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory="$(SolutionDir)\temp\$(ConfigurationName)\$(ProjectName)"
+			ConfigurationType="4"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalOptions="/MP"
+				Optimization="0"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\ExternalLibs\gl&quot;;&quot;$(SolutionDir)\..\ExternalLibs\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL12\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng&quot;;&quot;$(SolutionDir)\..\ExternalLibs\&quot;;&quot;$(SolutionDir)\..\ExternalLibs\tinyxml2&quot;;&quot;$(SolutionDir)\..\ExternalLibs\AL&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAVE_FCNTL_H;FT_CONFIG_OPTION_SYSTEM_ZLIB;FTGL_LIBRARY_STATIC;FT2_BUILD_LIBRARY;GL_GLEXT_LEGACY=1;HAVE_PUTENV=1;VFS_ENABLE_C_API=1"
+				MinimalRebuild="false"
+				BasicRuntimeChecks="0"
+				RuntimeLibrary="3"
+				EnableFunctionLevelLinking="true"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="4"
+				DisableSpecificWarnings="4244;4996;4305;4800"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				AdditionalDependencies="ws2_32.lib"
+				AdditionalLibraryDirectories=""
+				IgnoreAllDefaultLibraries="true"
+				IgnoreDefaultLibraryNames=""
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release-SDL1.2|Win32"
+			OutputDirectory="$(SolutionDir)\temp\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory="$(SolutionDir)\temp\$(ConfigurationName)\$(ProjectName)"
+			ConfigurationType="4"
+			CharacterSet="2"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="3"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				OmitFramePointers="true"
+				EnableFiberSafeOptimizations="true"
+				WholeProgramOptimization="true"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include\freetype\config&quot;;&quot;$(SolutionDir)\..\ExternalLibs\gl&quot;;&quot;$(SolutionDir)\..\ExternalLibs\zlib&quot;;&quot;$(SolutionDir)\..\ExternalLibs\png&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libogg\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\libvorbis\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\freetype2\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\FTGL\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\SDL12\include&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs&quot;;&quot;$(SolutionDir)\..\ExternalLibs\ttvfs_cfileapi&quot;;&quot;$(SolutionDir)\..\ExternalLibs\glpng&quot;;&quot;$(SolutionDir)\..\ExternalLibs\&quot;;&quot;$(SolutionDir)\..\ExternalLibs\tinyxml2&quot;;&quot;$(SolutionDir)\..\ExternalLibs\AL\&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAVE_FCNTL_H;FT_CONFIG_OPTION_SYSTEM_ZLIB;FTGL_LIBRARY_STATIC;FT2_BUILD_LIBRARY;GL_GLEXT_LEGACY=1;TIXML_USE_STL=1;HAVE_PUTENV=1;_HAS_EXCEPTIONS=0;VFS_ENABLE_C_API=1"
+				StringPooling="true"
+				ExceptionHandling="0"
+				BufferSecurityCheck="false"
+				EnableEnhancedInstructionSet="0"
+				FloatingPointModel="2"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -182,6 +322,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\ExternalLibs\luaalloc.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\ExternalLibs\luaalloc.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\ExternalLibs\minihttp.cpp"
 				>
 			</File>
@@ -189,182 +337,58 @@
 				RelativePath="..\..\ExternalLibs\minihttp.h"
 				>
 			</File>
-			<Filter
-				Name="glpng"
+			<File
+				RelativePath="..\..\ExternalLibs\minipstdint.h"
 				>
-				<File
-					RelativePath="..\..\ExternalLibs\glpng\glpng.c"
+			</File>
+			<File
+				RelativePath="..\..\ExternalLibs\miniz.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\ExternalLibs\miniz.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\ExternalLibs\mojoal.c"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
-				</File>
-				<File
-					RelativePath="..\..\ExternalLibs\glpng.h"
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
 					>
-				</File>
-				<Filter
-					Name="png"
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-SDL1.2|Win32"
 					>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\png.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\png.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngconf.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngdebug.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngerror.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngget.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pnginfo.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pnglibconf.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngmem.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngpread.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngpriv.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngread.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngrio.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngrtran.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngrutil.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngset.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngstruct.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\png\pngtrans.c"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="zlib"
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release-SDL1.2|Win32"
 					>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\adler32.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\compress.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\crc32.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\crc32.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\deflate.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\deflate.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\infback.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\inffast.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\inffast.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\inffixed.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\inflate.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\inflate.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\inftrees.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\inftrees.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\trees.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\trees.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\uncompr.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\zconf.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\zlib.h"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\zutil.c"
-						>
-					</File>
-					<File
-						RelativePath="..\..\ExternalLibs\glpng\zlib\zutil.h"
-						>
-					</File>
-				</Filter>
-			</Filter>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\ExternalLibs\tinylibs.cpp"
+				>
+			</File>
 			<Filter
 				Name="FTGL"
 				>
@@ -457,11 +481,11 @@
 				Name="libogg"
 				>
 				<File
-					RelativePath="..\..\ExternalLibs\libogg-1.3.0\src\bitwise.c"
+					RelativePath="..\..\ExternalLibs\libogg\src\bitwise.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libogg-1.3.0\src\framing.c"
+					RelativePath="..\..\ExternalLibs\libogg\src\framing.c"
 					>
 				</File>
 			</Filter>
@@ -469,167 +493,167 @@
 				Name="libvorbis"
 				>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\analysis.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\analysis.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\backends.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\backends.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\bitrate.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\bitrate.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\bitrate.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\bitrate.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\block.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\block.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\codebook.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\codebook.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\codebook.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\codebook.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\codec_internal.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\codec_internal.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\envelope.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\envelope.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\envelope.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\envelope.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\floor0.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\floor0.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\floor1.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\floor1.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\highlevel.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\highlevel.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\info.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\info.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\lookup.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\lookup.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\lookup.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\lookup.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\lookup_data.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\lookup_data.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\lpc.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\lpc.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\lpc.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\lpc.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\lsp.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\lsp.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\lsp.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\lsp.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\mapping0.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\mapping0.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\masking.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\masking.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\mdct.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\mdct.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\mdct.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\mdct.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\misc.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\misc.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\os.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\os.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\psy.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\psy.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\psy.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\psy.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\registry.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\registry.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\registry.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\registry.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\res0.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\res0.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\scales.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\scales.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\sharedbook.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\sharedbook.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\smallft.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\smallft.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\smallft.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\smallft.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\synthesis.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\synthesis.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\vorbisenc.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\vorbisenc.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\vorbisfile.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\vorbisfile.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\window.c"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\window.c"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\lib\window.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\lib\window.h"
 					>
 				</File>
 			</Filter>
@@ -750,10 +774,6 @@
 				</File>
 				<File
 					RelativePath="..\..\ExternalLibs\freetype2\src\base\ftwinfnt.c"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ExternalLibs\freetype2\src\base\ftxf86.c"
 					>
 				</File>
 				<File
@@ -1149,14 +1169,6 @@
 				Name="ttvfs_zip"
 				>
 				<File
-					RelativePath="..\..\ExternalLibs\ttvfs_zip\miniz.c"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ExternalLibs\ttvfs_zip\miniz.h"
-					>
-				</File>
-				<File
 					RelativePath="..\..\ExternalLibs\ttvfs_zip\VFSDirZip.cpp"
 					>
 				</File>
@@ -1190,30 +1202,6 @@
 				</File>
 			</Filter>
 			<Filter
-				Name="LVPA"
-				>
-				<File
-					RelativePath="..\..\ExternalLibs\lvpa\ByteBuffer.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ExternalLibs\lvpa\ByteConverter.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ExternalLibs\lvpa\LVPACommon.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ExternalLibs\lvpa\LVPACompileConfig.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ExternalLibs\lvpa\LVPAInternal.h"
-					>
-				</File>
-			</Filter>
-			<Filter
 				Name="ttvfs_cfileapi"
 				>
 				<File
@@ -1236,7 +1224,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\ExternalLibs\JPS.h"
+				RelativePath="..\..\ExternalLibs\jps.hh"
+				>
+			</File>
+			<File
+				RelativePath="..\..\ExternalLibs\stb_image.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\ExternalLibs\stb_image_resize.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\ExternalLibs\stb_image_write.h"
 				>
 			</File>
 			<Filter
@@ -1367,15 +1367,15 @@
 				Name="libvorbis"
 				>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\include\vorbis\codec.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\include\vorbis\codec.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\include\vorbis\vorbisenc.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\include\vorbis\vorbisenc.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libvorbis-1.3.3\include\vorbis\vorbisfile.h"
+					RelativePath="..\..\ExternalLibs\libvorbis\include\vorbis\vorbisfile.h"
 					>
 				</File>
 			</Filter>
@@ -1383,32 +1383,308 @@
 				Name="libogg"
 				>
 				<File
-					RelativePath="..\..\ExternalLibs\libogg-1.3.0\include\ogg\ogg.h"
+					RelativePath="..\..\ExternalLibs\libogg\include\ogg\ogg.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\libogg-1.3.0\include\ogg\os_types.h"
+					RelativePath="..\..\ExternalLibs\libogg\include\ogg\os_types.h"
 					>
 				</File>
 			</Filter>
 			<Filter
-				Name="gl"
+				Name="SDL2"
 				>
 				<File
-					RelativePath="..\..\ExternalLibs\gl\gl.h"
+					RelativePath="..\..\ExternalLibs\SDL2\include\begin_code.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\gl\gles.h"
+					RelativePath="..\..\ExternalLibs\SDL2\include\close_code.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ExternalLibs\gl\glext.h"
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_assert.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_atomic.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_audio.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_bits.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_blendmode.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_clipboard.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_config.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_config_android.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_config_iphoneos.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_config_macosx.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_config_minimal.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_config_pandora.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_config_psp.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_config_windows.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_config_wiz.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_copying.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_cpuinfo.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_endian.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_error.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_events.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_gamecontroller.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_gesture.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_haptic.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_hints.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_joystick.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_keyboard.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_keycode.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_loadso.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_log.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_main.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_messagebox.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_mouse.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_mutex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_name.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_opengl.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_opengles.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_opengles2.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_pixels.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_platform.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_power.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_quit.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_rect.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_render.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_revision.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_rwops.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_scancode.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_shape.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_stdinc.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_surface.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_system.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_syswm.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_assert.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_common.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_compare.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_crc32.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_font.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_fuzzer.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_harness.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_images.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_log.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_md5.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_test_random.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_thread.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_timer.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_touch.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_types.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_version.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ExternalLibs\SDL2\include\SDL_video.h"
 					>
 				</File>
 			</Filter>
 			<Filter
-				Name="SDL"
+				Name="SDL1.2"
 				>
 				<File
 					RelativePath="..\..\ExternalLibs\SDL12\include\begin_code.h"
@@ -1554,11 +1830,11 @@
 			Name="tinyxml2"
 			>
 			<File
-				RelativePath="..\..\ExternalLibs\tinyxml2.cpp"
+				RelativePath="..\..\ExternalLibs\tinyxml2\tinyxml2.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\ExternalLibs\tinyxml2.h"
+				RelativePath="..\..\ExternalLibs\tinyxml2\tinyxml2.h"
 				>
 			</File>
 		</Filter>

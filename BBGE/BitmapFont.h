@@ -21,18 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef BITMAPFONT_H
 #define BITMAPFONT_H
 
-//#include "DrawText.h"
+
 #include "RenderObject.h"
 #include "BaseText.h"
 
-#include "../ExternalLibs/glfont2/glfont2.h"
-
-enum BitmapFontEffect
-{
-	BFE_NONE			= 0,
-	BFE_SHADOWBLUR		= 1,
-	BFE_MAX
-};
+namespace glfont { class GLFont; }
 
 struct BmpFont
 {
@@ -41,7 +34,7 @@ struct BmpFont
 	void load(const std::string &file, float scale=1, bool loadTexture=true);
 	void destroy();
 
-	glfont::GLFont font;
+	glfont::GLFont * const font;
 	float scale;
 	bool loaded;
 
@@ -54,49 +47,42 @@ struct BmpFont
 class BitmapText : public BaseText
 {
 public:
-	BitmapText(BmpFont *bmpFont);
-	void setText(const std::string &text);
-	void setWidth(float width);
+	BitmapText(const BmpFont& bmpFont);
+	void setText(const std::string &text) OVERRIDE;
+	void setWidth(float width) OVERRIDE;
 	float getSetWidth(); // get the width that was set
 	void scrollText(const std::string &text, float scrollSpeed);
-	void setFontSize(float sz);
+	void setFontSize(float sz) OVERRIDE;
 	bool isScrollingText();
 	void stopScrollingText();
 	bool isEmpty();
-	virtual void setAlign(Align align);
+	virtual void setAlign(Align align) OVERRIDE;
 	std::string getText();
 	int getWidthOnScreen();
-	void loadSpacingMap(const std::string &file);
-	Vector getColorIndex(int i, int j);
+	Vector getColorIndex(size_t i, size_t j);
 	void updateWordColoring();
 	void autoKern();
-	void setBitmapFontEffect(BitmapFontEffect bfe);
-	void render();
-	virtual float getHeight();
-	void unloadDevice();
-	void reloadDevice();
-	float getStringWidth(const std::string& text);
-	float getActualWidth() { return maxW; }
-	float getLineHeight();
-	int getNumLines();
+	virtual float getHeight() const OVERRIDE;
+	void unloadDevice() OVERRIDE;
+	void reloadDevice() OVERRIDE;
+	float getStringWidth(const std::string& text) const OVERRIDE;
+	float getActualWidth() const OVERRIDE { return maxW; }
+	float getLineHeight() const OVERRIDE;
+	size_t getNumLines() const OVERRIDE;
 
 protected:
+	const BmpFont& bmpFont;
 	float scrollSpeed;
-	BmpFont *bmpFont;
-	int bfePass;
-	BitmapFontEffect bfe;
-	void onUpdate(float dt);
+	void onUpdate(float dt) OVERRIDE;
 	float scrollDelay;
 	bool scrolling;
-	int currentScrollLine;
-	int currentScrollChar;
+	size_t currentScrollLine;
+	size_t currentScrollChar;
 	Align align;
 	float alignWidth;
-	typedef std::map<char, float> SpacingMap;
-	SpacingMap spacingMap;
 	void formatText();
 	float fontDrawSize;
-	void onRender();
+	void onRender(const RenderState& rs) const OVERRIDE;
 	typedef std::vector<std::string> Lines;
 	Lines lines;
 	typedef std::vector<Vector> ColorIndices;

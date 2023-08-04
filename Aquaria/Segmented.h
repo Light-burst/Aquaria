@@ -27,7 +27,7 @@ class Segmented
 {
 public:
 	Segmented(float minDist, float maxDist);
-	RenderObject *getSegment(int seg);
+	RenderObject *getSegment(size_t seg);
 	void updateAlpha(float a);
 	void warpSegments(const Vector &position);
 	void setMaxDist(float m);
@@ -38,7 +38,7 @@ protected:
 	void initSegments(const Vector &position);
 	void updateSegments(const Vector &position, bool reverse=false);
 	void updateSegment(int i, const Vector &diff);
-	void destroySegments(float life = 0.01);
+	void destroySegments(float life = 0.01f);
 	std::vector<Vector> lastPositions;
 	int numSegments;
 	std::vector<RenderObject *> segments;
@@ -47,11 +47,11 @@ protected:
 class Strand : public RenderObject, public Segmented
 {
 public:
-	Strand(const Vector &position, int segs, int dist=32);
-	void destroy();
+	Strand(const Vector &position, size_t segs, size_t dist=32);
+	void destroy() OVERRIDE;
 protected:
-	void onUpdate(float dt);
-	void onRender();
+	void onUpdate(float dt) OVERRIDE;
+	void onRender(const RenderState& rs) const OVERRIDE;
 };
 
 #endif

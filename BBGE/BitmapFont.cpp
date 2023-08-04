@@ -19,12 +19,15 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "BitmapFont.h"
+#include "RenderBase.h"
 #include "Core.h"
-//#include "DSQ.h"
+
+#include "../ExternalLibs/glfont2/glfont2.h"
 
 using namespace glfont;
 
 BmpFont::BmpFont()
+: font(new GLFont)
 {
 	scale = 1;
 	loaded = false;
@@ -35,6 +38,7 @@ BmpFont::BmpFont()
 
 BmpFont::~BmpFont()
 {
+	delete font;
 	destroy();
 }
 
@@ -42,7 +46,7 @@ void BmpFont::destroy()
 {
 	if (loaded)
 	{
-		font.Destroy();
+		font->Destroy();
 		loaded = false;
 	}
 
@@ -52,63 +56,40 @@ void BmpFont::destroy()
 void BmpFont::load(const std::string &file, float scale, bool loadTexture)
 {
 	if (loaded)
-		font.Destroy();
+		font->Destroy();
 
 	this->scale = scale;
 
-#ifdef BBGE_BUILD_OPENGL
 	GLuint id=0;
 	glGenTextures(1, &id);
 
-	if (!font.Create(file.c_str(), id, loadTexture))
+	if (!font->Create(file.c_str(), id, loadTexture))
 		return;
 
-#endif
 
 	loaded = true;
 }
 
-Texture *fontTextureTest = 0;
-BitmapText::BitmapText(BmpFont *bmpFont)
+BitmapText::BitmapText(const BmpFont& bmpFont)
+	: bmpFont(bmpFont)
 {
-	this->bmpFont = bmpFont;
-	bfePass =0;
-	bfe = BFE_NONE;
-
 	currentScrollLine = currentScrollChar = 0;
 	scrollDelay = 0;
 	scrolling = false;
 	align = ALIGN_CENTER;
 	textWidth = 600;
 	this->fontDrawSize = 24;
-	//color = Vector(0.5,0.5,1);
+
 	cull = false;
-	//setTexture(font);
+
 
 	alignWidth = 0;
 
-	//fontTextureTest = core->addTexture("font");
+
 }
 
 void BitmapText::autoKern()
 {
-}
-
-void BitmapText::loadSpacingMap(const std::string &file)
-{
-	spacingMap.clear();
-	InStream inFile(file.c_str());
-	std::string line;
-	while (std::getline(inFile, line))
-	{
-		if (!line.empty())
-		{
-			char c = line[0];
-			line = line.substr(2, line.length());
-			std::istringstream is(line);
-			is >> spacingMap[c];
-		}
-	}
 }
 
 int BitmapText::getWidthOnScreen()
@@ -142,15 +123,15 @@ float BitmapText::getSetWidth()
 	return textWidth;
 }
 
-float BitmapText::getHeight()
+float BitmapText::getHeight() const
 {
-	float sz = bmpFont->font.GetCharHeight('A') * bmpFont->scale;
+	float sz = bmpFont.font->GetCharHeight('A') * bmpFont.scale;
 	return lines.size()*sz;
 }
 
-float BitmapText::getLineHeight()
+float BitmapText::getLineHeight() const
 {
-	return bmpFont->font.GetCharHeight('A') * bmpFont->scale;
+	return bmpFont.font->GetCharHeight('A') * bmpFont.scale;
 }
 
 void BitmapText::formatText()
@@ -163,10 +144,10 @@ void BitmapText::formatText()
 	float currentWidth = 0;
 	alignWidth = 0;
 	maxW = 0;
-	for (int i = 0; i < text.size(); i++)
-	{		
-		//currentWidth += spacingMap[text[i]]*fontDrawSize;
-		float sz = bmpFont->font.GetCharWidth(text[i])*bmpFont->scale;
+	for (size_t i = 0; i < text.size(); i++)
+	{
+
+		float sz = bmpFont.font->GetCharWidth(text[i])*bmpFont.scale;
 		currentWidth += sz;
 
 		if (currentWidth+sz >= textWidth || text[i] == '\n')
@@ -201,41 +182,19 @@ void BitmapText::formatText()
 	colorIndices.clear();
 }
 
-void BitmapText::setBitmapFontEffect(BitmapFontEffect bfe)
-{
-	this->bfe = bfe;
-}
-
 void BitmapText::updateWordColoring()
 {
 	colorIndices.resize(lines.size());
-	for (int i = 0; i < colorIndices.size(); i++)
+	for (size_t i = 0; i < colorIndices.size(); i++)
 	{
 		colorIndices[i].resize(lines[i].size());
-		for (int j = 0; j < colorIndices[i].size(); j++)
+		for (size_t j = 0; j < colorIndices[i].size(); j++)
 		{
 			colorIndices[i][j] = Vector(1,1,1);
 		}
 	}
 
-	/*
-	for (int i = 0; i < lines.size(); i++)
-	{
-		int c = 0;
-		for (int t = 0; t < dsq->continuity.wordColoring.size(); t++)
-		{
-			WordColoring *w = &dsq->continuity.wordColoring[t];
-			if ((c = lines[i].find(w->word)) != std::string::npos)
-			{
-				for (int j = c; j < c + w->word.size(); j++)
-				{
-					colorIndices[i][j] = w->color;
-				}
-			}
-		}
-	}
-	*/
-	//lines.push_back(text);
+
 
 }
 
@@ -263,7 +222,6 @@ void BitmapText::setFontSize(float sz)
 
 void BitmapText::onUpdate(float dt)
 {
-	bfePass = 0;
 	RenderObject::onUpdate(dt);
 	if (scrollDelay > 0 && scrolling)
 	{
@@ -297,49 +255,40 @@ void BitmapText::onUpdate(float dt)
 	}
 }
 
-Vector BitmapText::getColorIndex(int i, int j)
+Vector BitmapText::getColorIndex(size_t i, size_t j)
 {
 	Vector c(1,1,1);
-	if (!(i < 0 || j < 0))
+	if ( i < colorIndices.size() && j < colorIndices[i].size())
 	{
-		if ( i < colorIndices.size() && j < colorIndices[i].size())
-		{
-			c = colorIndices[i][j];
-		}
+		c = colorIndices[i][j];
 	}
 	return c;
 }
 
-void BitmapText::onRender()
+void BitmapText::onRender(const RenderState& rs) const
 {
-	if (!bmpFont) return;
-	float top_color[3] = {bmpFont->fontTopColor.x*color.x, bmpFont->fontTopColor.y*color.y, bmpFont->fontTopColor.z*color.z};
-	float bottom_color[3] = {bmpFont->fontBtmColor.x*color.x, bmpFont->fontBtmColor.y*color.y, bmpFont->fontBtmColor.z*color.z};
+	const Vector top = bmpFont.fontTopColor;
+	const Vector btm = bmpFont.fontBtmColor;
+	float top_color[3] = {top.x*color.x, top.y*color.y, top.z*color.z};
+	float bottom_color[3] = {btm.x*color.x, btm.y*color.y, btm.z*color.z};
 
-#ifdef BBGE_BUILD_OPENGL
 	glEnable(GL_TEXTURE_2D);
-	/*
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	*/
-	//glDisable(GL_CULL_FACE);
 
-	//glScalef(1, -1, 0);
 
-	bmpFont->font.Begin();
+	const glfont::GLFont * const font = bmpFont.font;
+	font->Begin();
 
-	if (fontTextureTest) fontTextureTest->apply();
+	if (bmpFont.overrideTexture) bmpFont.overrideTexture->apply();
 
-	if (bmpFont->overrideTexture) bmpFont->overrideTexture->apply();
-
+	const float scale = bmpFont.scale;
 	float y=0;
 	float x=0;
 
-	float adj = bmpFont->font.GetCharHeight('A') * bmpFont->scale;
+	float adj = font->GetCharHeight('A') * scale;
 
 	if (scrolling)
 	{
-		for (int i = 0; i <= currentScrollLine; i++)
+		for (size_t i = 0; i <= currentScrollLine; i++)
 		{
 			std::string theLine = lines[i];
 			if (i == currentScrollLine)
@@ -349,40 +298,35 @@ void BitmapText::onRender()
 			if (align == ALIGN_CENTER)
 			{
 				std::pair<int, int> sz;
-				bmpFont->font.GetStringSize(lines[i], &sz);
-				x = -sz.first*0.5f*bmpFont->scale;
+				font->GetStringSize(lines[i], &sz);
+				x = -sz.first*0.5f*scale;
 			}
 			float la = 1.0f-(scrollDelay/scrollSpeed);
-			/*
-			std::ostringstream os;
-			os << "la: " << la;
-			debugLog(os.str());
-			*/
 
-			bmpFont->font.DrawString(theLine, bmpFont->scale, x, y, top_color, bottom_color, alpha.x, la);
+
+			font->DrawString(theLine, scale, x, y, top_color, bottom_color, alpha.x, la);
 			y += adj;
 		}
 	}
 	else
 	{
-		for (int i = 0; i < lines.size(); i++)
+		for (size_t i = 0; i < lines.size(); i++)
 		{
 			x=0;
 			if (align == ALIGN_CENTER)
 			{
 				std::pair<int, int> sz;
-				bmpFont->font.GetStringSize(lines[i], &sz);
-				x = -sz.first*0.5f*bmpFont->scale;
+				font->GetStringSize(lines[i], &sz);
+				x = -sz.first*0.5f*scale;
 			}
-			bmpFont->font.DrawString(lines[i], bmpFont->scale, x, y, top_color, bottom_color, alpha.x, 1);
+			font->DrawString(lines[i], scale, x, y, top_color, bottom_color, alpha.x, 1);
 			y += adj;
 		}
 	}
-	
-	//glEnable(GL_CULL_FACE);
+
+
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-#endif
 }
 
 void BitmapText::unloadDevice()
@@ -396,25 +340,6 @@ void BitmapText::reloadDevice()
 	setText(this->text);
 }
 
-void BitmapText::render()
-{
-	RenderObject::render();
-	if (!bfePass)
-	{
-		if (bfe == BFE_SHADOWBLUR)
-		{
-			InterpolatedVector oldAlpha = alpha, oldPos = position;
-			Vector adjust(rand()%5-2, rand()%5-2+2);
-			position += adjust;
-			alpha *= 0.4f;
-			bfePass = 1;
-			RenderObject::render();
-			alpha = oldAlpha;
-			position = oldPos;
-		}
-	}
-}
-
 void BitmapText::stopScrollingText()
 {
 	scrolling = false;
@@ -425,12 +350,12 @@ bool BitmapText::isScrollingText()
 	return scrolling;
 }
 
-int BitmapText::getNumLines()
+size_t BitmapText::getNumLines() const
 {
 	return lines.size();
 }
 
-float BitmapText::getStringWidth(const std::string& text)
+float BitmapText::getStringWidth(const std::string& text) const
 {
 	std::string tmp;
 	int maxsize = 0;
@@ -440,7 +365,7 @@ float BitmapText::getStringWidth(const std::string& text)
 		if(text[i] == '\n')
 		{
 			std::pair<int, int> dim;
-			bmpFont->font.GetStringSize(tmp, &dim);
+			bmpFont.font->GetStringSize(tmp, &dim);
 			maxsize = std::max(maxsize, dim.first);
 			tmp.resize(0);
 		}
@@ -448,39 +373,10 @@ float BitmapText::getStringWidth(const std::string& text)
 			tmp += text[i];
 	}
 	std::pair<int, int> dim;
-	bmpFont->font.GetStringSize(tmp, &dim);
+	bmpFont.font->GetStringSize(tmp, &dim);
 	maxsize = std::max(maxsize, dim.first);
 
-	return maxsize * bmpFont->scale;
+	return maxsize * bmpFont.scale;
 }
 
-/*
-BitmapText::BitmapText() : RenderObject()
-{
-	cull = false;
-	followCamera = 1;
-	scrollSpeed = 0.1f;
-}
 
-void BitmapText::scrollText(const std::string &text, float scrollSpeed)
-{
-	setText(text);
-	this->scrollSpeed = scrollSpeed;
-}
-
-void BitmapText::setText(const std::string &text)
-{
-	this->text = text;
-}
-
-std::string BitmapText::getText()
-{
-	return text;
-}
-
-void BitmapText::onRender()
-{
-	CTextDrawer::GetSingleton().SetColor(color.x, color.y, color.z, alpha.getValue());
-	dsq->print(position.x, 600 - (position.y + 16*2), text);
-}
-*/
