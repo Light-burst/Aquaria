@@ -597,7 +597,7 @@ void SoundManager::update(float dt)
                 debugLog("music not playing, but it should be - force restart");
                 if (mode == MODE_SINGLE) {
                     playMusic(lastMusic, SLT_LOOP, SFT_IN, 1,
-                              SCT_NORMAL); // FIXME: make sure this works with playMusicOnce()
+                              SCT_NORMAL);
                 }
                 if (mode == MODE_LAYERED  ||  mode == MODE_SWITCH) {
                     std::vector<std::string> names;
