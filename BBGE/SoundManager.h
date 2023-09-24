@@ -209,6 +209,7 @@ public:
 	EventPtr event_playVoice, event_stopVoice;
 
 	std::string lastVoice, lastMusic;
+    std::vector<std::string> lastDynMusic;
 
 	typedef std::vector<std::string> LocalSounds;
 	LocalSounds localSounds;

@@ -593,10 +593,24 @@ void SoundManager::update(float dt)
 		if (!isPlayingMusic())
 		{
 			if(!playingMusicOnce && lastMusic.size())
-			{
-				debugLog("music not playing, but it should be - force restart");
-				playMusic(lastMusic, SLT_LOOP, SFT_IN, 1, SCT_NORMAL); // FIXME: make sure this works with playMusicOnce()
-			}
+            {
+                debugLog("music not playing, but it should be - force restart");
+                if (mode == MODE_SINGLE) {
+                    playMusic(lastMusic, SLT_LOOP, SFT_IN, 1,
+                              SCT_NORMAL); // FIXME: make sure this works with playMusicOnce()
+                }
+                if (mode == MODE_LAYERED  ||  mode == MODE_SWITCH) {
+                    std::vector<std::string> names;
+                    names.push_back(lastMusic);
+                    for (std::string song : lastDynMusic) {
+                        names.push_back(song);
+                    }
+                    playDynamicMusic(names, SLT_LOOP, SFT_IN, 1, SCT_NORMAL);
+                    if(mode==MODE_SWITCH) {
+                        playSwitch(swtch);
+                    }
+                }
+            }
 			else
 			{
 				stopMusic();
@@ -1119,7 +1133,7 @@ bool SoundManager::playMusic(const std::string &name, SoundLoopType slt, SoundFa
 
 	if (!enabled) return false;
 
-    if(mode == MODE_LAYERED) {
+    if(mode == MODE_LAYERED || mode == MODE_SWITCH) {
         for(int i=0;i<dynMusicChannel.size();i++) {
             dynMusicChannel[i]->stop();
             dynMusicChannel[i] = 0;
@@ -1129,10 +1143,6 @@ bool SoundManager::playMusic(const std::string &name, SoundLoopType slt, SoundFa
             dynMusicStream[i] = 0;
         }
         dynMusicLayers = 0;
-        mode = MODE_SINGLE;
-    }
-    if(mode == MODE_SWITCH) {
-        // Go from switch to single
         mode = MODE_SINGLE;
     }
 
@@ -1315,14 +1325,37 @@ bool SoundManager::playDynamicMusic(std::vector<std::string> names, SoundLoopTyp
     debugLog("fadeMusic ended");
 
 
-    lastMusic = "Worship1";
+    lastMusic = names[0];
     stringToLower(lastMusic);
+    lastDynMusic.clear();
+    int i=0;
+    for(std::string name : names) {
+        if(i==0) {
+            lastMusic = name;
+            stringToLower(lastMusic);
+        }
+        else {
+            lastDynMusic.push_back(name);
+            stringToLower(lastDynMusic[i-1]);
+        }
+        i++;
+    }
 
 
     if (sft == SFT_CROSS) {
         fadeMusic(SFT_CROSS, trans);
     }
 
+    if (tempMusicChannel)
+    {
+        tempMusicChannel->stop();
+        if (tempMusic)
+        {
+            tempMusic->release();
+            tempMusic = 0;
+        }
+        tempMusicChannel = 0;
+    }
 
     if (musicStream) {
         musicStream->release();
@@ -1477,7 +1510,7 @@ bool SoundManager::playSwitch(bool choice)
     if(mode == MODE_LAYERED) {
         for(int i=0; i<dynMusicChannel.size(); i++) {
             setMusicFader(0, 1, i+1);
-            debugLog("setVol channel[" + std::to_string(i) + "] down");
+            debugLog("setVol channel[" + std::to_string(i+1) + "] down");
         }
         mode = MODE_SWITCH;
     }
